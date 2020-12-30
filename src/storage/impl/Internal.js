@@ -58,6 +58,7 @@ class Internal {
   delete(collectionName, whereFn) {
     const collection = this._getCollection(collectionName);
     collection.removeWhere(whereFn);
+    // note that this does not return anything. we may need to update that at some point
   }
 }
 
