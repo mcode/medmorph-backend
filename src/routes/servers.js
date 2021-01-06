@@ -1,3 +1,6 @@
+const { v4: uuidv4 } = require('uuid');
+const { StatusCodes } = require('http-status-codes');
+
 const express = require('express');
 const router = express.Router();
 
@@ -12,16 +15,6 @@ router.get('/', (req, res) => {
   res.send(result);
 });
 
-// https://stackoverflow.com/a/2117523
-// replace this with a real library if we find more uses for uuids
-function uuidv4() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = (Math.random() * 16) | 0,
-      v = c == 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 // POST /
 // Add a new server
 router.post('/', (req, res) => {
@@ -32,7 +25,7 @@ router.post('/', (req, res) => {
   }
 
   db.insert(COLLECTION, newItem);
-  res.sendStatus(201);
+  res.status(StatusCodes.CREATED).send(newItem);
 });
 
 // GET /:id
@@ -43,7 +36,7 @@ router.get('/:id', (req, res) => {
   if (resultList[0]) {
     res.send(resultList[0]);
   } else {
-    res.sendStatus(404);
+    res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
 });
 
@@ -51,7 +44,7 @@ router.get('/:id', (req, res) => {
 // update
 router.put('/:id', (req, res) => {
   if (req.params.id !== req.body.id) {
-    res.status(409).send(`server id does not match URL id`);
+    res.status(StatusCodes.CONFLICT).send(`server id does not match URL id`);
     return;
   }
 
@@ -64,7 +57,7 @@ router.put('/:id', (req, res) => {
     s => s.id === id,
     s => Object.assign(s, req.body)
   );
-  res.sendStatus(200);
+  res.sendStatus(StatusCodes.OK); // 200
 });
 
 // DELETE /:id
@@ -72,7 +65,7 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const id = req.params.id;
   db.delete(COLLECTION, s => s.id === id);
-  res.sendStatus(200);
+  res.sendStatus(StatusCodes.OK);
 });
 
 module.exports = router;
