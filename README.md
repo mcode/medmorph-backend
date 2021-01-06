@@ -9,6 +9,33 @@ Reference implementation of the MedMorph Backend Service Client
 https://build.fhir.org/ig/HL7/fhir-medmorph/index.html
 
 
+## Running the Client
+
+The Backend Service Client is provided as a NodeJS Express app. NodeJS is required to to run the app.
+
+```sh
+git clone https://github.com/mcode/medmorph-backend
+cd medmorph-backend
+npm install
+npm start
+```
+
+With default settings, the app will now be running at `http://localhost:3000`
+
+Certain configuration properties may be set in an environment file, `.env`:
+
+```env
+# Port number for the server, defaults to 3000 if not provided
+PORT=3001
+
+# Enabled debug loggers
+# The app uses the debug library, see: https://github.com/visionmedia/debug
+# "The DEBUG environment variable is then used to enable these based on space or comma-delimited names."
+# Enable all express loggers with DEBUG=*
+# Enable all loggers for just the app with DEBUG=medmorph-backend:*
+DEBUG=medmorph-backend:*
+```
+
 # License
 Copyright 2020 The MITRE Corporation
 
