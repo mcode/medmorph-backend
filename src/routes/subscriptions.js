@@ -8,44 +8,56 @@ const router = express.Router();
 router.post('/:id', (req, res) => {
   const id = req.params.id;
   res.sendStatus(StatusCodes.OK);
-  const subscription = getSubscription(id);
-  useSubscription(subscription);
+  const planDef = getPlanDef(id);
+  usePlanDef(planDef);
 });
 
+// if the subscription returns a resource, the notification
+// will be a PUT instead of a POST
 router.put('/:id/:resource/:resourceId', (req, res) => {
   const id = req.params.id;
   res.sendStatus(StatusCodes.OK);
-  const subscription = getSubscription(id);
-  useSubscription(subscription, req.body);
+  const planDef = getPlanDef(id);
+  usePlanDef(planDef, req.body);
 });
-function getSubscription(id) {
-  // dummy function for getting the subscription
+
+function getPlanDef(id) {
+  // dummy function for getting the PlanDefinition
   // which can contain information to inform
   // the app what to do when notified
-  console.log(id);
   return {
-    subscriptionResource: {
-      resourceType: 'Subscription',
-      criteria: 'Patient?_id=1',
-      channel: {
-        type: 'rest-hook',
-        endpoint: 'http://example.com/subscription/1234',
-        header: ['content-type: application/fhir+json']
-      }
-    },
-    action: 'name'
+    resourceType: 'PlanDefinition',
+    id: id
   };
 }
-function useSubscription(subscription, resource = null) {
+
+function getSubscription(id) {
+  // retrieve the subscription
+  // this can be through a FHIR request
+  // or it can be stored with the planDef
+  return {
+    resourceType: 'Subscription',
+    id: id + 'Subscription',
+    criteria: 'Patient?_id=1',
+    channel: {
+      type: 'rest-hook',
+      endpoint: 'http://example.com/subscription/1234',
+      header: ['content-type: application/fhir+json']
+    }
+  };
+}
+function usePlanDef(planDef, resource = null) {
   // trigger criteria
-  const subscriptionResource = subscription.subscriptionResource;
+  const subscriptionResource = getSubscription(planDef.id);
   // const criteria = subscriptionResource.criteria;
   if (subscriptionResource.channel.type === 'rest-hook') {
     const header = {};
-    subscriptionResource.channel.header.forEach(element => {
-      const pair = element.split(':');
-      header[pair[0]] = pair[1];
-    });
+    if (subscriptionResource.channel.header) {
+      subscriptionResource.channel.header.forEach(element => {
+        const pair = element.split(':');
+        header[pair[0]] = pair[1];
+      });
+    }
 
     if (resource) {
       // TODO
