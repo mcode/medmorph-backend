@@ -2,33 +2,41 @@ const { StatusCodes } = require('http-status-codes');
 
 const express = require('express');
 const router = express.Router();
+const db = require('../storage/DataAccess');
+const COLLECTION = 'plandefs';
 
 // POST /
 // Recieve subscription notification
 router.post('/:id', (req, res) => {
   const id = req.params.id;
-  res.sendStatus(StatusCodes.OK);
-  const planDef = getPlanDef(id);
-  usePlanDef(planDef);
+  const planDef = getPlanDef(id.res);
+  if (planDef) {
+    res.sendStatus(StatusCodes.OK);
+    usePlanDef(planDef);
+  }
 });
 
 // if the subscription returns a resource, the notification
 // will be a PUT instead of a POST
 router.put('/:id/:resource/:resourceId', (req, res) => {
   const id = req.params.id;
-  res.sendStatus(StatusCodes.OK);
-  const planDef = getPlanDef(id);
-  usePlanDef(planDef, req.body);
+  const planDef = getPlanDef(id, res);
+  if (planDef) {
+    res.sendStatus(StatusCodes.OK);
+    usePlanDef(planDef, req.body);
+  }
 });
 
-function getPlanDef(id) {
+function getPlanDef(id, res) {
   // dummy function for getting the PlanDefinition
   // which can contain information to inform
   // the app what to do when notified
-  return {
-    resourceType: 'PlanDefinition',
-    id: id
-  };
+  const resultList = db.select(COLLECTION, s => s.id === id);
+  if (resultList[0]) {
+    return resultList[0];
+  } else {
+    res.sendStatus(StatusCodes.NOT_FOUND); // 404
+  }
 }
 
 function getSubscription(id) {
