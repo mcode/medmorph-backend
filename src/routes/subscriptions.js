@@ -13,6 +13,8 @@ router.post('/:id', (req, res) => {
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
     usePlanDef(planDef);
+  } else {
+    res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
 });
 
@@ -24,6 +26,8 @@ router.put('/:id/:resource/:resourceId', (req, res) => {
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
     usePlanDef(planDef, req.body);
+  } else {
+    res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
 });
 
@@ -35,7 +39,7 @@ function getPlanDef(id, res) {
   if (resultList[0]) {
     return resultList[0];
   } else {
-    res.sendStatus(StatusCodes.NOT_FOUND); // 404
+      return null;
   }
 }
 
