@@ -9,7 +9,7 @@ const COLLECTION = 'plandefs';
 // Recieve subscription notification
 router.post('/:id', (req, res) => {
   const id = req.params.id;
-  const planDef = getPlanDef(id.res);
+  const planDef = getPlanDef(id);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
     usePlanDef(planDef);
@@ -22,7 +22,7 @@ router.post('/:id', (req, res) => {
 // will be a PUT instead of a POST
 router.put('/:id/:resource/:resourceId', (req, res) => {
   const id = req.params.id;
-  const planDef = getPlanDef(id, res);
+  const planDef = getPlanDef(id);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
     usePlanDef(planDef, req.body);
@@ -31,7 +31,7 @@ router.put('/:id/:resource/:resourceId', (req, res) => {
   }
 });
 
-function getPlanDef(id, res) {
+function getPlanDef(id) {
   // dummy function for getting the PlanDefinition
   // which can contain information to inform
   // the app what to do when notified
@@ -39,7 +39,7 @@ function getPlanDef(id, res) {
   if (resultList[0]) {
     return resultList[0];
   } else {
-      return null;
+    return null;
   }
 }
 
