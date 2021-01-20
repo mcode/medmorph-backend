@@ -60,6 +60,15 @@ class Internal {
     collection.removeWhere(whereFn);
     // note that this does not return anything. we may need to update that at some point
   }
+
+  upsert(collectionName, value, whereFn) {
+    const resultList = this.select(collectionName, whereFn);
+    if (resultList.length > 0) {
+      this.update(collectionName, whereFn, _ => value);
+    } else {
+      this.insert(collectionName, value);
+    }
+  }
 }
 
 module.exports = Internal; /* constructor */
