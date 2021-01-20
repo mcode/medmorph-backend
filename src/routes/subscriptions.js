@@ -3,7 +3,7 @@ const { StatusCodes } = require('http-status-codes');
 const express = require('express');
 const router = express.Router();
 const db = require('../storage/DataAccess');
-const COLLECTION = 'plandefs';
+const COLLECTION = 'plandefinitions';
 
 // POST /
 // Recieve subscription notification
