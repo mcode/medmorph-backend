@@ -18,7 +18,7 @@ module.exports = router;
 
 const client = require('../utils/client');
 
-let newClient = new client.Client(keys);
+const newClient = new client.Client(keys);
 
 newClient.connectToServer('EHR');
 newClient.connectToServer('KA');

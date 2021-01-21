@@ -16,6 +16,10 @@ class Client {
     this.jwks = jwks;
   }
 
+  /**
+   * Generate and return access token for the specified server
+   * @param {*} server  the server to get an access token for
+   */
   async connectToServer(server) {
     if (server === 'EHR') {
       this.server = servers.EHR;
