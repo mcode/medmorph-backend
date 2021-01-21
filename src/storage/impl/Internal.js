@@ -64,7 +64,7 @@ class Internal {
   upsert(collectionName, value, whereFn) {
     const resultList = this.select(collectionName, whereFn);
     if (resultList.length > 0) {
-      this.update(collectionName, whereFn, _ => value);
+      this.update(collectionName, whereFn, () => value);
     } else {
       this.insert(collectionName, value);
     }
