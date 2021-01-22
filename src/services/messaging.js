@@ -2,12 +2,10 @@ const { StatusCodes } = require('http-status-codes');
 const { generateOperationOutcome } = require('../utils/fhir');
 
 function processMessage(req, res) {
+  // Validate the message bundle
   const messageBundle = req.body;
-  const messageHeader = messageBundle.entry[0].resource;
-
-  // Validate message
-  if (!messageBundle || !messageHeader) {
-    sendOperationOutcome(res, 'required', 'No message bundle or message header found');
+  if (!messageBundle) {
+    sendOperationOutcome(res, 'required', 'No message bundle found in body');
     return;
   } else if (messageBundle.type !== 'message') {
     sendOperationOutcome(
@@ -16,7 +14,14 @@ function processMessage(req, res) {
       `Received bundle of type '${messageBundle.type}'. Must be type 'message'.`
     );
     return;
-  } else if (
+  } else if (!messageBundle.entry?.length) {
+    sendOperationOutcome(res, 'invalid', 'Message bundle must have entries');
+    return;
+  }
+
+  // Validate the message header
+  const messageHeader = messageBundle.entry[0].resource;
+  if (
     messageHeader.destination &&
     !messageHeader.destination.some(d => d.endpoint.includes(req.headers.host))
   ) {
@@ -30,6 +35,8 @@ function processMessage(req, res) {
     sendOperationOutcome(res, 'required', 'Message has no response');
     return;
   }
+
+  // TODO: do something with the message response
 
   res.sendStatus(StatusCodes.OK);
 }
