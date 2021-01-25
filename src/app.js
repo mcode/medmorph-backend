@@ -9,8 +9,6 @@ const indexRouter = require('./routes/index');
 const serversRouter = require('./routes/servers');
 const subscriptionsRouter = require('./routes/subscriptions');
 
-// const { refreshKnowledgeArtifacts } = require('./utils/fhir');
-
 const app = express();
 
 app.use(logger('dev'));
@@ -21,7 +19,5 @@ app.use('/', indexRouter);
 app.use('/fhir', fhirRouter);
 app.use('/servers/', serversRouter);
 app.use('/notif/', subscriptionsRouter);
-
-// refreshKnowledgeArtifacts();
 
 module.exports = app;
