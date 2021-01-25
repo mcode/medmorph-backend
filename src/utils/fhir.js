@@ -1,7 +1,4 @@
 const axios = require('axios');
-const config = require('config');
-
-const db = require('../storage/DataAccess');
 
 /**
  * Helper method to create an OperationOutcome fwith a message
@@ -47,12 +44,11 @@ function getResources(server, type, ids = null) {
  * Get all knowledge artifacts (from servers registered in the config
  * file) and save them. Stores all refrenced resources as well.
  */
-function refreshKnowledgeArtifacts() {
-  const servers = config.get('knowledge_artifact_servers');
+function refreshKnowledgeArtifacts(db) {
+  const servers = db.select('servers', s => s.type === 'KA');
   servers.forEach(server => {
-    getResources(server, 'PlanDefinition').then(data => {
+    getResources(server.endpoint, 'PlanDefinition').then(data => {
       if (data.entry?.length === 0) return;
-
       const resources = data.entry.map(entry => entry.resource);
       resources.forEach(resource => {
         const collection = `${resource.resourceType.toLowerCase()}s`;

@@ -10,7 +10,10 @@
  * Documentation is at http://techfort.github.io/LokiJS/
  */
 
+const fs = require('fs');
 const loki = require('lokijs');
+
+const { refreshKnowledgeArtifacts } = require('../../utils/fhir');
 
 const isTest = process.env.NODE_ENV === 'test';
 
@@ -24,6 +27,9 @@ class Internal {
         autosave: true,
         serializationMethod: 'pretty'
       });
+      if (fs.existsSync('medmorph.db')) {
+        this.db.loadDatabase({}, () => refreshKnowledgeArtifacts(this));
+      }
     } else {
       this.db = new loki('medmorph.db');
     }
@@ -64,7 +70,7 @@ class Internal {
   upsert(collectionName, value, whereFn) {
     const resultList = this.select(collectionName, whereFn);
     if (resultList.length > 0) {
-      this.update(collectionName, whereFn, () => value);
+      this.update(collectionName, whereFn, oldValue => Object.assign(oldValue, value));
     } else {
       this.insert(collectionName, value);
     }
