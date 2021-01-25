@@ -30,13 +30,13 @@ class Client {
       return;
     }
 
-    let props = {
+    const props = {
       scope: 'system/*.read',
       grant_type: 'client_credentials',
       client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
     };
 
-    let headers = {
+    const headers = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -46,11 +46,11 @@ class Client {
     };
 
     let response = await axios.get(`${this.server}/.well-known/smart-configuration`);
-    let wellKnown = response.data.token_endpoint;
-    let jwt = await this.generateJWT(clientId, wellKnown, keys.kid);
+    const wellKnown = response.data.token_endpoint;
+    const jwt = await this.generateJWT(clientId, wellKnown, keys.kid);
     props.client_assertion = jwt;
     response = await axios.post(wellKnown, queryString.stringify(props), headers);
-    let accessToken = response.data.access_token;
+    const accessToken = response.data.access_token;
     headers.headers.Authorization = `Bearer ${accessToken}`;
 
     // This is for testing purposes only and should be removed before the merge
@@ -89,7 +89,7 @@ class Client {
    * @param {*} kid  the kid of the key to lookup
    */
   async getKeyOrDefault(kid) {
-    let keystore = await this.getKeystore();
+    const keystore = await this.getKeystore();
     if (kid) {
       return keystore.get(kid);
     }
@@ -103,10 +103,10 @@ class Client {
    * @param {*} kid The identifier of the key in the JWKS to sign the JWT
    */
   async generateJWT(client_id, aud, kid = this.signingKeyId) {
-    let options = { alg: 'RS384', compact: true };
-    let key = await this.getKeyOrDefault(kid);
+    const options = { alg: 'RS384', compact: true };
+    const key = await this.getKeyOrDefault(kid);
 
-    let input = JSON.stringify({
+    const input = JSON.stringify({
       sub: client_id,
       iss: client_id,
       aud: aud,
