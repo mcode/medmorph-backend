@@ -44,7 +44,7 @@ class Client {
     headers.headers.Authorization = `Bearer ${accessToken}`;
 
     // This is for testing purposes only and should be removed before the merge
-    axios.get('`${url}/Patient/pat01', headers).then(response => {
+    axios.get(`${url}/Patient/pat01`, headers).then(response => {
       console.log(response.data);
     });
 
