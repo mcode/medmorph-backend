@@ -1,5 +1,6 @@
 {
-"keys": [
+    "_notes": "this file and file location is used by keycloak",
+    "keys": [
     {
         "kty": "RSA",
         "e": "AQAB",

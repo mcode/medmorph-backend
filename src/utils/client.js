@@ -2,9 +2,8 @@ const jose = require('node-jose');
 
 const axios = require('axios');
 const { v4 } = require('uuid');
-const servers = require('../utils/serverConfig.json');
 const clientId = 'medmorph_backend';
-const keys = require('./privateKey.json');
+const keys = require('../keys/privateKey.json');
 const queryString = require('query-string');
 
 class Client {
@@ -20,16 +19,7 @@ class Client {
    * Generate and return access token for the specified server
    * @param {*} server  the server to get an access token for
    */
-  async connectToServer(server) {
-    if (server === 'EHR') {
-      this.server = servers.EHR;
-    } else if (server === 'KA') {
-      this.server = servers.KA;
-    } else {
-      console.log('ERROR - invalid server');
-      return;
-    }
-
+  async connectToServer(url) {
     const props = {
       scope: 'system/*.read',
       grant_type: 'client_credentials',
@@ -45,7 +35,7 @@ class Client {
       }
     };
 
-    let response = await axios.get(`${this.server}/.well-known/smart-configuration`);
+    let response = await axios.get(`${url}/.well-known/smart-configuration`);
     const wellKnown = response.data.token_endpoint;
     const jwt = await this.generateJWT(clientId, wellKnown, keys.kid);
     props.client_assertion = jwt;
@@ -54,15 +44,9 @@ class Client {
     headers.headers.Authorization = `Bearer ${accessToken}`;
 
     // This is for testing purposes only and should be removed before the merge
-    if (server === 'EHR') {
-      axios.get('http://pathways.mitre.org:8180/fhir/Patient/pat01', headers).then(response => {
-        console.log(response.data);
-      });
-    } else if (server === 'KA') {
-      axios.get('http://pathways.mitre.org:8190/fhir/Patient/pat01', headers).then(response => {
-        console.log(response.data);
-      });
-    }
+    axios.get('`${url}/Patient/pat01', headers).then(response => {
+      console.log(response.data);
+    });
 
     return accessToken;
   }
