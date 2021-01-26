@@ -1,8 +1,9 @@
 const axios = require('axios');
+const debug = require('debug')('medmorph-backend:server');
 
 /**
  * Helper method to create an OperationOutcome fwith a message
- * 
+ *
  * @param {IssueType} code - the IssueType code
  * @param {string} msg - message to include in the text
  */
@@ -48,6 +49,7 @@ function refreshKnowledgeArtifacts(db) {
   const servers = db.select('servers', s => s.type === 'KA');
   servers.forEach(server => {
     getResources(server.endpoint, 'PlanDefinition').then(data => {
+      debug(`Fetched ${server.endpoint}/${data.resourceType}/${data.id}`);
       if (data.entry?.length === 0) return;
       const resources = data.entry.map(entry => entry.resource);
       resources.forEach(resource => {
