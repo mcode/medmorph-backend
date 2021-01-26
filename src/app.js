@@ -4,6 +4,7 @@ const express = require('express');
 const logger = require('morgan');
 const bodyParser = require('body-parser');
 
+const fhirRouter = require('./routes/fhir');
 const indexRouter = require('./routes/index');
 const serversRouter = require('./routes/servers');
 const subscriptionsRouter = require('./routes/subscriptions');
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use(bodyParser.json({ type: ['application/json', 'application/fhir+json'] }));
 
 app.use('/', indexRouter);
+app.use('/fhir', fhirRouter);
 app.use('/servers/', serversRouter);
 app.use('/notif/', subscriptionsRouter);
 module.exports = app;

@@ -24,6 +24,7 @@
     "space-before-blocks": "warn",
     "space-in-parens": "warn"
   },
+  "parser": "babel-eslint",
   "parserOptions": {
     "sourceType": "module"
   }
