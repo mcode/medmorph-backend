@@ -36,7 +36,7 @@
  * Insert or Update:
  * - upsert(collectionName, value, whereFn)
  *   @param {string} collectionName - name of the collection to add to
- *   @param {object|array} value - object to add, or array of objects to add
+ *   @param {object} value - object to add or update
  *   @param {function(object): boolean} whereFn - function to identify rows to update
  *   @return {void}
  */

@@ -10,7 +10,6 @@
  * Documentation is at http://techfort.github.io/LokiJS/
  */
 
-const fs = require('fs');
 const loki = require('lokijs');
 
 const { refreshKnowledgeArtifacts } = require('../../utils/fhir');
@@ -25,11 +24,9 @@ class Internal {
       this.db = new loki('medmorph.db', {
         autoload: true,
         autosave: true,
+        autoloadCallback: () => refreshKnowledgeArtifacts(this),
         serializationMethod: 'pretty'
       });
-      if (fs.existsSync('medmorph.db')) {
-        this.db.loadDatabase({}, () => refreshKnowledgeArtifacts(this));
-      }
     } else {
       this.db = new loki('medmorph.db');
     }
