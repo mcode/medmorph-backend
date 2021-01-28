@@ -48,15 +48,8 @@ router.put('/:id', (req, res) => {
     return;
   }
 
-  // NOTE - this assumes the entry already exists
-  // for a more rigorous API we should either check first,
-  // or use an "upsert"-type function within the DB
   const id = req.params.id;
-  db.update(
-    COLLECTION,
-    s => s.id === id,
-    s => Object.assign(s, req.body)
-  );
+  db.upsert(COLLECTION, req.body, s => s.id === id);
   res.sendStatus(StatusCodes.OK); // 200
 });
 

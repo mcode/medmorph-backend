@@ -19,4 +19,5 @@ app.use('/', indexRouter);
 app.use('/fhir', fhirRouter);
 app.use('/servers/', serversRouter);
 app.use('/notif/', subscriptionsRouter);
+
 module.exports = app;

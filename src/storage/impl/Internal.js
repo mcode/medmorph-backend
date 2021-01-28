@@ -12,6 +12,8 @@
 
 const loki = require('lokijs');
 
+const { refreshKnowledgeArtifacts } = require('../../utils/fhir');
+
 const isTest = process.env.NODE_ENV === 'test';
 
 class Internal {
@@ -22,6 +24,7 @@ class Internal {
       this.db = new loki('medmorph.db', {
         autoload: true,
         autosave: true,
+        autoloadCallback: () => refreshKnowledgeArtifacts(this),
         serializationMethod: 'pretty'
       });
     } else {
@@ -59,6 +62,15 @@ class Internal {
     const collection = this._getCollection(collectionName);
     collection.removeWhere(whereFn);
     // note that this does not return anything. we may need to update that at some point
+  }
+
+  upsert(collectionName, value, whereFn) {
+    const resultList = this.select(collectionName, whereFn);
+    if (resultList.length > 0) {
+      this.update(collectionName, whereFn, oldValue => Object.assign(oldValue, value));
+    } else {
+      this.insert(collectionName, value);
+    }
   }
 }
 

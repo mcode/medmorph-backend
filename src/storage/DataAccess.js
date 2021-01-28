@@ -32,6 +32,13 @@
  *   @param {string} collectionName - name of collection to delete from
  *   @param {function(object): boolean} whereFn - function to identify rows to delete
  *   @return {void}
+ *
+ * Insert or Update:
+ * - upsert(collectionName, value, whereFn)
+ *   @param {string} collectionName - name of the collection to add to
+ *   @param {object} value - object to add or update
+ *   @param {function(object): boolean} whereFn - function to identify rows to update
+ *   @return {void}
  */
 
 // TODO: eventually we want some kind of config setting to choose the impl
