@@ -17,7 +17,7 @@ class Client {
 
   /**
    * Generate and return access token for the specified server
-   * @param {*} server  the server to get an access token for
+   * @param {string} url  the fhir base url for the server to connect to
    */
   async connectToServer(url) {
     const props = {
@@ -70,7 +70,7 @@ class Client {
   /**
    * Get the key from the keystore for the kid provided.  If it is not there return
    * the first key used for signing
-   * @param {*} kid  the kid of the key to lookup
+   * @param {string} kid - the kid of the key to lookup
    */
   async getKeyOrDefault(kid) {
     const keystore = await this.getKeystore();
@@ -87,6 +87,7 @@ class Client {
    * @param {*} kid The identifier of the key in the JWKS to sign the JWT
    */
   async generateJWT(client_id, aud, kid = this.signingKeyId) {
+    // TODO: the spec allows for either RS384 or EC384 to be used
     const options = { alg: 'RS384', compact: true };
     const key = await this.getKeyOrDefault(kid);
 
