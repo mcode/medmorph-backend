@@ -1,10 +1,8 @@
 const jose = require('node-jose');
-
 const axios = require('axios');
 const { v4 } = require('uuid');
 const clientId = 'medmorph_backend';
 const keys = require('../keys/privateKey.json');
-const queryString = require('query-string');
 
 class Client {
   /**
@@ -20,35 +18,11 @@ class Client {
    * @param {string} url  the fhir base url for the server to connect to
    */
   async connectToServer(url) {
-    const props = {
-      scope: 'system/*.read',
-      grant_type: 'client_credentials',
-      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
-    };
-
-    const headers = {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept-Encoding': 'gzip, deflate, br',
-        Connection: 'keep-alive',
-        Accept: '*/*'
-      }
-    };
-
     let response = await axios.get(`${url}/.well-known/smart-configuration`);
     const wellKnown = response.data.token_endpoint;
     const jwt = await this.generateJWT(clientId, wellKnown, keys.kid);
-    props.client_assertion = jwt;
-    response = await axios.post(wellKnown, queryString.stringify(props), headers);
-    const accessToken = response.data.access_token;
-    headers.headers.Authorization = `Bearer ${accessToken}`;
 
-    // This is for testing purposes only and should be removed before the merge
-    axios.get(`${url}/Patient/pat01`, headers).then(response => {
-      console.log(response.data);
-    });
-
-    return accessToken;
+    return jwt;
   }
 
   /**
