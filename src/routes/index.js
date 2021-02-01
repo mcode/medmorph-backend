@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-
 const { StatusCodes } = require('http-status-codes');
 
 const db = require('../storage/DataAccess');
