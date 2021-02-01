@@ -18,7 +18,7 @@ class Client {
    * @param {string} url  the fhir base url for the server to connect to
    */
   async connectToServer(url) {
-    let response = await axios.get(`${url}/.well-known/smart-configuration`);
+    const response = await axios.get(`${url}/.well-known/smart-configuration`);
     const wellKnown = response.data.token_endpoint;
     const jwt = await this.generateJWT(clientId, wellKnown, keys.kid);
 

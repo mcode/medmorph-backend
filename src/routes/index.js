@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const keys = require('../keys/privateKey.json');
 const { StatusCodes } = require('http-status-codes');
 
 const db = require('../storage/DataAccess');
@@ -15,10 +14,3 @@ router.post('/fetch-ka', (req, res) => {
 });
 
 module.exports = router;
-
-const client = require('../utils/client');
-
-const newClient = new client.Client(keys);
-
-newClient.connectToServer('http://pathways.mitre.org:8180/fhir');
-newClient.connectToServer('http://pathways.mitre.org:8190/fhir');
