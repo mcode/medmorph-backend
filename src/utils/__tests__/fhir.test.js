@@ -60,4 +60,27 @@ describe('Test creating Subscriptions', () => {
     expect(subscription.channel.endpoint).toBe(TEST_URL);
     expect(subscription.channel.header[0]).toBe(`Authorization: Bearer ${TEST_TOKEN}`);
   });
+
+  test('It does not include undefined in the list when a Subscription could not be created', () => {
+    const trigger = {
+      extension: [
+        {
+          url: 'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-us-ph-namedEventType',
+          valueCodeableConcept: {
+            coding: [
+              {
+                system:
+                  'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents',
+                code: 'mannual-notification'
+              }
+            ]
+          }
+        }
+      ]
+    };
+    planDef.action[0].trigger.push(trigger);
+    const subscriptions = subscriptionsFromPlanDef(planDef, TEST_URL, TEST_TOKEN);
+    expect(subscriptions.length).toBe(1);
+    expect(subscriptions).not.toContain(undefined);
+  });
 });

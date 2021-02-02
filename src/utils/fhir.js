@@ -164,15 +164,27 @@ function subscriptionsFromPlanDef(planDef, url, token) {
 
   if (action.trigger?.length === 0) return [];
 
-  return action.trigger.map(trigger => {
+  return action.trigger.reduce((subscriptions, trigger) => {
     const namedEventExt = trigger.extension.find(e => e.url === NAMED_EVENT_EXTENSION);
     const namedEventCoding = namedEventExt.valueCodeableConcept.coding.find(
       c => c.system === NAMED_EVENT_CODE_SYSTEM
     );
 
     const criteria = namedEventToCriteria(namedEventCoding.code);
-    if (criteria) return generateSubscription(namedEventCoding.code, criteria, url, token);
-  });
+    if (criteria)
+      subscriptions.push(generateSubscription(namedEventCoding.code, criteria, url, token));
+    return subscriptions;
+  }, []);
+
+  // return action.trigger.map(trigger => {
+  //   const namedEventExt = trigger.extension.find(e => e.url === NAMED_EVENT_EXTENSION);
+  //   const namedEventCoding = namedEventExt.valueCodeableConcept.coding.find(
+  //     c => c.system === NAMED_EVENT_CODE_SYSTEM
+  //   );
+
+  //   const criteria = namedEventToCriteria(namedEventCoding.code);
+  //   if (criteria) return generateSubscription(namedEventCoding.code, criteria, url, token);
+  // });
 }
 
 /**
