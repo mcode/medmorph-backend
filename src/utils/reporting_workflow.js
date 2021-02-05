@@ -5,7 +5,7 @@
  */
 
 const IG_REGISTRY = {
-  'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle' : {} // base action definitions 
+  'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle': {} // base action definitions
 };
 
 function initializeContext(planDefinition) {
@@ -22,7 +22,9 @@ function findProfile(planDefinition) {
   // figure out the profile of the target bundle
 
   // TODO search arrays rather than hardcode?
-  const createReportAction = planDefinition.action?.find(a => a.code[0].coding[0].code === 'create-report');
+  const createReportAction = planDefinition.action?.find(
+    a => a.code[0].coding[0].code === 'create-report'
+  );
 
   if (!createReportAction) {
     throw new Error(`PlanDefinition ${planDefinition.id} has no action with code 'create-report'`);
@@ -31,7 +33,9 @@ function findProfile(planDefinition) {
   const bundleOutput = createReportAction.output?.find(o => o.type === 'Bundle');
 
   if (!bundleOutput?.profile?.[0]) {
-    throw new Error(`PlanDefinition ${planDefinition.id} does not specify a profile for report bundle`);
+    throw new Error(
+      `PlanDefinition ${planDefinition.id} does not specify a profile for report bundle`
+    );
     // option B is just use the default profile
   }
 
@@ -40,19 +44,17 @@ function findProfile(planDefinition) {
 
 function determineActionSequence(planDefinition) {
   // TODO:
-  // note: 6.1.8 
-  // The Backend Service App SHALL implement the ability 
-  // to process action dependencies specified via 
-  // the PlanDefinition.action.relatedAction elements. 
-  // Typical implementations will build a graph or a tree structure 
+  // note: 6.1.8
+  // The Backend Service App SHALL implement the ability
+  // to process action dependencies specified via
+  // the PlanDefinition.action.relatedAction elements.
+  // Typical implementations will build a graph or a tree structure
   // that can be used to identify dependencies between actions.
-
 
   // simple version to just get the integers 0 -> n
   // https://stackoverflow.com/a/10050831
   return [...Array(planDefinition.action.length).keys()];
 }
-
 
 function executeWorkflow(context) {
   if (!context.currentActionSequenceStep) {
@@ -67,11 +69,11 @@ function executeWorkflow(context) {
 
   const ig = findProfile(planDef);
 
-  while (context.currentActionSequenceStep < context.actionSequence.length){
+  while (context.currentActionSequenceStep < context.actionSequence.length) {
     const currentActionId = context.actionSequence[context.currentActionSequenceStep];
     const action = planDef.action[currentActionId];
 
-    // TODO - check arrays for 
+    // TODO - check arrays for
     // system ===  "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions"
     const actionCode = action.code[0].coding[0].code;
 
@@ -95,5 +97,5 @@ module.exports = {
   executeWorkflow,
   findProfile,
   IG_REGISTRY,
-  initializeContext,
+  initializeContext
 };
