@@ -2,6 +2,7 @@ const passport = require('passport');
 
 /**
  * Helper function to obtain the token from the authorization header
+ * Note: auth header must be in form "Bearer {token}"
  *
  * @param {*} req - the express request
  * @returns the bearer token if it exists, otherwise null

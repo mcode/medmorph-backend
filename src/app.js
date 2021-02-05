@@ -24,8 +24,8 @@ app.use(passport.initialize());
 passport.use(
   new KeycloakBearerStrategy(
     {
-      realm: 'backend_app',
-      url: 'http://moonshot-dev.mitre.org:8090/auth'
+      realm: process.env.REALM,
+      url: process.env.AUTH
     },
     (jwtPayload, done) => {
       return done(null, jwtPayload);
