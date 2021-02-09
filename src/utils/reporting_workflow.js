@@ -1,7 +1,14 @@
+const { v4: uuidv4 } = require('uuid');
+const db = require('../storage/DataAccess');
+
+const COLLECTION = 'reporting';
+
 /*
 
 Definition of Reporting Workflow Context:
 {
+  id: unique identifier for the context object
+
   planDefinition: the PlanDefinition for the Knowledge Artifact
 
   actionSequence: array of indices pointing to actions in planDefinition.action
@@ -10,6 +17,12 @@ Definition of Reporting Workflow Context:
 
   currentActionSequenceStep: index of which step in the actionSequence is
     currently being processed
+
+  cancelToken: indicates the job should be cancelled
+    (from a process external to the job itself -- this tells the job to cease processing)
+
+  exitStatus: if set, terminates the job and marks it with the given status
+    (for example, if a given patient doesn't meet reporting criteria, don't keep reporting)
 }
 
 Try to keep the wiki page up to date with this implementation!
@@ -33,7 +46,7 @@ const IG_REGISTRY = {
 
 function initializeContext(planDefinition) {
   // TODO -- see MEDMORPH-36
-  return { planDefinition };
+  return { id: uuidv4(), planDefinition };
 }
 
 function getFunction(ig, code) {
@@ -95,6 +108,8 @@ function executeWorkflow(context) {
     context.actionSequence = determineActionSequence(planDef);
   }
 
+  db.upsert(COLLECTION, context, c => c.id === context.id);
+
   const ig = findProfile(planDef);
 
   while (context.currentActionSequenceStep < context.actionSequence.length) {
@@ -110,7 +125,21 @@ function executeWorkflow(context) {
     // TODO: maintain context at each step for debugging?
     // context = deepCopy(context);
 
+    // check the DB to get cancelToken
+    // TODO: is there a better way to do this?
+    const cancelToken = db.select(COLLECTION, c => c.id === context.id).cancelToken;
+    if (cancelToken) return;
+
     execute(context);
+
+    // update the db after every completed step
+    db.update(
+      COLLECTION,
+      c => c.id === context.id,
+      c => Object.assign(c, context)
+    );
+
+    if (context.exitStatus) break;
 
     context.currentActionSequenceStep++;
   }
