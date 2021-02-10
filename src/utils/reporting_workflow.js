@@ -46,7 +46,12 @@ const IG_REGISTRY = {
 
 function initializeContext(planDefinition) {
   // TODO -- see MEDMORPH-36
-  return { id: uuidv4(), planDefinition };
+  return {
+    id: uuidv4(),
+    currentActionSequenceStep: 0,
+    actionSequence: determineActionSequence(planDefinition),
+    planDefinition
+  };
 }
 
 function getFunction(ig, code) {
@@ -98,18 +103,9 @@ function determineActionSequence(planDefinition) {
 }
 
 function executeWorkflow(context) {
-  if (!context.currentActionSequenceStep) {
-    context.currentActionSequenceStep = 0;
-  }
-
-  const planDef = context.planDefinition;
-
-  if (!context.actionSequence) {
-    context.actionSequence = determineActionSequence(planDef);
-  }
-
   db.upsert(COLLECTION, context, c => c.id === context.id);
 
+  const planDef = context.planDefinition;
   const ig = findProfile(planDef);
 
   while (context.currentActionSequenceStep < context.actionSequence.length) {
