@@ -12,7 +12,7 @@ Definition of Reporting Workflow Context:
 
   planDefinition: the PlanDefinition for the Knowledge Artifact
 
-  actionSequence: array of indices pointing to actions in planDefinition.action
+  actionSequence: array of action ids pointing to actions in planDefinition.action
    - assumption is that actions may be performed in any order, not necessarily 0,1,2,3...
    - action sequence should be derived based on action.relatedAction
 
