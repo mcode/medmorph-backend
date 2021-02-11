@@ -140,7 +140,12 @@ function determineActionSequence(planDefinition) {
     }
   }
 
-  const path = graphlib.alg.preorder(g, g.sources());
+  // An implementation of topological sorting.
+  // Given a Graph g this function returns an array of nodes
+  // such that for each edge u -> v, u appears before v in the array.
+  // https://github.com/dagrejs/graphlib/wiki/API-Reference#alg-topsort
+  // note the graph must not have cycles
+  const path = graphlib.alg.topsort(g);
   return path;
 }
 
