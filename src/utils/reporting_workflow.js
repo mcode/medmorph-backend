@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
 
 const COLLECTION = 'reporting';
@@ -89,20 +90,62 @@ function findProfile(planDefinition) {
 }
 
 function determineActionSequence(planDefinition) {
-  // TODO:
-  // note: 6.1.8
+  // 6.1.8
   // The Backend Service App SHALL implement the ability
   // to process action dependencies specified via
   // the PlanDefinition.action.relatedAction elements.
   // Typical implementations will build a graph or a tree structure
   // that can be used to identify dependencies between actions.
 
-  // simple version to just get the integers 0 -> n
-  // https://stackoverflow.com/a/10050831
-  return [...Array(planDefinition.action.length).keys()];
+  // 6.1.3
+  // For executing actions which are delayed by a time duration,
+  //   Knowledge Artifact producers SHALL specify the duration
+  //   in the PlanDefinition.action.timing element.
+
+  // For executing actions which are dependent on other actions,
+  //   Knowledge Artifact producers SHALL specify the related action
+  //   in the PlanDefinition.action.relatedAction element.
+
+  // The PlanDefinition.action.relatedAction.relationship to be used
+  //   for MedMorph related actions SHALL be before-start.
+  //   This implies that the related action cannot start
+  //   until the parent action is executed.
+
+  // To specify related actions which are delayed by a time duration,
+  //   the PlanDefinition.action.relatedAction.offsetDuration element SHALL be used.
+
+  // we use graphlib: https://github.com/dagrejs/graphlib/wiki/API-Reference
+  // to build a dependency graph, then do a preorder traversal to turn it into a list
+
+  // note this is a lot of complexity, and is really only ever necessary if there are
+  // actions with more than one relatedAction.
+
+  // TODO: what if there are 2 relatedActions with different offsets?
+
+  const g = new graphlib.Graph();
+
+  for (const action of planDefinition.action) {
+    g.setNode(action.id);
+
+    if (action.relatedAction) {
+      for (const relatedAction of action.relatedAction) {
+        // spec requires relationship SHALL === 'before-start'
+        // so relatedAction is after currentAction
+
+        // directed edge from arg1 --> arg2
+        // TODO: track the offset on the edge label maybe?
+        g.setEdge(action.id, relatedAction.actionId);
+        // note that relatedAction.id doesn't already have to be in the graph
+        // it will be added if not
+      }
+    }
+  }
+
+  const path = graphlib.alg.preorder(g, g.sources());
+  return path;
 }
 
-function executeWorkflow(context) {
+async function executeWorkflow(context) {
   db.upsert(COLLECTION, context, c => c.id === context.id);
 
   const planDef = context.planDefinition;
@@ -110,7 +153,7 @@ function executeWorkflow(context) {
 
   while (context.currentActionSequenceStep < context.actionSequence.length) {
     const currentActionId = context.actionSequence[context.currentActionSequenceStep];
-    const action = planDef.action[currentActionId];
+    const action = planDef.action.find(a => a.id === currentActionId);
 
     // TODO - check arrays for
     // system === "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions"
@@ -126,7 +169,7 @@ function executeWorkflow(context) {
     const cancelToken = db.select(COLLECTION, c => c.id === context.id).cancelToken;
     if (cancelToken) return;
 
-    execute(context);
+    await execute(context);
 
     // update the db after every completed step
     db.update(
