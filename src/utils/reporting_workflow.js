@@ -68,7 +68,6 @@ function getFunction(ig, code) {
 function findProfile(planDefinition) {
   // figure out the profile of the target bundle
 
-  // TODO search arrays rather than hardcode 0,0
   const createReportAction = planDefinition.action?.find(
     a => a.code[0].coding[0].code === 'create-report'
   );
@@ -155,8 +154,6 @@ async function executeWorkflow(context) {
     const currentActionId = context.actionSequence[context.currentActionSequenceStep];
     const action = planDef.action.find(a => a.id === currentActionId);
 
-    // TODO - check arrays for
-    // system === "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions"
     const actionCode = action.code[0].coding[0].code;
 
     const execute = getFunction(ig, actionCode);
