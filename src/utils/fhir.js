@@ -14,6 +14,8 @@ const BACKPORT_PAYLOAD_EXTENSION =
   'http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content';
 const BACKPORT_ADDITIONAL_CRITERIA_EXTENSION =
   'http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-additional-criteria';
+const RECEIVER_ADDRESS_EXTENSION =
+  'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-receiverAddress';
 
 /**
  * Helper method to create an OperationOutcome fwith a message
@@ -38,22 +40,30 @@ function generateOperationOutcome(code, msg) {
 }
 
 /**
- * Helper method to GET resources (and all included references) from a FHIR server
+ * Helper method to GET resources (and all included references) from a FHIR server and
+ * save them to the database.
  *
  * @param {string} server - the sourse server base url
- * @param {string} type - the type of the resource
- * @param {string[]} ids - (optional) list of ids to get
- * @returns promise of axios data
+ * @param {string} resourceType - the type of the resource
  */
-async function getResources(server, type, ids = null) {
-  const id_param = ids ? `&_id=${ids.join(',')}` : '';
-  const url = `${server}/${type}?_include=*${id_param}`;
+async function getResources(server, resourceType, db) {
+  const url = `${server}/${resourceType}?_include=*`;
   const token = await connectToServer(server);
   const headers = { Authorization: `Bearer ${token}` };
-  return axios
+  const axiosResponse = axios
     .get(url, { headers: headers })
     .then(response => response.data)
     .catch(err => console.log(err));
+  axiosResponse.then(data => {
+    debug(`Fetched ${server}/${data.resourceType}/${data.id}`);
+    if (!data.entry) return;
+    const resources = data.entry.map(entry => entry.resource);
+    resources.forEach(resource => {
+      debug(`  ...${resource.resourceType}/${resource.id}`);
+      const collection = `${resource.resourceType.toLowerCase()}s`;
+      db.upsert(collection, resource, r => r.id === resource.id);
+    });
+  });
 }
 
 /**
@@ -124,16 +134,8 @@ function generateSubscription(code, criteria, url, token) {
 function refreshKnowledgeArtifacts(db) {
   const servers = db.select('servers', s => s.type === 'KA');
   servers.forEach(server => {
-    getResources(server.endpoint, 'PlanDefinition').then(data => {
-      debug(`Fetched ${server.endpoint}/${data.resourceType}/${data.id}`);
-      if (!data.entry) return;
-      const resources = data.entry.map(entry => entry.resource);
-      resources.forEach(resource => {
-        debug(`  ...${resource.resourceType}/${resource.id}`);
-        const collection = `${resource.resourceType.toLowerCase()}s`;
-        db.upsert(collection, resource, r => r.id === resource.id);
-      });
-    });
+    getResources(server.endpoint, 'PlanDefinition', db);
+    getResources(server.endpoint, 'Endpoint', db);
   });
 }
 
