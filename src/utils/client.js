@@ -10,13 +10,13 @@ const servers = require('../storage/servers');
  * is provided it will use that, otherwise it will query the smart configuration.
  *
  * @param {string} url  the fhir base url for the server to connect to
+ * @param {string} tokenEndpoint the token endpoint for the authorization server. Defaults to undefined
  * @returns access token.
  */
-async function connectToServer(url) {
+async function connectToServer(url, tokenEndpoint = undefined) {
   // Generate the client_assertion jwt
-  const tokenEndpoint = await getTokenEndpoint(url);
-  const clientId = servers.getServerByUrl(url).clientId;
-  const jwt = await generateJWT(clientId, tokenEndpoint);
+  const aud = tokenEndpoint ?? (await getTokenEndpoint(url));
+  const jwt = await generateJWT(clientId, aud);
 
   const props = {
     scope: 'system/*.read',
@@ -35,11 +35,8 @@ async function connectToServer(url) {
   };
 
   // Get access token from auth server
-  const data = await axios
-    .post(tokenEndpoint, queryString.stringify(props), headers)
-    .then(response => response.data)
-    .catch(err => console.error(err));
-  return data.access_token;
+  const response = await axios.post(aud, queryString.stringify(props), headers);
+  return response.data.access_token;
 }
 
 /**
