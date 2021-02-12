@@ -105,7 +105,6 @@ function initializeContext(planDefinition) {
   // TODO -- see MEDMORPH-36
   // TODO: get patient and encounter
   // TODO: add resources to records
-  // TODO: update executeWorkflow to use context.action
   const actionSequence = determineActionSequence(planDefinition);
   return {
     id: uuidv4(),
@@ -241,10 +240,7 @@ async function executeWorkflow(context) {
   const ig = findProfile(planDef);
 
   while (context.currentActionSequenceStep < context.actionSequence.length) {
-    const currentActionId = context.actionSequence[context.currentActionSequenceStep];
-    const action = planDef.action.find(a => a.id === currentActionId);
-
-    const actionCode = action.code[0].coding[0].code;
+    const actionCode = context.action.code[0].coding[0].code;
 
     const execute = getFunction(ig, actionCode);
 
@@ -268,6 +264,9 @@ async function executeWorkflow(context) {
     if (context.exitStatus) break;
 
     context.currentActionSequenceStep++;
+    const currentActionId = context.actionSequence[context.currentActionSequenceStep];
+    const action = planDef.action.find(a => a.id === currentActionId);
+    context.action = action;
   }
 }
 
