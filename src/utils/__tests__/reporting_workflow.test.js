@@ -144,6 +144,22 @@ describe('Test creating Subscriptions', () => {
     expect(findProfile(EXAMPLE_PLANDEF_1)).toEqual('http://example.com/reportingBundle');
   });
 
+  test('It creates the expected context', () => {
+    const context = initializeContext(EXAMPLE_PLANDEF_1, {}, {});
+
+    expect(context.records).toHaveLength(2);
+    expect(context.patient).toBeDefined();
+    expect(context.encounter).toBeDefined();
+    expect(context.actionSequence).toBeDefined();
+    expect(context.client.source.read).toBeDefined();
+    expect(context.client.dest.submit).toBeDefined();
+    expect(context.client.trustServices.deidentify).toBeDefined();
+    expect(context.client.trustServices.anonymize).toBeDefined();
+    expect(context.client.trustServices.pseudonymize).toBeDefined();
+
+    // Should this also test the client functions by mocking axios?
+  });
+
   test('Produces the expected result 1', async () => {
     const context = initializeContext(EXAMPLE_PLANDEF_1);
     await executeWorkflow(context);

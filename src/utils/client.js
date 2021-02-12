@@ -2,6 +2,7 @@ const jose = require('node-jose');
 const axios = require('axios');
 const { v4 } = require('uuid');
 const queryString = require('query-string');
+const clientId = 'medmorph_backend';
 const keys = require('../keys/privateKey.json');
 const servers = require('../storage/servers');
 
@@ -34,8 +35,11 @@ async function connectToServer(url) {
   };
 
   // Get access token from auth server
-  const response = await axios.post(tokenEndpoint, queryString.stringify(props), headers);
-  return response.data.access_token;
+  const data = await axios
+    .post(tokenEndpoint, queryString.stringify(props), headers)
+    .then(response => response.data)
+    .catch(err => console.error(err));
+  return data.access_token;
 }
 
 /**

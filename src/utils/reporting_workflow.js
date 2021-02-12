@@ -3,6 +3,7 @@ const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
 const { default: axios } = require('axios');
 const { connectToServer } = require('./client');
+const { getReferencedResource } = require('../utils/fhir');
 
 const COLLECTION = 'reporting';
 
@@ -78,7 +79,7 @@ async function submitBundle(planDefinition, bundle) {
   const endpointId = endpointRef.split('/')[1];
   const endpoint = db.select('endpoints', e => e.id === endpointId);
   const url = endpoint.address;
-  // TODO: how does this work with this endpoint.address....
+  // Not sure how this will work since the url comes from endpoint.address....
   const token = await connectToServer(url);
   const headers = { Authorization: `Bearer ${token}` };
   return axios
@@ -101,18 +102,54 @@ function dataTrustOperation(operation, bundle) {
     .catch(err => console.error(err));
 }
 
-function initializeContext(planDefinition) {
-  // TODO -- see MEDMORPH-36
-  // TODO: get patient and encounter
-  // TODO: add resources to records
+/**
+ * Function to use the PlanDefinition and triggering resource to create a report
+ *
+ * @param {PlanDefinition} planDef - the PlanDefinition resource
+ * @param {*} resource - the resource which triggered the notification
+ */
+async function initializeReportingWorkflow(planDef, resource = null) {
+  // TODO: MEDMORPH-49 to make sure the resource is always included
+  if (!resource) return;
+
+  let patient = null;
+  if (resource.patient) patient = await getReferencedResource(resource.patient.reference);
+  else if (resource.subject) patient = await getReferencedResource(resource.subject.reference);
+  else if (resource.resourceType === 'Patient') patient = resource;
+
+  let encounter = null;
+  if (resource.encounter) encounter = await getReferencedResource(resource.encounter.reference);
+  else if (resource.context) encounter = await getReferencedResource(resource.context.reference);
+  else if (resource.resourceType === 'Encounter') encounter = resource;
+
+  // QUESTION: Should encounter and patient be saved to the database?
+
+  const context = initializeContext(planDef, patient, encounter);
+  executeWorkflow(context);
+}
+
+/**
+ * Create the initial workflow context
+ *
+ * @param {PlanDefinition} planDefinition - the PlanDefinition resource for this workflow
+ * @param {Patient} patient - the patient resource from the triggering resource, null if not found
+ * @param {Encounter} encounter - the encounter resource from the trigger resource, null if not found
+ * @returns the initialized context object
+ */
+function initializeContext(planDefinition, patient, encounter) {
+  const records = [];
+  if (patient) records.push(patient);
+  if (encounter) records.push(encounter);
   const actionSequence = determineActionSequence(planDefinition);
+  const initialAction = planDefinition.action.find(a => a.id === actionSequence[0]);
+
   return {
     id: uuidv4(),
-    patient: null,
-    records: [],
-    encounter: null,
+    patient: patient,
+    records: records,
+    encounter: encounter,
     planDefinition,
-    action: planDefinition.action[actionSequence[0]],
+    action: initialAction,
     messageHeader: null, // Note: not used in actions
     client: {
       source: {
@@ -275,5 +312,6 @@ module.exports = {
   executeWorkflow,
   findProfile,
   IG_REGISTRY,
-  initializeContext
+  initializeContext,
+  initializeReportingWorkflow
 };

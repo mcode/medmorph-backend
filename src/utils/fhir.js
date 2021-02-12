@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { connectToServer } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
 
 const NAMED_EVENT_EXTENSION =
@@ -44,10 +45,11 @@ function generateOperationOutcome(code, msg) {
  * @param {string[]} ids - (optional) list of ids to get
  * @returns promise of axios data
  */
-function getResources(server, type, ids = null) {
+async function getResources(server, type, ids = null) {
   const id_param = ids ? `&_id=${ids.join(',')}` : '';
   const url = `${server}/${type}?_include=*${id_param}`;
-  const headers = { Authorization: 'Bearer admin' }; // TODO: get an access token
+  const token = await connectToServer(server);
+  const headers = { Authorization: `Bearer ${token}` };
   return axios
     .get(url, { headers: headers })
     .then(response => response.data)
@@ -124,9 +126,10 @@ function refreshKnowledgeArtifacts(db) {
   servers.forEach(server => {
     getResources(server.endpoint, 'PlanDefinition').then(data => {
       debug(`Fetched ${server.endpoint}/${data.resourceType}/${data.id}`);
-      if (data.entry?.length === 0) return;
+      if (!data.entry) return;
       const resources = data.entry.map(entry => entry.resource);
       resources.forEach(resource => {
+        debug(`  ...${resource.resourceType}/${resource.id}`);
         const collection = `${resource.resourceType.toLowerCase()}s`;
         db.upsert(collection, resource, r => r.id === resource.id);
       });
@@ -219,9 +222,30 @@ function namedEventToCriteria(code) {
   }
 }
 
+/**
+ * Dereference a reference url. Currently only supports relative references.
+ *
+ * @param {string} url - base fhir url
+ * @param {string} reference - the reference string
+ * @returns the referenced resource
+ */
+async function getReferencedResource(url, reference) {
+  if (reference.split('/').length === 2) {
+    const [resourceType, id] = reference.split('/');
+    const token = await connectToServer(url);
+    const headers = { Authorization: `Bearer ${token}` };
+    const resource = await axios.get(`${url}/${resourceType}/${id}`, { headers: headers });
+    return resource.data;
+  }
+
+  // TODO: update to work with other reference types
+  return null;
+}
+
 module.exports = {
   generateOperationOutcome,
   refreshKnowledgeArtifacts,
   subscriptionsFromBundle,
-  subscriptionsFromPlanDef
+  subscriptionsFromPlanDef,
+  getReferencedResource
 };
