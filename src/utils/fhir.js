@@ -14,8 +14,6 @@ const BACKPORT_PAYLOAD_EXTENSION =
   'http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content';
 const BACKPORT_ADDITIONAL_CRITERIA_EXTENSION =
   'http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-additional-criteria';
-const RECEIVER_ADDRESS_EXTENSION =
-  'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-receiverAddress';
 
 /**
  * Helper method to create an OperationOutcome fwith a message

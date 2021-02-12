@@ -133,7 +133,8 @@ async function initializeReportingWorkflow(planDef, resource = null) {
  *
  * @param {PlanDefinition} planDefinition - the PlanDefinition resource for this workflow
  * @param {Patient} patient - the patient resource from the triggering resource, null if not found
- * @param {Encounter} encounter - the encounter resource from the trigger resource, null if not found
+ * @param {Encounter} encounter - the encounter resource from the trigger resource,
+ *    null if not found
  * @returns the initialized context object
  */
 function initializeContext(planDefinition, patient, encounter) {
