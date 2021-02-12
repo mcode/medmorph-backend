@@ -1,6 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
 const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
+const { default: axios } = require('axios');
+const { connectToServer } = require('./client');
 
 const COLLECTION = 'reporting';
 
@@ -32,6 +34,8 @@ https://github.com/mcode/medmorph-backend/wiki/Reporting-Workflow
 
 const BASE_REPORTING_BUNDLE_PROFILE =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle';
+const RECEIVER_ADDRESS_EXT =
+  'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-receiverAddress';
 
 /**
  * IG_REGISTRY maps the profile for a reporting bundle under an IG
@@ -45,13 +49,94 @@ const IG_REGISTRY = {
   [BASE_REPORTING_BUNDLE_PROFILE]: {} // base action definitions, see MEDMORPH-35
 };
 
+/**
+ * Retrieve data from the EHR
+ *
+ * @param {string} uri - the search query for the data desired
+ * @returns axios promise with data
+ */
+async function readFromEHR(uri) {
+  const url = process.env.EHR;
+  const token = await connectToServer(url);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios
+    .get(`${url}/${uri}`, { headers: headers })
+    .then(response => response.data)
+    .catch(err => console.error(err));
+}
+
+/**
+ * Post the reporting bundle to the endpoint designated in the PlanDefinition
+ *
+ * @param {PlanDefinition} planDefinition - the current PlanDefinition from the context
+ * @param {Bundle} bundle - the reporting Bundle to submit
+ * @returns axios promise with data
+ */
+async function submitBundle(planDefinition, bundle) {
+  const receiverAddress = planDefinition.extension.find(e => e.url === RECEIVER_ADDRESS_EXT);
+  const endpointRef = receiverAddress.valueReference.reference;
+  const endpointId = endpointRef.split('/')[1];
+  const endpoint = db.select('endpoints', e => e.id === endpointId);
+  const url = endpoint.address;
+  // TODO: how does this work with this endpoint.address....
+  const token = await connectToServer(url);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios
+    .post(url, bundle, { headers: headers })
+    .then(response => response.data)
+    .catch(err => console.error(err));
+}
+
+/**
+ * Helper function to call specific operations on the data trust service server.
+ *
+ * @param {string} operation = 'deidentify' | 'anonymize' | 'pseudonymize'
+ * @param {Bundle} bundle - the bundle to perform operation on
+ * @returns axios promise with data
+ */
+function dataTrustOperation(operation, bundle) {
+  return axios
+    .post(`${process.env.DATA_TRUST_SERVICE}/Bundle/$${operation}`, bundle)
+    .then(response => response.data)
+    .catch(err => console.error(err));
+}
+
 function initializeContext(planDefinition) {
   // TODO -- see MEDMORPH-36
+  // TODO: get patient and encounter
+  // TODO: add resources to records
+  // TODO: update executeWorkflow to use context.action
+  const actionSequence = determineActionSequence(planDefinition);
   return {
     id: uuidv4(),
+    patient: null,
+    records: [],
+    encounter: null,
+    planDefinition,
+    action: planDefinition.action[actionSequence[0]],
+    messageHeader: null, // Note: not used in actions
+    client: {
+      source: {
+        read: readFromEHR
+      },
+      dest: {
+        submit: async bundle => submitBundle(planDefinition, bundle)
+      },
+      trustServices: {
+        deidentify: bundle => dataTrustOperation('deidentify', bundle),
+        anonymize: bundle => dataTrustOperation('anonymize', bundle),
+        pseudonymize: bundle => dataTrustOperation('pseudonymize', bundle)
+      },
+      db
+    },
+    reportingBundle: null,
+    contentBundle: null,
+    next: null, // Note: not used in actions
+    prev: null, // Note: not used in actions
+    flags: {},
     currentActionSequenceStep: 0,
-    actionSequence: determineActionSequence(planDefinition),
-    planDefinition
+    actionSequence,
+    cancelToken: false
   };
 }
 
