@@ -1,4 +1,5 @@
 const db = require('../storage/DataAccess');
+const { connectToServer } = require('../utils/client');
 
 const SERVERS = 'serverConfig';
 const CLIENTS = 'clientConfig';
@@ -65,10 +66,18 @@ class Servers {
     db.upsert(ACCESS, { ...token }, s => s.id === server.id);
   }
 
-  getAccessToken(server) {
+  async getAccessToken(server) {
     const t = db.select(ACCESS, s => s.serverId === server.id);
     if (t[0] === undefined || t[0].exp < Date.now()) {
-      return null;
+      // create a new token if possible
+      try {
+        const jwt = await connectToServer(server.endpoint);
+        db.addAccessToken(server, jwt);
+        return jwt;
+      } catch (e) {
+        console.error(e);
+        return null;
+      }
     } else {
       return t[0];
     }

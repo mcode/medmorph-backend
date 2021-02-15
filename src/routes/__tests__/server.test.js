@@ -5,6 +5,7 @@ describe('Test Servers Persistance', () => {
     let p = new server.Servers();
     const server1 = {
       id: 12345,
+      endpoint: 'www.example.com',
       name: 'test1'
     };
     p.addServer(server1);
@@ -18,6 +19,7 @@ describe('Test Servers Persistance', () => {
     let p = new server.Servers();
     const server1 = {
       id: 12345,
+      endpoint: 'www.example.com',
       name: 'test1'
     };
     p.addServer(server1);
@@ -33,6 +35,7 @@ describe('Test Servers Persistance', () => {
     let p = new server.Servers();
     const server1 = {
       id: 12345,
+      endpoint: 'www.example.com',
       name: 'test1'
     };
     const config1 = {
@@ -50,6 +53,7 @@ describe('Test Servers Persistance', () => {
     let p = new server.Servers();
     const server1 = {
       id: 12345,
+      endpoint: 'www.example.com',
       name: 'test1'
     };
     const token1 = {
@@ -67,6 +71,7 @@ describe('Test Servers Persistance', () => {
     let p = new server.Servers();
     const server1 = {
       id: 12345,
+      endpoint: 'www.example.com',
       name: 'test1'
     };
     const token1 = {
@@ -84,6 +89,7 @@ describe('Test Servers Persistance', () => {
     let p = new server.Servers();
     const server1 = {
       id: 12345,
+      endpoint: 'www.example.com',
       name: 'test1'
     };
     const token1 = {
@@ -104,6 +110,7 @@ describe('Test Servers Persistance', () => {
     let p = new server.Servers();
     const server1 = {
       id: 12345,
+      endpoint: 'www.example.com',
       name: 'test1'
     };
     const key1 = {
@@ -120,6 +127,7 @@ describe('Test Servers Persistance', () => {
     let p = new server.Servers();
     const server1 = {
       id: 12345,
+      endpoint: 'www.example.com',
       name: 'test1'
     };
     const config1 = {
