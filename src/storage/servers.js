@@ -6,20 +6,20 @@ const ACCESS = 'accessTokens';
 const KEYS = 'serverKeys';
 
 /**
- * Required Fields for AuthorizationPersistance Data Types:
+ * Required Fields for Servers Data Types:
  *
  * Server:
  *  @param {string} id - the id of the server
- *
- * Config:
- *  @param {string} jwks_url - the url for the jwks
+ *  @param {string} name - human readable name
+ *  @param {string} endpoint: - FHIR base url
+ *  @param {string} type - 'KA' | 'EHR' | 'PHA' - type of server the endpoint is
  *
  * Client:
  *  @param {string} id - the id of the client
  *  @param {string} serverId - the id of server (added when client config is saved)
  *
  * Token:
- *  @param {string} jwt - the jwt
+ *  @param {string} token - the access token
  *  @param {number} exp - the time the token expires (UTC)
  *  @param {string} serverId - the id of server (added when token is saved)
  *
@@ -28,22 +28,32 @@ const KEYS = 'serverKeys';
  *
  */
 
-class AuthorizationPersistance {
+class Servers {
   addServer(server) {
-    db.insert(SERVERS, server);
+    db.upsert(SERVERS, { ...server }, s => s.id === server.id);
   }
 
-  addServerConfiguration(server, config) {
-    db.upsert(SERVERS, config, s => s.id === server.id);
+  getServer(id) {
+    return db.select(SERVERS, s => s.id === id);
   }
 
-  getServerConfiguration(server) {
-    return db.select(SERVERS, s => s.id === server.id);
+  deleteServer(id) {
+    // delete any keys with server id
+    db.delete(KEYS, s => s.serverId === id);
+
+    // delete any tokens with server id
+    db.delete(ACCESS, s => s.serverId === id);
+
+    // delete any clients with server id
+    db.delete(CLIENTS, s => s.serverId === id);
+
+    // delete any servers with server id
+    db.delete(SERVERS, s => s.id === id);
   }
 
   addClientConfiguration(server, client) {
     client.serverId = server.id;
-    db.upsert(CLIENTS, client, s => s.id === server.id);
+    db.upsert(CLIENTS, { ...client }, s => s.id === server.id);
   }
 
   getClientConfiguration(server) {
@@ -52,7 +62,7 @@ class AuthorizationPersistance {
 
   addAccessToken(server, token) {
     token.serverId = server.id;
-    db.upsert(ACCESS, token, s => s.id === server.id);
+    db.upsert(ACCESS, { ...token }, s => s.id === server.id);
   }
 
   getAccessToken(server) {
@@ -66,7 +76,7 @@ class AuthorizationPersistance {
 
   addServerKeys(server, keys) {
     keys.serverId = server.id;
-    db.upsert(KEYS, keys, s => s.id === server.id);
+    db.upsert(KEYS, { ...keys }, s => s.id === server.id);
   }
 
   getServerKeys(server) {
@@ -86,4 +96,4 @@ class AuthorizationPersistance {
   }
 }
 
-module.exports = { AuthorizationPersistance: AuthorizationPersistance };
+module.exports = { Servers: Servers };
