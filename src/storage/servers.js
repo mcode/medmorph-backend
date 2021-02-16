@@ -2,73 +2,53 @@ const db = require('../storage/DataAccess');
 const { connectToServer } = require('../utils/client');
 
 const SERVERS = 'serverConfig';
-const CLIENTS = 'clientConfig';
-const ACCESS = 'accessTokens';
-const KEYS = 'serverKeys';
 
 /**
- * Required Fields for Servers Data Types:
+ * Fields for Servers Data Types:
  *
  * Server:
  *  @param {string} id - the id of the server
  *  @param {string} name - human readable name
  *  @param {string} endpoint: - FHIR base url
  *  @param {string} type - 'KA' | 'EHR' | 'PHA' - type of server the endpoint is
- *
- * Client:
- *  @param {string} id - the id of the client
- *  @param {string} serverId - the id of server (added when client config is saved)
- *
- * Token:
- *  @param {string} token - the access token
- *  @param {number} exp - the time the token expires (UTC)
- *  @param {string} serverId - the id of server (added when token is saved)
- *
- *  Key:
- *  @param {string} serverId - the id of server (added when key is saved)
+ *  @param {string} clientId - the client ID assigned to this app during registration
+ *  @param {string} token - the last access token received from authorization
+ *  @param {number} tokenExp - the time the token expires (UTC)
+ *  @param {string} key - the last key
  *
  */
 
 class Servers {
   addServer(server) {
-    db.upsert(SERVERS, { ...server }, s => s.id === server.id);
+    db.upsert(SERVERS, server, s => s.id === server.id);
   }
 
   getServer(id) {
-    return db.select(SERVERS, s => s.id === id);
+    return db.select(SERVERS, s => s.id === id)[0];
   }
 
   deleteServer(id) {
-    // delete any keys with server id
-    db.delete(KEYS, s => s.serverId === id);
-
-    // delete any tokens with server id
-    db.delete(ACCESS, s => s.serverId === id);
-
-    // delete any clients with server id
-    db.delete(CLIENTS, s => s.serverId === id);
-
-    // delete any servers with server id
     db.delete(SERVERS, s => s.id === id);
   }
 
-  addClientConfiguration(server, client) {
-    client.serverId = server.id;
-    db.upsert(CLIENTS, { ...client }, s => s.id === server.id);
+  addClientId(server, clientId) {
+    server.clientId = clientId;
+    this.addServer(server);
   }
 
-  getClientConfiguration(server) {
-    return db.select(CLIENTS, s => s.serverId === server.id);
+  getClientId(server) {
+    return this.getServer(server.id).clientId;
   }
 
   addAccessToken(server, token) {
-    token.serverId = server.id;
-    db.upsert(ACCESS, { ...token }, s => s.id === server.id);
+    server.token = token.jwt;
+    server.tokenExp = token.exp;
+    this.addServer(server);
   }
 
   async getAccessToken(server) {
-    const t = db.select(ACCESS, s => s.serverId === server.id);
-    if (t[0] === undefined || t[0].exp < Date.now()) {
+    const result = this.getServer(server.id); // db.select(SERVERS, s => s.id === server.id);
+    if (result.token === undefined || result.tokenExp < Date.now()) {
       // create a new token if possible
       try {
         const jwt = await connectToServer(server.endpoint);
@@ -79,28 +59,25 @@ class Servers {
         return null;
       }
     } else {
-      return t[0];
+      return result.token;
     }
   }
 
-  addServerKeys(server, keys) {
-    keys.serverId = server.id;
-    db.upsert(KEYS, { ...keys }, s => s.id === server.id);
+  addServerKey(server, key) {
+    server.key = key;
+    this.addServer(server);
   }
 
-  getServerKeys(server) {
-    let keys = db.select(KEYS, s => s.serverId === server.id);
-    if (!keys && this.getServerConfiguration(server)) {
-      keys = this.getServerConfiguration(server).jwks;
-    }
-    return keys;
+  getServerKey(server) {
+    return this.getServer(server.id).key;
   }
 
-  clearTokens(server) {
+  clearAccessToken(server) {
     if (!server) {
       return;
     } else {
-      db.delete(ACCESS, s => s.serverId === server.id);
+      server.token = null;
+      this.addServer(server);
     }
   }
 }

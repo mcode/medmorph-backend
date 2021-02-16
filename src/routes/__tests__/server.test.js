@@ -11,7 +11,7 @@ describe('Test Servers Persistance', () => {
     server.addServer(server1);
     const result = server.getServer(server1.id);
 
-    expect(result[0]);
+    expect(result);
     done();
   });
 
@@ -23,11 +23,11 @@ describe('Test Servers Persistance', () => {
       name: 'test1'
     };
     server.addServer(server1);
-    server1.type = 'KA';
+    server1.name = 'test2';
     server.addServer(server1);
     const result = server.getServer(server1.id);
 
-    expect(result[0].type === 'KA');
+    expect(result.name === 'test2');
     done();
   });
 
@@ -38,14 +38,11 @@ describe('Test Servers Persistance', () => {
       endpoint: 'www.example.com',
       name: 'test1'
     };
-    const config1 = {
-      cId: 123,
-      alg: 'RS384'
-    };
+    const clientId = '123abc';
     server.addServer(server1);
-    server.addClientConfiguration(server1, config1);
-    const result = server.getClientConfiguration(server1);
-    expect(result[0].alg === 'RS384');
+    server.addClientId(server1, clientId);
+    const result = server.getClientId(server1);
+    expect(result === '123abc');
     done();
   });
 
@@ -63,7 +60,7 @@ describe('Test Servers Persistance', () => {
     server.addServer(server1);
     server.addAccessToken(server1, token1);
     const result = await server.getAccessToken(server1);
-    expect(result.jwt === 'bearer asdf1234');
+    expect(result === 'bearer asdf1234');
     done();
   });
 
@@ -85,7 +82,7 @@ describe('Test Servers Persistance', () => {
     done();
   });
 
-  it('Should clear result generated access token', async done => {
+  it('Should clear generated access token', async done => {
     const server = new servers.Servers();
     const server1 = {
       id: 12345,
@@ -100,72 +97,40 @@ describe('Test Servers Persistance', () => {
     server.addAccessToken(server1, token1);
     let result = await server.getAccessToken(server1);
     expect(result.jwt === 'bearer asdf1234');
-    server.clearTokens(server1);
+    server.clearAccessToken(server1);
     result = await server.getAccessToken(server1);
     expect(result === null);
     done();
   });
 
-  it('Should create and get result key', async done => {
+  it('Should create and get key', async done => {
     const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
       name: 'test1'
     };
-    const key1 = {
-      key: '123keyabc'
-    };
+    const key1 = '123keyabc';
     server.addServer(server1);
-    server.addServerKeys(server1, key1);
-    const result = server.getServerKeys(server1);
-    expect(result[0].key === '123keyabc');
+    server.addServerKey(server1, key1);
+    const result = server.getServerKey(server1);
+    expect(result === '123keyabc');
     done();
   });
 
-  it('Should delete all references to result server when result server is deleted', async done => {
+  it('Should delete server', async done => {
     const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
       name: 'test1'
     };
-    const config1 = {
-      cId: 123,
-      alg: 'RS384'
-    };
-    const token1 = {
-      jwt: 'bearer asdf1234',
-      exp: Date.now() + 500
-    };
-    const key1 = {
-      key: '123keyabc'
-    };
+
     server.addServer(server1);
     let result = server.getServer(server1.id);
     expect(result[0]);
-
-    server.addClientConfiguration(server1, config1);
-    result = server.getClientConfiguration(server1);
-    expect(result[0].alg === 'RS384');
-
-    server.addAccessToken(server1, token1);
-    result = server.getAccessToken(server1);
-    expect(result.jwt === 'bearer asdf1234');
-
-    server.addServerKeys(server1, key1);
-    result = server.getServerKeys(server1);
-    expect(result[0].key === '123keyabc');
-
     server.deleteServer(server1);
     result = server.getServer(server1.id);
-    expect(result === null);
-    result = server.getClientConfiguration(server1);
-    expect(result === null);
-    result = server.getAccessToken(server1);
-    expect(result === null);
-    result = server.getServerKeys(server1);
-    expect(result === null);
     done();
   });
 });
