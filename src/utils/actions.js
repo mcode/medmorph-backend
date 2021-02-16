@@ -4,9 +4,9 @@
 //  Patient: identifier for the patient whose data triggered the workflow
 //  records: list of records
 //  Encounter: encounter where some data triggered the workflow
+//  Organization: Organization that is doing the workflow
 //  PlanDef: *** do we want to keep a "pre-processed" version of the plandef?
 //  Action: action currently in context from the planDef
-//  messageHeader: info about the message
 //  client: set of clients to connect to
 //      source: FHIR client to make additional queries to EHR
 //      dest: FHIR client to send to PHA/TTP
@@ -16,9 +16,12 @@
 //  contentBundle: just the content section of the report bundle
 //  next: place to put arbitrary objects specifically for the next step?
 //  prev: where arbitrary objects from the previous set should go?
-//  flags: various boolean or enum flags about the status of the report. is it encrypted y/n, is it identifiable or de/pseudo/anonymized, etc
-//  cancelToken: indicates the job should be cancelled (from a process external to the job itself -- this tells the job to cease processing)
-//  exitStatus: if set, terminates the job and marks it with the given status (for example, if a given patient doesn't meet reporting criteria, don't keep reporting)
+//  flags: various boolean or enum flags about the status of the report.
+//         is it encrypted y/n, is it identifiable or de/pseudo/anonymized, etc
+//  cancelToken: indicates the job should be cancelled (from a process external
+//         to the job itself -- this tells the job to cease processing)
+//  exitStatus: if set, terminates the job and marks it with the given status
+//         (for example, if a given patient doesn't meet reporting criteria, don't keep reporting)
 
 // we assume the context updates and is passed to functions
 // in turn.  I'm also assuming the context is unique
@@ -32,8 +35,8 @@ const baseIgActions = {
     const action = context.action;
     const resources = context.records;
 
-    const boolMap = action.condition.map(condition => {
-      if (condition.kind === 'applicability' && condition.expression) {
+    const boolMap = action.action[0].condition.map(condition => {
+      if (condition.expression) {
         const expression = condition.expression;
         // check the records for a trigger code
         return resources.some(resource => {
@@ -52,22 +55,18 @@ const baseIgActions = {
     context.flags['triggered'] = triggered;
   },
   'check-participant-registration': context => {
-    return null;
+    // TODO: how do we check the participant registration?
+    // Through the source client?
+    return context;
   },
   'create-report': context => {
     // the output might define a profile
-    let profile = null;
+    let contentBundle = createBundle(context.records);
     if (context.action.output) {
       const output = context.action.output[0];
-      if (output.profile) {
-        profile = output.profile[0];
-      }
+      if (output.profile) contentBundle = validateProfile(contentBundle, output.profile[0]);
     }
-    let contentBundle = createBundle(context.records);
-    if (profile) {
-      contentBundle = validateProfile(contentBundle, profile);
-    }
-    const header = makeHeader();
+    const header = makeHeader(context);
     context.contentBundle = contentBundle;
     context.reportingBundle = createBundle([header, ...contentBundle.entry]);
   },
@@ -76,36 +75,82 @@ const baseIgActions = {
     const validation = fhir.validate(context.reportingBundle);
     context.flags['valid'] = validation.valid;
   },
-  'submit-report': context => {
-    context.client.dest.submit(context.reportingBundle);
+  'submit-report': async context => {
+    await context.client.dest
+      .submit(context.reportingBundle)
+      .then(
+        result => {
+          // might want to check for a 200?
+          if (result.status === 200) {
+            context.flags['submitted'] = true;
+          }
+        },
+        () => {
+          context.flags['submitted'] = false;
+        }
+      )
+      .catch(() => {
+        context.flags['submitted'] = false;
+      });
   },
-  'deidentify-report': context => {
-    const client = context.client.trustServices;
-    client.deidentify(context.reportingBundle).then(result => {
-      context.reportingBundle = result;
-    });
-    context.flags['deidentified'] = true;
+  'deidentify-report': async context => {
+    const client = context.client.trust;
+    await client
+      .deidentify(context.reportingBundle)
+      .then(
+        result => {
+          context.reportingBundle = result;
+          context.flags['deidentified'] = true;
+        },
+        () => {
+          context.flags['deidentified'] = false;
+        }
+      )
+      .catch(() => {
+        context.flags['deidentified'] = false;
+      });
   },
   'anonymize-report': context => {
-    const client = context.client.trustServices;
-    client.anonymize(context.reportingBundle).then(result => {
-      context.reportingBundle = result;
-    });
-    context.flags['anonymized'] = true;
+    const client = context.client.trust;
+    client
+      .anonymize(context.reportingBundle)
+      .then(
+        result => {
+          context.reportingBundle = result;
+          context.flags['anonymized'] = true;
+        },
+        () => {
+          context.flags['anonymized'] = false;
+        }
+      )
+      .catch(() => {
+        context.flags['anonymized'] = false;
+      });
   },
   'pseudonymize-report': context => {
-    const client = context.client.trustServices;
-    client.pseudonymize(context.reportingBundle).then(result => {
-      context.reportingBundle = result;
-    });
-    context.flags['pseudonymized'] = true;
+    const client = context.client.trust;
+    client
+      .pseudonymize(context.reportingBundle)
+      .then(
+        result => {
+          context.reportingBundle = result;
+          context.flags['pseudonymized'] = true;
+        },
+        () => {
+          context.flags['pseudonymize'] = false;
+        }
+      )
+      .catch(() => {
+        context.flags['pseudonymize'] = false;
+      });
   },
   'encrypt-report': context => {
     // noop
     context.flags['encrypted'] = true;
   },
   'complete-reporting': context => {
-    context.client.db.insert('completed reports', context.reportingBundle);
+    context.client.database.insert('completed reports', context.reportingBundle);
+    context.flags['completed'] = true;
   },
   'extract-research-data': context => {
     // assume information about desired research data
@@ -122,9 +167,12 @@ const baseIgActions = {
         if (reference) {
           uri += `subject=${reference}&`;
         }
-        const resources = client.read(uri);
+        const resources = client.read(uri).entry.map(entry => {
+          return entry.resource;
+        });
+
         const dateFilter = input.dateFilter;
-        const filteredResources = [];
+        let filteredResources = [...resources];
         // TODO: some of the filtering could
         // be done with search params in the query
 
@@ -134,64 +182,61 @@ const baseIgActions = {
           const searchParam = dateFilter.searchParam;
           const filterPeriod = dateFilter.valuePeriod; // assume its a valuePeriod
           if (path) {
-            const dateFiltered = resources.filter(resource => {
+            filteredResources = filteredResources.filter(resource => {
               // get value by path
               const date = getByPath(resource, path); // assume its a datetime?
               return compareDates(date, filterPeriod);
             });
-            filteredResources.push.apply(filteredResources, dateFiltered);
           } else {
             // path or searchParam are required
-            const dateFiltered = resources.filter(resource => {
+            filteredResources = filteredResources.filter(resource => {
               // get value by param
               const date = getBySearchParam(resource, searchParam); // assume its a datetime?
               return compareDates(date, filterPeriod);
             });
-            filteredResources.push.apply(filteredResources, dateFiltered);
           }
-        } else {
-          // if there's no date filter, we can just push all the resources
-          // in to be filtered by code
-          filteredResources.push.apply(filteredResources, resources);
         }
 
         const codeFilter = input.codeFilter;
         if (codeFilter) {
           // code filter isn't under the same constraint as datefilter
           // we can assume that it's just a path
-          const path = codefilter.path;
+          const path = codeFilter.path;
           const searchParam = codeFilter.searchParam;
           if (path) {
             // no need to refilter resources
-            const filteredResources = filteredResources.filter(resource => {
+            filteredResources = filteredResources.filter(resource => {
               const code = getByPath(resource, path);
-              return compareCodes(code, codeFilter.code); // codeFilter.code is of type Coding, could also be a valueSet?
+              // codeFilter.code is of type Coding, could also be a valueSet?
+              return compareCodes(code, codeFilter.code[0]);
             });
           } else if (searchParam) {
-            const filteredResources = filteredResources.filter(resource => {
+            filteredResources = filteredResources.filter(resource => {
               const code = getBySearchParam(resource, searchParam);
               return compareCodes(code, codeFilter.code);
             });
           }
         }
-        return context.records.push(filteredResources);
+        return context.records.push(...filteredResources);
       });
     }
   },
   'execute-research-query': context => {
     // noop
+    return context;
   }
 };
 
 function validateProfile(report, structureDefinition) {
   // TODO: Perhaps this is something one of the servers/clients would handle?
-  return report;
+  if (structureDefinition) {
+    return report;
+  }
 }
 
 function getByPath(resource, path) {
-  // TODO: function to search resources by path
-  // and return correct attribute
-  return resource;
+  const fhirpath = new FhirPath(resource);
+  return fhirpath.evaluate(path);
 }
 
 function compareCodes(coding1, coding2) {
@@ -202,33 +247,32 @@ function compareCodes(coding1, coding2) {
 function getBySearchParam(resource, searchParam) {
   // TODO: function to search resources by param
   // and return correct attribute
-  return resource.date;
+  return resource[searchParam];
 }
 
-function compareDates(period1, period2) {
+function compareDates(date, period) {
   // TODO: returns true if the periods overlap
+  const now = Date.parse(date);
+  const start = Date.parse(period.start);
+  const end = Date.parse(period.end);
+  return now > start && now < end;
 }
+
 function createBundle(records) {
   const bundle = {
     resourceType: 'Bundle',
-    type: 'collection',
+    type: 'message',
+    timestamp: Date.now(),
     entry: []
   };
 
   records.forEach(record => {
-    bundle.push({
+    bundle.entry.push({
       resource: record
     });
   });
 
   return bundle;
-}
-
-function getPatient(context) {
-  const patientId = context.patient;
-  const patient = context.client.source.read(patientId);
-  context.patient = patient;
-  return context;
 }
 
 function evaluateExpression(expression, resource) {
@@ -239,16 +283,43 @@ function evaluateExpression(expression, resource) {
   }
 }
 
-function makeHeader(profile) {
-  let header = {
+function makeHeader(context) {
+  const header = {
     resourceType: 'MessageHeader',
+    extension: [
+      {
+        url: 'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-messageProcessingCategory',
+        valueCode: 'consequence'
+      }
+    ],
     eventCoding: {
-      system: 'http://example.org/fhir/message-events',
-      code: 'placeholder'
+      system: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-messageheader-message-types',
+      code: 'message-report'
+    },
+    destination: [
+      {
+        // assume client has some way to produce its endpoint
+        endpoint: context.client.dest.endpoint
+      }
+    ],
+    source: {
+      endpoint: context.client.source.endpoint
+    },
+    sender: {
+      // would the org come from the plandef?
+      reference: context.organization
+    },
+    reason: {
+      coding: [
+        {
+          system: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents',
+          code: 'encounter-change' // any way to get this trigger code?
+        }
+      ]
     }
   };
-  if (profile) {
-    header = validateProfile(header, profile);
-  }
+
   return header;
 }
+
+module.exports = { baseIgActions };
