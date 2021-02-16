@@ -18,68 +18,78 @@ const SERVERS = 'serverConfig';
  *
  */
 
-class Servers {
-  addServer(server) {
-    db.upsert(SERVERS, server, s => s.id === server.id);
-  }
+function addServer(server) {
+  db.upsert(SERVERS, server, s => s.id === server.id);
+}
 
-  getServer(id) {
-    return db.select(SERVERS, s => s.id === id)[0];
-  }
+function getServers() {
+  return db.select(SERVERS, () => true);
+}
 
-  deleteServer(id) {
-    db.delete(SERVERS, s => s.id === id);
-  }
+function getServerById(id) {
+  return db.select(SERVERS, s => s.id === id)[0];
+}
 
-  addClientId(server, clientId) {
-    server.clientId = clientId;
-    this.addServer(server);
-  }
+function getServerByUrl(url) {
+  return db.select(SERVERS, s => s.endpoint === url)[0];
+}
 
-  getClientId(server) {
-    return this.getServer(server.id).clientId;
-  }
+function deleteServer(id) {
+  db.delete(SERVERS, s => s.id === id);
+}
 
-  addAccessToken(server, token) {
-    server.token = token.jwt;
-    server.tokenExp = token.exp;
-    this.addServer(server);
-  }
+function addClientId(server, clientId) {
+  server.clientId = clientId;
+  this.addServer(server);
+}
 
-  async getAccessToken(server) {
-    const result = this.getServer(server.id); // db.select(SERVERS, s => s.id === server.id);
-    if (result.token === undefined || result.tokenExp < Date.now()) {
-      // create a new token if possible
-      try {
-        const jwt = await connectToServer(server.endpoint);
-        db.addAccessToken(server, jwt);
-        return jwt;
-      } catch (e) {
-        console.error(e);
-        return null;
-      }
-    } else {
-      return result.token;
+function getClientId(server) {
+  return this.getServerById(server.id).clientId;
+}
+
+function addAccessToken(server, token, tokenExp) {
+  server.token = token;
+  server.tokenExp = tokenExp;
+  this.addServer(server);
+}
+
+async function getAccessToken(server) {
+  const result = this.getServerById(server.id);
+  if (result.token === undefined || result.tokenExp < Date.now()) {
+    // create a new token if possible
+    try {
+      const token = await connectToServer(server.endpoint);
+      // expires_in is time until expiration in seconds, Date.now() is in milliseconds
+      const exp = Date.now() + token.expires_in * 100;
+      db.addAccessToken(server, token.access_token, exp);
+      return token;
+    } catch (e) {
+      console.error(e);
+      return null;
     }
-  }
-
-  addServerKey(server, key) {
-    server.key = key;
-    this.addServer(server);
-  }
-
-  getServerKey(server) {
-    return this.getServer(server.id).key;
-  }
-
-  clearAccessToken(server) {
-    if (!server) {
-      return;
-    } else {
-      server.token = null;
-      this.addServer(server);
-    }
+  } else {
+    return result.token;
   }
 }
 
-module.exports = { Servers: Servers };
+function clearAccessToken(server) {
+  if (!server) {
+    return;
+  } else {
+    server.token = null;
+    this.addServer(server);
+  }
+}
+
+module.exports = {
+  addServer,
+  getServers,
+  getServerById,
+  getServerByUrl,
+  deleteServer,
+  addClientId,
+  getClientId,
+  addAccessToken,
+  getAccessToken,
+  clearAccessToken
+};

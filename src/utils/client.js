@@ -2,8 +2,8 @@ const jose = require('node-jose');
 const axios = require('axios');
 const { v4 } = require('uuid');
 const queryString = require('query-string');
-const clientId = 'medmorph_backend';
 const keys = require('../keys/privateKey.json');
+const servers = require('../storage/servers');
 
 /**
  * Generate and return access token for the specified server. If tokenEndpoint
@@ -15,6 +15,7 @@ const keys = require('../keys/privateKey.json');
 async function connectToServer(url) {
   // Generate the client_assertion jwt
   const tokenEndpoint = await getTokenEndpoint(url);
+  const clientId = servers.getServerByUrl(url).clientId;
   const jwt = await generateJWT(clientId, tokenEndpoint);
 
   const props = {

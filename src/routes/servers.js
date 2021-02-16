@@ -7,13 +7,10 @@ const servers = require('../storage/servers');
 
 const db = require('../storage/DataAccess');
 
-const COLLECTION = 'servers';
-const server = new servers.Servers();
-
 // GET /
 // List all servers
 router.get('/', (req, res) => {
-  const result = db.select(COLLECTION, () => true);
+  const result = servers.getServers();
   res.send(result);
 });
 
@@ -26,7 +23,7 @@ router.post('/', (req, res) => {
     newItem.id = uuidv4();
   }
 
-  server.addServer(newItem);
+  servers.addServer(newItem);
   res.status(StatusCodes.CREATED).send(newItem);
 });
 
@@ -34,7 +31,7 @@ router.post('/', (req, res) => {
 // Read a single server
 router.get('/:id', (req, res) => {
   const id = req.params.id;
-  const resultList = server.getServer(id);
+  const resultList = servers.getServerById(id);
   if (resultList[0]) {
     res.send(resultList[0]);
   } else {
@@ -58,7 +55,7 @@ router.put('/:id', (req, res) => {
 // Remove a server
 router.delete('/:id', (req, res) => {
   const id = req.params.id;
-  server.deleteServer(id);
+  servers.deleteServer(id);
   res.sendStatus(StatusCodes.OK);
 });
 
