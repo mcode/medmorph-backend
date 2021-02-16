@@ -14,8 +14,6 @@
 //      database
 //  reportingBundle: the entire bundle to be submitted
 //  contentBundle: just the content section of the report bundle
-//  next: place to put arbitrary objects specifically for the next step?
-//  prev: where arbitrary objects from the previous set should go?
 //  flags: various boolean or enum flags about the status of the report.
 //         is it encrypted y/n, is it identifiable or de/pseudo/anonymized, etc
 //  cancelToken: indicates the job should be cancelled (from a process external
@@ -61,14 +59,14 @@ const baseIgActions = {
   },
   'create-report': context => {
     // the output might define a profile
-    let contentBundle = createBundle(context.records);
+    let contentBundle = createBundle(context.records, 'collection');
     if (context.action.output) {
       const output = context.action.output[0];
       if (output.profile) contentBundle = validateProfile(contentBundle, output.profile[0]);
     }
     const header = makeHeader(context);
     context.contentBundle = contentBundle;
-    context.reportingBundle = createBundle([header, ...contentBundle.entry]);
+    context.reportingBundle = createBundle([header, ...contentBundle.entry], 'message');
   },
   'validate-report': context => {
     // check if fhir is well-formed
@@ -80,8 +78,7 @@ const baseIgActions = {
       .submit(context.reportingBundle)
       .then(
         result => {
-          // might want to check for a 200?
-          if (result.status === 200) {
+          if (result.status === 200 || result.status === 202) {
             context.flags['submitted'] = true;
           }
         },
@@ -99,7 +96,7 @@ const baseIgActions = {
       .deidentify(context.reportingBundle)
       .then(
         result => {
-          context.reportingBundle = result;
+          context.reportingBundle = result.data;
           context.flags['deidentified'] = true;
         },
         () => {
@@ -116,7 +113,7 @@ const baseIgActions = {
       .anonymize(context.reportingBundle)
       .then(
         result => {
-          context.reportingBundle = result;
+          context.reportingBundle = result.data;
           context.flags['anonymized'] = true;
         },
         () => {
@@ -133,7 +130,7 @@ const baseIgActions = {
       .pseudonymize(context.reportingBundle)
       .then(
         result => {
-          context.reportingBundle = result;
+          context.reportingBundle = result.data;
           context.flags['pseudonymized'] = true;
         },
         () => {
@@ -251,17 +248,16 @@ function getBySearchParam(resource, searchParam) {
 }
 
 function compareDates(date, period) {
-  // TODO: returns true if the periods overlap
   const now = Date.parse(date);
   const start = Date.parse(period.start);
   const end = Date.parse(period.end);
   return now > start && now < end;
 }
 
-function createBundle(records) {
+function createBundle(records, type) {
   const bundle = {
     resourceType: 'Bundle',
-    type: 'message',
+    type: type,
     timestamp: Date.now(),
     entry: []
   };
@@ -303,7 +299,7 @@ function makeHeader(context) {
       }
     ],
     source: {
-      endpoint: context.client.source.endpoint
+      endpoint: `${process.env.BASE_URL}/$process-message`
     },
     sender: {
       // would the org come from the plandef?
