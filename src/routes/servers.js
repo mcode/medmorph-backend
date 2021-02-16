@@ -8,7 +8,7 @@ const servers = require('../storage/servers');
 const db = require('../storage/DataAccess');
 
 const COLLECTION = 'servers';
-let server = new servers.Servers();
+const server = new servers.Servers();
 
 // GET /
 // List all servers

@@ -1,38 +1,38 @@
-const server = require('../../storage/servers');
+const servers = require('../../storage/servers');
 
 describe('Test Servers Persistance', () => {
-  it('Should create and get a server', async done => {
-    let p = new server.Servers();
+  it('Should create and get result server', async done => {
+    const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
       name: 'test1'
     };
-    p.addServer(server1);
-    let a = p.getServer(server1.id);
+    server.addServer(server1);
+    const result = server.getServer(server1.id);
 
-    expect(a[0]);
+    expect(result[0]);
     done();
   });
 
-  it('Should update and get a server', async done => {
-    let p = new server.Servers();
+  it('Should update and get result server', async done => {
+    const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
       name: 'test1'
     };
-    p.addServer(server1);
+    server.addServer(server1);
     server1.type = 'KA';
-    p.addServer(server1);
-    let a = p.getServer(server1.id);
+    server.addServer(server1);
+    const result = server.getServer(server1.id);
 
-    expect(a[0].type === 'KA');
+    expect(result[0].type === 'KA');
     done();
   });
 
-  it('Should create and get a client config', async done => {
-    let p = new server.Servers();
+  it('Should create and get result client config', async done => {
+    const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
@@ -42,15 +42,15 @@ describe('Test Servers Persistance', () => {
       cId: 123,
       alg: 'RS384'
     };
-    p.addServer(server1);
-    p.addClientConfiguration(server1, config1);
-    let a = p.getClientConfiguration(server1);
-    expect(a[0].alg === 'RS384');
+    server.addServer(server1);
+    server.addClientConfiguration(server1, config1);
+    const result = server.getClientConfiguration(server1);
+    expect(result[0].alg === 'RS384');
     done();
   });
 
   it('Should create and get an access token', async done => {
-    let p = new server.Servers();
+    const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
@@ -60,15 +60,15 @@ describe('Test Servers Persistance', () => {
       jwt: 'bearer asdf1234',
       exp: Date.now() + 500
     };
-    p.addServer(server1);
-    p.addAccessToken(server1, token1);
-    let a = p.getAccessToken(server1);
-    expect(a.jwt === 'bearer asdf1234');
+    server.addServer(server1);
+    server.addAccessToken(server1, token1);
+    const result = await server.getAccessToken(server1);
+    expect(result.jwt === 'bearer asdf1234');
     done();
   });
 
   it('Should not return an expired token', async done => {
-    let p = new server.Servers();
+    const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
@@ -78,15 +78,15 @@ describe('Test Servers Persistance', () => {
       jwt: 'bearer asdf1234',
       exp: Date.now() - 1
     };
-    p.addServer(server1);
-    p.addAccessToken(server1, token1);
-    let a = p.getAccessToken(server1);
-    expect(a === null);
+    server.addServer(server1);
+    server.addAccessToken(server1, token1);
+    const result = await server.getAccessToken(server1);
+    expect(result === null);
     done();
   });
 
-  it('Should clear a generated access token', async done => {
-    let p = new server.Servers();
+  it('Should clear result generated access token', async done => {
+    const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
@@ -96,18 +96,18 @@ describe('Test Servers Persistance', () => {
       jwt: 'bearer asdf1234',
       exp: Date.now() + 500
     };
-    p.addServer(server1);
-    p.addAccessToken(server1, token1);
-    let a = p.getAccessToken(server1);
-    expect(a.jwt === 'bearer asdf1234');
-    p.clearTokens(server1);
-    a = p.getAccessToken(server1);
-    expect(a === null);
+    server.addServer(server1);
+    server.addAccessToken(server1, token1);
+    let result = await server.getAccessToken(server1);
+    expect(result.jwt === 'bearer asdf1234');
+    server.clearTokens(server1);
+    result = await server.getAccessToken(server1);
+    expect(result === null);
     done();
   });
 
-  it('Should create and get a key', async done => {
-    let p = new server.Servers();
+  it('Should create and get result key', async done => {
+    const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
@@ -116,15 +116,15 @@ describe('Test Servers Persistance', () => {
     const key1 = {
       key: '123keyabc'
     };
-    p.addServer(server1);
-    p.addServerKeys(server1, key1);
-    let a = p.getServerKeys(server1);
-    expect(a[0].key === '123keyabc');
+    server.addServer(server1);
+    server.addServerKeys(server1, key1);
+    const result = server.getServerKeys(server1);
+    expect(result[0].key === '123keyabc');
     done();
   });
 
-  it('Should delete all references to a server when a server is deleted', async done => {
-    let p = new server.Servers();
+  it('Should delete all references to result server when result server is deleted', async done => {
+    const server = new servers.Servers();
     const server1 = {
       id: 12345,
       endpoint: 'www.example.com',
@@ -141,31 +141,31 @@ describe('Test Servers Persistance', () => {
     const key1 = {
       key: '123keyabc'
     };
-    p.addServer(server1);
-    let a = p.getServer(server1.id);
-    expect(a[0]);
+    server.addServer(server1);
+    let result = server.getServer(server1.id);
+    expect(result[0]);
 
-    p.addClientConfiguration(server1, config1);
-    a = p.getClientConfiguration(server1);
-    expect(a[0].alg === 'RS384');
+    server.addClientConfiguration(server1, config1);
+    result = server.getClientConfiguration(server1);
+    expect(result[0].alg === 'RS384');
 
-    p.addAccessToken(server1, token1);
-    a = p.getAccessToken(server1);
-    expect(a.jwt === 'bearer asdf1234');
+    server.addAccessToken(server1, token1);
+    result = server.getAccessToken(server1);
+    expect(result.jwt === 'bearer asdf1234');
 
-    p.addServerKeys(server1, key1);
-    a = p.getServerKeys(server1);
-    expect(a[0].key === '123keyabc');
+    server.addServerKeys(server1, key1);
+    result = server.getServerKeys(server1);
+    expect(result[0].key === '123keyabc');
 
-    p.deleteServer(server1);
-    a = p.getServer(server1.id);
-    expect(a === null);
-    a = p.getClientConfiguration(server1);
-    expect(a === null);
-    a = p.getAccessToken(server1);
-    expect(a === null);
-    a = p.getServerKeys(server1);
-    expect(a === null);
+    server.deleteServer(server1);
+    result = server.getServer(server1.id);
+    expect(result === null);
+    result = server.getClientConfiguration(server1);
+    expect(result === null);
+    result = server.getAccessToken(server1);
+    expect(result === null);
+    result = server.getServerKeys(server1);
+    expect(result === null);
     done();
   });
 });
