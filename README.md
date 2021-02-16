@@ -22,11 +22,24 @@ npm start
 
 With default settings, the app will now be running at `http://localhost:3000`
 
-Certain configuration properties may be set in an environment file, `.env`:
+Certain configuration properties MUST be set via enviornment variables. The easiest way to do this is to set them in an environment file, `.env`.
+
+| ENV | Required | Description |
+| --- | -------- | ----------- |
+| REALM | Yes | The Keycloak realm name. This is the url name which may be different than the text name. |
+| AUTH | Yes | The Keycloak auth url. Will look something like `http://keycloak.example.com/auth`/ |
+| PORT | No | The port number for the server. Defaults to 3000 if not provided. |
+| DEBUG | No | Set to `medmorph-backend:*` to enable debug loggers for the app. |
 
 ```env
 # Port number for the server, defaults to 3000 if not provided
 PORT=3001
+
+# Keycloak realm (required)
+REALM=backend_app
+
+# Keycloak auth url (required)
+AUTH=http://moonshot-dev.mitre.org:8090/auth
 
 # Enabled debug loggers
 # The app uses the debug library, see: https://github.com/visionmedia/debug
