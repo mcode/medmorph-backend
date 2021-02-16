@@ -372,21 +372,21 @@ const context = {
       deidentify: bundle => {
         const promise = new Promise(executor => {
           bundle.type = 'deidentified';
-          executor({data: bundle});
+          executor({ data: bundle });
         });
         return promise;
       },
       anonymize: bundle => {
         const promise = new Promise(executor => {
           bundle.type = 'anonymized';
-          executor({data: bundle});
+          executor({ data: bundle });
         });
         return promise;
       },
       pseudonymize: bundle => {
         const promise = new Promise(executor => {
           bundle.type = 'pseudonymized';
-          executor({data: bundle});
+          executor({ data: bundle });
         });
         return promise;
       }
