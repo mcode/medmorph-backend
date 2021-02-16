@@ -103,12 +103,13 @@ function dataTrustOperation(operation, bundle) {
 }
 
 /**
- * Function to use the PlanDefinition and triggering resource to create a report
+ * Function to use the PlanDefinition and triggering resource to create a report. This
+ * initializes the context and begins the executeWorkflow
  *
  * @param {PlanDefinition} planDef - the PlanDefinition resource
  * @param {*} resource - the resource which triggered the notification
  */
-async function initializeReportingWorkflow(planDef, resource = null) {
+async function startReportingWorkflow(planDef, resource = null) {
   // TODO: MEDMORPH-49 to make sure the resource is always included
   if (!resource) return;
 
@@ -314,5 +315,5 @@ module.exports = {
   findProfile,
   IG_REGISTRY,
   initializeContext,
-  initializeReportingWorkflow
+  startReportingWorkflow
 };

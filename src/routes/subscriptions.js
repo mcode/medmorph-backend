@@ -3,7 +3,7 @@ const { StatusCodes } = require('http-status-codes');
 const express = require('express');
 const router = express.Router();
 const db = require('../storage/DataAccess');
-const { initializeReportingWorkflow } = require('../utils/reporting_workflow');
+const { startReportingWorkflow } = require('../utils/reporting_workflow');
 
 const COLLECTION = 'plandefinitions';
 
@@ -14,7 +14,7 @@ router.post('/:id', (req, res) => {
   const planDef = getPlanDef(id);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
-    initializeReportingWorkflow(planDef);
+    startReportingWorkflow(planDef);
   } else {
     res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
@@ -27,7 +27,7 @@ router.put('/:id/:resource/:resourceId', (req, res) => {
   const planDef = getPlanDef(id);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
-    initializeReportingWorkflow(planDef, req.body);
+    startReportingWorkflow(planDef, req.body);
   } else {
     res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
