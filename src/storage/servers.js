@@ -40,7 +40,7 @@ function deleteServer(id) {
 
 function addClientId(server, clientId) {
   server.clientId = clientId;
-  this.addServer(server);
+  addServer(server);
 }
 
 function getClientId(server) {
@@ -50,7 +50,7 @@ function getClientId(server) {
 function addAccessToken(server, token, tokenExp) {
   server.token = token;
   server.tokenExp = tokenExp;
-  this.addServer(server);
+  addServer(server);
 }
 
 async function getAccessToken(server) {
@@ -78,7 +78,7 @@ function clearAccessToken(server) {
     return;
   } else {
     server.token = null;
-    this.addServer(server);
+    addServer(server);
   }
 }
 
