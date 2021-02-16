@@ -60,10 +60,11 @@ async function getAccessToken(server) {
     try {
       const token = await connectToServer(server.endpoint);
       // expires_in is time until expiration in seconds, Date.now() is in milliseconds
-      const exp = Date.now() + token.expires_in * 100;
+      const exp = Date.now() + token.expires_in * 1000;
       db.addAccessToken(server, token.access_token, exp);
       return token;
     } catch (e) {
+      clearAccessToken(server);
       console.error(e);
       return null;
     }
