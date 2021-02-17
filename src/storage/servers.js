@@ -1,7 +1,7 @@
 const db = require('../storage/DataAccess');
 const { connectToServer } = require('../utils/client');
 
-const SERVERS = 'serverConfig';
+const SERVERS = 'servers';
 
 /**
  * Fields for Servers Data Types:
@@ -55,7 +55,7 @@ function addAccessToken(server, token, tokenExp) {
 
 async function getAccessToken(server) {
   const result = this.getServerById(server.id);
-  if (result.token === undefined || result.tokenExp < Date.now()) {
+  if (!result.token || result.tokenExp < Date.now()) {
     // create a new token if possible
     try {
       const token = await connectToServer(server.endpoint);
