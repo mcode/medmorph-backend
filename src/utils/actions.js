@@ -260,18 +260,22 @@ function createBundle(records, type) {
   const bundle = {
     resourceType: 'Bundle',
     meta: {
-        lastUpdated: Date.now()
+      lastUpdated: Date.now()
     },
     timestamp: Date.now(),
     entry: []
   };
 
   if (type === 'reporting') {
-        bundle.meta['profile'] = ['http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle'];
-        bundle.type = 'message';
+    bundle.meta['profile'] = [
+      'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle'
+    ];
+    bundle.type = 'message';
   } else if (type === 'content') {
-      bundle.meta['profile'] = ['http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-content-bundle'];
-      bundle.type = 'collection'
+    bundle.meta['profile'] = [
+      'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-content-bundle'
+    ];
+    bundle.type = 'collection';
   }
 
   records.forEach(record => {
