@@ -1,0 +1,215 @@
+{
+    "check-trigger-codes-success": {
+        "id": "check-trigger-codes",
+        "action": [
+            {
+                "code": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                                "code": "check-trigger-codes"
+                            }
+                        ]
+                    }
+                ],
+                "condition": [
+                    {
+                        "kind": "applicability",
+                        "expression": {
+                            "language": "text/fhirpath",
+                            "expression": "Condition.code.coding.first().code='1234'"
+                        }
+                    }
+                ],
+                "input": [
+                    {
+                        "type": "Patient"
+                    },
+                    {
+                        "type": "Encounter"
+                    }
+                ],
+                "relatedAction": [
+                    {
+                        "actionId": "create-report",
+                        "relationship": "before-start"
+                    }
+                ]
+            }
+        ]
+    },
+    "check-trigger-codes-failure": {
+            "id": "check-trigger-codes",
+            "action": [
+                {
+                    "code": [
+                        {
+                            "coding": [
+                                {
+                                    "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                                    "code": "check-trigger-codes"
+                                }
+                            ]
+                        }
+                    ],
+                    "condition": [
+                        {
+                            "kind": "applicability",
+                            "expression": {
+                                "language": "text/fhirpath",
+                                "expression": "Condition.code.coding.first().code='error'"
+                            }
+                        }
+                    ],
+                    "input": [
+                        {
+                            "type": "Patient"
+                        },
+                        {
+                            "type": "Encounter"
+                        }
+                    ],
+                    "relatedAction": [
+                        {
+                            "actionId": "create-report",
+                            "relationship": "before-start"
+                        }
+                    ]
+                }
+            ]
+    },
+    "create-report": {
+        "id": "create-report",
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                "code": "create-report"
+              }
+            ]
+          }
+        ],
+        "output": [
+          {
+            "type": "Bundle",
+            "profile": [
+              "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+            ]
+          }
+        ]
+      },
+      "validate-report": {
+        "id": "validate-report",
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                "code": "validate-report"
+              }
+            ]
+          }
+        ]
+      },
+      "submit-report": {
+          "id": "submit-report",
+          "code": [
+            {
+              "coding": [
+                {
+                  "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                  "code": "submit-report"
+                }
+              ]
+            }
+          ]
+      },
+      "deidentify-report": {
+        "id": "deidentify-report",
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                "code": "deidentify-report"
+              }
+            ]
+          }
+        ]
+      },
+      "anonymize-report": {
+        "id": "anonymize-report",
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                "code": "anonymize-report"
+              }
+            ]
+          }
+        ]
+      },
+      "pseudonymize-report": {
+        "id": "pseudonymize-report",
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                "code": "pseudonymize-report"
+              }
+            ]
+          }
+        ]
+      },
+      "encrypt-report": {
+        "id": "encrypt-report",
+        "code": [
+          {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                "code": "encrypt-report"
+              }
+            ]
+          }
+        ]
+      },
+      "extract-research-data": {
+          "id": "extract-research-data",
+          "code": [
+            {
+              "coding": [
+                {
+                  "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                  "code": "extract-research-data"
+                }
+              ]
+            }
+          ],
+          "input": [
+              {
+                  "type": "Condition",
+                  "dateFilter": {
+                      "path": "Condition.onsetDateTime",
+                      "valuePeriod": {
+                          "start": "1996-02-14T20:00:12.063Z",
+                          "end": "1999-02-14T20:00:12.063Z"
+                      }
+                  },
+                  "codeFilter": {
+                      "path": "Condition.code.coding",
+                      "code": [
+                          {
+                              "code": "example",
+                              "system": "www.example.com"
+                          }
+                      ]
+                  }
+              }
+          ]
+      }
+}
