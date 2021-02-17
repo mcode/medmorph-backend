@@ -8,6 +8,7 @@ const KeycloakBearerStrategy = require('passport-keycloak-bearer');
 
 const fhirRouter = require('./routes/fhir');
 const indexRouter = require('./routes/index');
+const publicRouter = require('./routes/public');
 const serversRouter = require('./routes/servers');
 const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
@@ -35,6 +36,7 @@ passport.use(
 
 // Open Routes
 app.use('/.well-known', wellKnownRouter);
+app.use('/public', publicRouter);
 
 // Protected Routes
 app.use('/', backendAuthorization, indexRouter);
