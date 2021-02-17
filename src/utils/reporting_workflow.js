@@ -1,8 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
-const { default: axios } = require('axios');
-const { connectToServer } = require('./client');
 const { getReferencedResource } = require('../utils/fhir');
 
 const COLLECTION = 'reporting';
@@ -49,43 +47,6 @@ const RECEIVER_ADDRESS_EXT =
 const IG_REGISTRY = {
   [BASE_REPORTING_BUNDLE_PROFILE]: {} // base action definitions, see MEDMORPH-35
 };
-
-/**
- * Retrieve data from the EHR
- *
- * @param {string} uri - the search query for the data desired
- * @returns axios promise with data
- */
-async function readFromEHR(uri) {
-  const url = process.env.EHR;
-  const token = await connectToServer(url);
-  const headers = { Authorization: `Bearer ${token}` };
-  return axios.get(`${url}/${uri}`, { headers: headers });
-}
-
-/**
- * Post the reporting bundle to the endpoint designated in the PlanDefinition
- *
- * @param {Bundle} bundle - the reporting Bundle to submit
- * @param {string} url - the endpoint to post the report. Comes from context.dest.endpoint.
- * @returns axios promise with data
- */
-async function submitBundle(bundle, url) {
-  const token = await connectToServer(url);
-  const headers = { Authorization: `Bearer ${token}` };
-  return axios.post(url, bundle, { headers: headers });
-}
-
-/**
- * Helper function to call specific operations on the data trust service server.
- *
- * @param {string} operation = 'deidentify' | 'anonymize' | 'pseudonymize'
- * @param {Bundle} bundle - the bundle to perform operation on
- * @returns axios promise with data
- */
-function dataTrustOperation(operation, bundle) {
-  return axios.post(`${process.env.DATA_TRUST_SERVICE}/Bundle/$${operation}`, bundle);
-}
 
 /**
  * Function to use the PlanDefinition and triggering resource to create a report. This
@@ -148,9 +109,7 @@ function initializeContext(planDefinition, patient, encounter) {
     planDefinition,
     action: initialAction,
     client: {
-      dest: {
-        endpoint: destEndpoint
-      },
+      dest: destEndpoint,
       database
     },
     reportingBundle: null,

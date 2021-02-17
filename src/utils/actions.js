@@ -1,15 +1,14 @@
 // this file provides functions for various action codes
 // it is assumed every function recieves a "context" object
 // Context:
-//  Patient: identifier for the patient whose data triggered the workflow
+//  Patient: patient whose data triggered the workflow
 //  records: list of records
 //  Encounter: encounter where some data triggered the workflow
 //  Organization: Organization that is doing the workflow
 //  PlanDef: *** do we want to keep a "pre-processed" version of the plandef?
 //  Action: action currently in context from the planDef
 //  client: set of clients to connect to
-//      source: FHIR client to make additional queries to EHR
-//      dest: FHIR client to send to PHA/TTP
+//      dest: endpoint of where to send to PHA/TTP
 //      trust services
 //      database
 //  reportingBundle: the entire bundle to be submitted
@@ -25,10 +24,13 @@
 // in turn.  I'm also assuming the context is unique
 // to the current action, since we'd be cycling through actions
 // anyway.
+const axios = require('axios');
 const Fhir = require('fhir').Fhir;
 const FhirPath = require('fhir').FhirPath;
-const fhir = new Fhir();
+const { connectToServer } = require('./client');
 const { StatusCodes } = require('http-status-codes');
+
+const fhir = new Fhir();
 
 const baseIgActions = {
   'check-trigger-codes': context => {
@@ -76,8 +78,7 @@ const baseIgActions = {
     context.flags['valid'] = validation.valid;
   },
   'submit-report': async context => {
-    await context.client.dest
-      .submit(context.reportingBundle)
+    await submitBundle(context.reportingBundle, context.client.dest)
       .then(
         result => {
           if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
@@ -93,9 +94,7 @@ const baseIgActions = {
       });
   },
   'deidentify-report': async context => {
-    const client = context.client.trust;
-    await client
-      .deidentify(context.reportingBundle)
+    await dataTrustOperation('deidentify', context.reportingBundle)
       .then(
         result => {
           context.reportingBundle = result.data;
@@ -110,9 +109,7 @@ const baseIgActions = {
       });
   },
   'anonymize-report': context => {
-    const client = context.client.trust;
-    client
-      .anonymize(context.reportingBundle)
+    await dataTrustOperation('anonymize', context.reportingBundle)
       .then(
         result => {
           context.reportingBundle = result.data;
@@ -127,9 +124,7 @@ const baseIgActions = {
       });
   },
   'pseudonymize-report': context => {
-    const client = context.client.trust;
-    client
-      .pseudonymize(context.reportingBundle)
+    await dataTrustOperation('pseudonymize', context.reportingBundle)
       .then(
         result => {
           context.reportingBundle = result.data;
@@ -155,7 +150,6 @@ const baseIgActions = {
     // assume information about desired research data
     // is in the action.input element
     const inputs = context.action.input;
-    const client = context.client.source;
     if (inputs) {
       inputs.forEach(input => {
         // each input would define a different fhir resource
@@ -166,7 +160,7 @@ const baseIgActions = {
         if (reference) {
           uri += `subject=${reference}&`;
         }
-        const resources = client.read(uri).entry.map(entry => {
+        const resources = readFromEHR(uri).entry.map(entry => {
           return entry.resource;
         });
 
@@ -332,6 +326,43 @@ function makeHeader(context) {
   };
 
   return header;
+}
+
+/**
+ * Retrieve data from the EHR
+ *
+ * @param {string} uri - the search query for the data desired
+ * @returns axios promise with data
+ */
+async function readFromEHR(uri) {
+  const url = process.env.EHR;
+  const token = await connectToServer(url);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios.get(`${url}/${uri}`, { headers: headers });
+}
+
+/**
+ * Post the reporting bundle to the endpoint designated in the PlanDefinition
+ *
+ * @param {Bundle} bundle - the reporting Bundle to submit
+ * @param {string} url - the endpoint to post the report. Comes from context.dest.endpoint.
+ * @returns axios promise with data
+ */
+async function submitBundle(bundle, url) {
+  const token = await connectToServer(url);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios.post(url, bundle, { headers: headers });
+}
+
+/**
+ * Helper function to call specific operations on the data trust service server.
+ *
+ * @param {string} operation = 'deidentify' | 'anonymize' | 'pseudonymize'
+ * @param {Bundle} bundle - the bundle to perform operation on
+ * @returns axios promise with data
+ */
+function dataTrustOperation(operation, bundle) {
+  return axios.post(`${process.env.DATA_TRUST_SERVICE}/Bundle/$${operation}`, bundle);
 }
 
 module.exports = { baseIgActions };
