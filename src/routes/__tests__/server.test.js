@@ -101,8 +101,13 @@ describe('Test Servers Persistance', () => {
     };
     servers.addServer(server1);
     servers.addAccessToken(server1, token1.token, token1.exp);
-    const result = await servers.getAccessToken(server1);
-    expect(result === null);
+
+    // expect an exception as we are unable to reconnect to the server
+    try {
+      await servers.getAccessToken(server1);
+    } catch (e) {
+      expect(e !== null);
+    }
     done();
   });
 
@@ -118,11 +123,15 @@ describe('Test Servers Persistance', () => {
     };
     servers.addServer(server1);
     servers.addAccessToken(server1, token1.token, token1.exp);
-    let result = await servers.getAccessToken(server1);
+    const result = await servers.getAccessToken(server1);
     expect(result.token === 'bearer asdf1234');
     servers.clearAccessToken(server1);
-    result = await servers.getAccessToken(server1);
-    expect(result === null);
+    // expect an exception as we are unable to reconnect to the server
+    try {
+      await servers.getAccessToken(server1);
+    } catch (e) {
+      expect(e !== null);
+    }
     done();
   });
 

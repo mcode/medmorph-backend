@@ -66,7 +66,7 @@ async function getAccessToken(server) {
     } catch (e) {
       clearAccessToken(server);
       console.error(e);
-      return null;
+      throw e;
     }
   } else {
     return result.token;
