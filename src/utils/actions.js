@@ -10,7 +10,7 @@
 //  client: set of clients to connect to
 //      dest: endpoint of where to send to PHA/TTP
 //      trust services
-//      database
+//      db
 //  reportingBundle: the entire bundle to be submitted
 //  contentBundle: just the content section of the report bundle
 //  flags: various boolean or enum flags about the status of the report.
@@ -25,10 +25,9 @@
 // to the current action, since we'd be cycling through actions
 // anyway.
 const axios = require('axios');
-const Fhir = require('fhir').Fhir;
-const FhirPath = require('fhir').FhirPath;
-const { connectToServer } = require('./client');
+const { Fhir, FhirPath } = require('fhir');
 const { StatusCodes } = require('http-status-codes');
+const { connectToServer } = require('./client');
 
 const fhir = new Fhir();
 
@@ -108,7 +107,7 @@ const baseIgActions = {
         context.flags['deidentified'] = false;
       });
   },
-  'anonymize-report': context => {
+  'anonymize-report': async context => {
     await dataTrustOperation('anonymize', context.reportingBundle)
       .then(
         result => {
@@ -123,7 +122,7 @@ const baseIgActions = {
         context.flags['anonymized'] = false;
       });
   },
-  'pseudonymize-report': context => {
+  'pseudonymize-report': async context => {
     await dataTrustOperation('pseudonymize', context.reportingBundle)
       .then(
         result => {
@@ -143,14 +142,15 @@ const baseIgActions = {
     context.flags['encrypted'] = true;
   },
   'complete-reporting': context => {
-    context.client.database.insert('completed reports', context.reportingBundle);
+    context.client.db.insert('completed reports', context.reportingBundle);
     context.flags['completed'] = true;
   },
-  'extract-research-data': context => {
+  'extract-research-data': async context => {
     // assume information about desired research data
     // is in the action.input element
     const inputs = context.action.input;
     if (inputs) {
+      const listOfPromises = [];
       inputs.forEach(input => {
         // each input would define a different fhir resource
         const resourceType = input.type;
@@ -160,58 +160,64 @@ const baseIgActions = {
         if (reference) {
           uri += `subject=${reference}&`;
         }
-        const resources = readFromEHR(uri).entry.map(entry => {
-          return entry.resource;
+
+        const getRecordsPromise = readFromEHR(uri).then(result => {
+          const resources = result.data.entry.map(e => e.resource);
+
+          const dateFilter = input.dateFilter;
+          let filteredResources = [...resources];
+          // TODO: some of the filtering could
+          // be done with search params in the query
+
+          if (dateFilter) {
+            // assume two filters don't overlap
+            const path = dateFilter.path;
+            const searchParam = dateFilter.searchParam;
+            const filterPeriod = dateFilter.valuePeriod; // assume its a valuePeriod
+            if (path) {
+              filteredResources = filteredResources.filter(resource => {
+                // get value by path
+                const date = getByPath(resource, path); // assume its a datetime?
+                return compareDates(date, filterPeriod);
+              });
+            } else {
+              // path or searchParam are required
+              filteredResources = filteredResources.filter(resource => {
+                // get value by param
+                const date = getBySearchParam(resource, searchParam); // assume its a datetime?
+                return compareDates(date, filterPeriod);
+              });
+            }
+          }
+
+          const codeFilter = input.codeFilter;
+          if (codeFilter) {
+            // code filter isn't under the same constraint as datefilter
+            // we can assume that it's just a path
+            const path = codeFilter.path;
+            const searchParam = codeFilter.searchParam;
+            if (path) {
+              // no need to refilter resources
+              filteredResources = filteredResources.filter(resource => {
+                const code = getByPath(resource, path);
+                // codeFilter.code is of type Coding, could also be a valueSet?
+                return compareCodes(code, codeFilter.code[0]);
+              });
+            } else if (searchParam) {
+              filteredResources = filteredResources.filter(resource => {
+                const code = getBySearchParam(resource, searchParam);
+                return compareCodes(code, codeFilter.code);
+              });
+            }
+          }
+
+          // QUESTION - should context have a mutex?
+          return context.records.push(...filteredResources);
         });
-
-        const dateFilter = input.dateFilter;
-        let filteredResources = [...resources];
-        // TODO: some of the filtering could
-        // be done with search params in the query
-
-        if (dateFilter) {
-          // assume two filters don't overlap
-          const path = dateFilter.path;
-          const searchParam = dateFilter.searchParam;
-          const filterPeriod = dateFilter.valuePeriod; // assume its a valuePeriod
-          if (path) {
-            filteredResources = filteredResources.filter(resource => {
-              // get value by path
-              const date = getByPath(resource, path); // assume its a datetime?
-              return compareDates(date, filterPeriod);
-            });
-          } else {
-            // path or searchParam are required
-            filteredResources = filteredResources.filter(resource => {
-              // get value by param
-              const date = getBySearchParam(resource, searchParam); // assume its a datetime?
-              return compareDates(date, filterPeriod);
-            });
-          }
-        }
-
-        const codeFilter = input.codeFilter;
-        if (codeFilter) {
-          // code filter isn't under the same constraint as datefilter
-          // we can assume that it's just a path
-          const path = codeFilter.path;
-          const searchParam = codeFilter.searchParam;
-          if (path) {
-            // no need to refilter resources
-            filteredResources = filteredResources.filter(resource => {
-              const code = getByPath(resource, path);
-              // codeFilter.code is of type Coding, could also be a valueSet?
-              return compareCodes(code, codeFilter.code[0]);
-            });
-          } else if (searchParam) {
-            filteredResources = filteredResources.filter(resource => {
-              const code = getBySearchParam(resource, searchParam);
-              return compareCodes(code, codeFilter.code);
-            });
-          }
-        }
-        return context.records.push(...filteredResources);
+        listOfPromises.push(getRecordsPromise);
       });
+
+      await Promise.all(listOfPromises);
     }
   },
   'execute-research-query': context => {

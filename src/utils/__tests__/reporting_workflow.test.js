@@ -137,7 +137,7 @@ const EXAMPLE_PLANDEF_COMPLEX_ORDERING = {
   ]
 };
 
-describe('Test creating Subscriptions', () => {
+describe('Test reporting workflow', () => {
   IG_REGISTRY['http://example.com/reportingBundle'] = EXAMPLE_ACTION_IMPL;
 
   test('It finds the bundle profile on the create-report action', () => {
@@ -145,19 +145,16 @@ describe('Test creating Subscriptions', () => {
   });
 
   test('It creates the expected context', () => {
-    const context = initializeContext(EXAMPLE_PLANDEF_1, {}, {});
+    const context = initializeContext(EXAMPLE_PLANDEF_1, {}, {}, '');
 
     expect(context.records).toHaveLength(2);
     expect(context.patient).toBeDefined();
     expect(context.encounter).toBeDefined();
+    expect(context.planDefinition).toBeDefined();
     expect(context.actionSequence).toBeDefined();
-    expect(context.client.source.read).toBeDefined();
-    expect(context.client.dest.submit).toBeDefined();
-    expect(context.client.trustServices.deidentify).toBeDefined();
-    expect(context.client.trustServices.anonymize).toBeDefined();
-    expect(context.client.trustServices.pseudonymize).toBeDefined();
-
-    // Should this also test the client functions by mocking axios?
+    expect(context.currentActionSequenceStep).toBe(0);
+    expect(context.client.db).toBeDefined();
+    expect(context.client.dest).toBeDefined();
   });
 
   test('Produces the expected result 1', async () => {

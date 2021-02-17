@@ -72,9 +72,16 @@ async function startReportingWorkflow(planDef, resource = null) {
     encounter = await getReferencedResource(process.env.EHR, resource.context.reference);
   else if (resource.resourceType === 'Encounter') encounter = resource;
 
+  // Get the endpoint to submit the report to from the PlanDefinition
+  const receiverAddress = planDef.extension.find(e => e.url === RECEIVER_ADDRESS_EXT);
+  const endpointRef = receiverAddress.valueReference.reference;
+  const endpointId = endpointRef.split('/')[1];
+  const endpoint = db.select('endpoints', e => e.id === endpointId);
+  const destEndpoint = endpoint[0].address;
+
   // QUESTION: Should encounter and patient be saved to the database?
 
-  const context = initializeContext(planDef, patient, encounter);
+  const context = initializeContext(planDef, patient, encounter, destEndpoint);
   executeWorkflow(context);
 }
 
@@ -85,21 +92,15 @@ async function startReportingWorkflow(planDef, resource = null) {
  * @param {Patient} patient - the patient resource from the triggering resource, null if not found
  * @param {Encounter} encounter - the encounter resource from the trigger resource,
  *    null if not found
+ * @param {string} destEndpoint - the destination endpoint to submit the report to
  * @returns the initialized context object
  */
-function initializeContext(planDefinition, patient, encounter) {
+function initializeContext(planDefinition, patient, encounter, destEndpoint) {
   const records = [];
   if (patient) records.push(patient);
   if (encounter) records.push(encounter);
   const actionSequence = determineActionSequence(planDefinition);
   const initialAction = planDefinition.action.find(a => a.id === actionSequence[0]);
-
-  // Get the endpoint to submit the report to from the PlanDefinition
-  const receiverAddress = planDefinition.extension.find(e => e.url === RECEIVER_ADDRESS_EXT);
-  const endpointRef = receiverAddress.valueReference.reference;
-  const endpointId = endpointRef.split('/')[1];
-  const endpoint = db.select('endpoints', e => e.id === endpointId);
-  const destEndpoint = endpoint[0].address;
 
   return {
     id: uuidv4(),
@@ -110,12 +111,10 @@ function initializeContext(planDefinition, patient, encounter) {
     action: initialAction,
     client: {
       dest: destEndpoint,
-      database
+      db
     },
     reportingBundle: null,
     contentBundle: null,
-    next: null, // Note: not used in actions
-    prev: null, // Note: not used in actions
     flags: {},
     currentActionSequenceStep: 0,
     actionSequence,
