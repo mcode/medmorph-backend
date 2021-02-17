@@ -28,6 +28,8 @@
 const Fhir = require('fhir').Fhir;
 const FhirPath = require('fhir').FhirPath;
 const fhir = new Fhir();
+const { StatusCodes } = require('http-status-codes');
+
 const baseIgActions = {
   'check-trigger-codes': context => {
     const action = context.action;
@@ -59,14 +61,14 @@ const baseIgActions = {
   },
   'create-report': context => {
     // the output might define a profile
-    let contentBundle = createBundle(context.records, 'collection');
+    let contentBundle = createBundle(context.records, 'content');
     if (context.action.output) {
       const output = context.action.output[0];
       if (output.profile) contentBundle = validateProfile(contentBundle, output.profile[0]);
     }
     const header = makeHeader(context);
     context.contentBundle = contentBundle;
-    context.reportingBundle = createBundle([header, ...contentBundle.entry], 'message');
+    context.reportingBundle = createBundle([header, contentBundle], 'reporting');
   },
   'validate-report': context => {
     // check if fhir is well-formed
@@ -78,7 +80,7 @@ const baseIgActions = {
       .submit(context.reportingBundle)
       .then(
         result => {
-          if (result.status === 200 || result.status === 202) {
+          if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
             context.flags['submitted'] = true;
           }
         },
@@ -134,11 +136,11 @@ const baseIgActions = {
           context.flags['pseudonymized'] = true;
         },
         () => {
-          context.flags['pseudonymize'] = false;
+          context.flags['pseudonymized'] = false;
         }
       )
       .catch(() => {
-        context.flags['pseudonymize'] = false;
+        context.flags['pseudonymized'] = false;
       });
   },
   'encrypt-report': context => {
@@ -257,10 +259,20 @@ function compareDates(date, period) {
 function createBundle(records, type) {
   const bundle = {
     resourceType: 'Bundle',
-    type: type,
+    meta: {
+        lastUpdated: Date.now()
+    },
     timestamp: Date.now(),
     entry: []
   };
+
+  if (type === 'reporting') {
+        bundle.meta['profile'] = ['http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle'];
+        bundle.type = 'message';
+  } else if (type === 'content') {
+      bundle.meta['profile'] = ['http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-content-bundle'];
+      bundle.type = 'collection'
+  }
 
   records.forEach(record => {
     bundle.entry.push({
