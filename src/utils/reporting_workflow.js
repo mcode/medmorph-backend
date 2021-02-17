@@ -60,32 +60,20 @@ async function readFromEHR(uri) {
   const url = process.env.EHR;
   const token = await connectToServer(url);
   const headers = { Authorization: `Bearer ${token}` };
-  return axios
-    .get(`${url}/${uri}`, { headers: headers })
-    .then(response => response.data)
-    .catch(err => console.error(err));
+  return axios.get(`${url}/${uri}`, { headers: headers });
 }
 
 /**
  * Post the reporting bundle to the endpoint designated in the PlanDefinition
  *
- * @param {PlanDefinition} planDefinition - the current PlanDefinition from the context
  * @param {Bundle} bundle - the reporting Bundle to submit
+ * @param {string} url - the endpoint to post the report. Comes from context.dest.endpoint.
  * @returns axios promise with data
  */
-async function submitBundle(planDefinition, bundle) {
-  const receiverAddress = planDefinition.extension.find(e => e.url === RECEIVER_ADDRESS_EXT);
-  const endpointRef = receiverAddress.valueReference.reference;
-  const endpointId = endpointRef.split('/')[1];
-  const endpoint = db.select('endpoints', e => e.id === endpointId);
-  const url = endpoint.address;
-  // Not sure how this will work since the url comes from endpoint.address....
+async function submitBundle(bundle, url) {
   const token = await connectToServer(url);
   const headers = { Authorization: `Bearer ${token}` };
-  return axios
-    .post(url, bundle, { headers: headers })
-    .then(response => response.data)
-    .catch(err => console.error(err));
+  return axios.post(url, bundle, { headers: headers });
 }
 
 /**
@@ -96,10 +84,7 @@ async function submitBundle(planDefinition, bundle) {
  * @returns axios promise with data
  */
 function dataTrustOperation(operation, bundle) {
-  return axios
-    .post(`${process.env.DATA_TRUST_SERVICE}/Bundle/$${operation}`, bundle)
-    .then(response => response.data)
-    .catch(err => console.error(err));
+  return axios.post(`${process.env.DATA_TRUST_SERVICE}/Bundle/$${operation}`, bundle);
 }
 
 /**
@@ -114,13 +99,16 @@ async function startReportingWorkflow(planDef, resource = null) {
   if (!resource) return;
 
   let patient = null;
-  if (resource.patient) patient = await getReferencedResource(resource.patient.reference);
+  if (resource.patient)
+    patient = await getReferencedResource(process.env.EHR, resource.patient.reference);
   else if (resource.subject) patient = await getReferencedResource(resource.subject.reference);
   else if (resource.resourceType === 'Patient') patient = resource;
 
   let encounter = null;
-  if (resource.encounter) encounter = await getReferencedResource(resource.encounter.reference);
-  else if (resource.context) encounter = await getReferencedResource(resource.context.reference);
+  if (resource.encounter)
+    encounter = await getReferencedResource(process.env.EHR, resource.encounter.reference);
+  else if (resource.context)
+    encounter = await getReferencedResource(process.env.EHR, resource.context.reference);
   else if (resource.resourceType === 'Encounter') encounter = resource;
 
   // QUESTION: Should encounter and patient be saved to the database?
@@ -145,6 +133,13 @@ function initializeContext(planDefinition, patient, encounter) {
   const actionSequence = determineActionSequence(planDefinition);
   const initialAction = planDefinition.action.find(a => a.id === actionSequence[0]);
 
+  // Get the endpoint to submit the report to from the PlanDefinition
+  const receiverAddress = planDefinition.extension.find(e => e.url === RECEIVER_ADDRESS_EXT);
+  const endpointRef = receiverAddress.valueReference.reference;
+  const endpointId = endpointRef.split('/')[1];
+  const endpoint = db.select('endpoints', e => e.id === endpointId);
+  const destEndpoint = endpoint[0].address;
+
   return {
     id: uuidv4(),
     patient: patient,
@@ -152,20 +147,11 @@ function initializeContext(planDefinition, patient, encounter) {
     encounter: encounter,
     planDefinition,
     action: initialAction,
-    messageHeader: null, // Note: not used in actions
     client: {
-      source: {
-        read: readFromEHR
-      },
       dest: {
-        submit: async bundle => submitBundle(planDefinition, bundle)
+        endpoint: destEndpoint
       },
-      trustServices: {
-        deidentify: bundle => dataTrustOperation('deidentify', bundle),
-        anonymize: bundle => dataTrustOperation('anonymize', bundle),
-        pseudonymize: bundle => dataTrustOperation('pseudonymize', bundle)
-      },
-      db
+      database
     },
     reportingBundle: null,
     contentBundle: null,
