@@ -3,15 +3,14 @@ const { StatusCodes } = require('http-status-codes');
 
 const express = require('express');
 const router = express.Router();
+const servers = require('../storage/servers');
 
 const db = require('../storage/DataAccess');
-
-const COLLECTION = 'servers';
 
 // GET /
 // List all servers
 router.get('/', (req, res) => {
-  const result = db.select(COLLECTION, () => true);
+  const result = servers.getServers();
   res.send(result);
 });
 
@@ -24,7 +23,7 @@ router.post('/', (req, res) => {
     newItem.id = uuidv4();
   }
 
-  db.insert(COLLECTION, newItem);
+  servers.addServer(newItem);
   res.status(StatusCodes.CREATED).send(newItem);
 });
 
@@ -32,7 +31,7 @@ router.post('/', (req, res) => {
 // Read a single server
 router.get('/:id', (req, res) => {
   const id = req.params.id;
-  const resultList = db.select(COLLECTION, s => s.id === id);
+  const resultList = servers.getServerById(id);
   if (resultList[0]) {
     res.send(resultList[0]);
   } else {
@@ -48,8 +47,7 @@ router.put('/:id', (req, res) => {
     return;
   }
 
-  const id = req.params.id;
-  db.upsert(COLLECTION, req.body, s => s.id === id);
+  db.addServer(req.body);
   res.sendStatus(StatusCodes.OK); // 200
 });
 
@@ -57,7 +55,7 @@ router.put('/:id', (req, res) => {
 // Remove a server
 router.delete('/:id', (req, res) => {
   const id = req.params.id;
-  db.delete(COLLECTION, s => s.id === id);
+  servers.deleteServer(id);
   res.sendStatus(StatusCodes.OK);
 });
 
