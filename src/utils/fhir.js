@@ -1,6 +1,7 @@
 const axios = require('axios');
-const { connectToServer } = require('./client');
+const { getAccessToken } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
+const db = require('../storage/DataAccess');
 
 const NAMED_EVENT_EXTENSION =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-us-ph-namedEventType';
@@ -44,9 +45,9 @@ function generateOperationOutcome(code, msg) {
  * @param {string} server - the sourse server base url
  * @param {string} resourceType - the type of the resource
  */
-async function getResources(server, resourceType, db) {
+async function getResources(server, resourceType) {
   const url = `${server}/${resourceType}?_include=*`;
-  const token = await connectToServer(server);
+  const token = await getAccessToken(server, db);
   const headers = { Authorization: `Bearer ${token}` };
   const axiosResponse = axios
     .get(url, { headers: headers })
@@ -129,11 +130,11 @@ function generateSubscription(code, criteria, url, token) {
  * Get all knowledge artifacts (from servers registered in the config
  * file) and save them. Stores all refrenced resources as well.
  */
-function refreshKnowledgeArtifacts(db) {
+function refreshKnowledgeArtifacts() {
   const servers = db.select('servers', s => s.type === 'KA');
   servers.forEach(server => {
-    getResources(server.endpoint, 'PlanDefinition', db);
-    getResources(server.endpoint, 'Endpoint', db);
+    getResources(server.endpoint, 'PlanDefinition');
+    getResources(server.endpoint, 'Endpoint');
   });
 }
 
@@ -232,7 +233,7 @@ function namedEventToCriteria(code) {
 async function getReferencedResource(url, reference) {
   if (reference.split('/').length === 2) {
     const [resourceType, id] = reference.split('/');
-    const token = await connectToServer(url);
+    const token = await getAccessToken(url);
     const headers = { Authorization: `Bearer ${token}` };
     const resource = await axios.get(`${url}/${resourceType}/${id}`, { headers: headers });
     return resource.data;

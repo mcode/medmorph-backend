@@ -1,3 +1,4 @@
+const client = require('../../utils/client');
 const servers = require('../../storage/servers');
 
 describe('Test Servers Persistance', () => {
@@ -84,7 +85,7 @@ describe('Test Servers Persistance', () => {
     };
     servers.addServer(server1);
     servers.addAccessToken(server1, token1.token, token1.exp);
-    const result = await servers.getAccessToken(server1);
+    const result = await client.getAccessToken(server1.endpoint);
     expect(result === 'bearer asdf1234');
     done();
   });
@@ -104,31 +105,7 @@ describe('Test Servers Persistance', () => {
 
     // expect an exception as we are unable to reconnect to the server
     try {
-      await servers.getAccessToken(server1);
-    } catch (e) {
-      expect(e !== null);
-    }
-    done();
-  });
-
-  it('Should clear generated access token', async done => {
-    const server1 = {
-      id: 12345,
-      endpoint: 'www.example.com',
-      name: 'test1'
-    };
-    const token1 = {
-      token: 'bearer asdf1234',
-      exp: Date.now() + 500
-    };
-    servers.addServer(server1);
-    servers.addAccessToken(server1, token1.token, token1.exp);
-    const result = await servers.getAccessToken(server1);
-    expect(result.token === 'bearer asdf1234');
-    servers.clearAccessToken(server1);
-    // expect an exception as we are unable to reconnect to the server
-    try {
-      await servers.getAccessToken(server1);
+      await client.getAccessToken(server1);
     } catch (e) {
       expect(e !== null);
     }
@@ -147,6 +124,34 @@ describe('Test Servers Persistance', () => {
     expect(result[0]);
     servers.deleteServer(server1);
     result = servers.getServerById(server1.id);
+    done();
+  });
+});
+
+describe('Test persistence with errors', () => {
+  global.console.error = jest.fn();
+
+  it('Should clear generated access token', async done => {
+    const server1 = {
+      id: 12345,
+      endpoint: 'www.example.com',
+      name: 'test1'
+    };
+    const token1 = {
+      token: 'bearer asdf1234',
+      exp: Date.now() + 500
+    };
+    servers.addServer(server1);
+    servers.addAccessToken(server1, token1.token, token1.exp);
+    const result = await client.getAccessToken(server1.endpoint);
+    expect(result.token === 'bearer asdf1234');
+    servers.clearAccessToken(server1);
+    // expect an exception as we are unable to reconnect to the server
+    try {
+      await servers.getAccessToken(server1);
+    } catch (e) {
+      expect(e !== null);
+    }
     done();
   });
 });

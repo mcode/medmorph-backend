@@ -27,7 +27,8 @@
 const axios = require('axios');
 const { Fhir, FhirPath } = require('fhir');
 const { StatusCodes } = require('http-status-codes');
-const { connectToServer } = require('./client');
+const { getEHRServer } = require('../storage/servers');
+const { getAccessToken } = require('./client');
 
 const fhir = new Fhir();
 
@@ -341,8 +342,8 @@ function makeHeader(context) {
  * @returns axios promise with data
  */
 async function readFromEHR(uri) {
-  const url = process.env.EHR;
-  const token = await connectToServer(url);
+  const url = getEHRServer();
+  const token = await getAccessToken(url);
   const headers = { Authorization: `Bearer ${token}` };
   return axios.get(`${url}/${uri}`, { headers: headers });
 }
@@ -355,7 +356,7 @@ async function readFromEHR(uri) {
  * @returns axios promise with data
  */
 async function submitBundle(bundle, url) {
-  const token = await connectToServer(url);
+  const token = await getAccessToken(url);
   const headers = { Authorization: `Bearer ${token}` };
   return axios.post(url, bundle, { headers: headers });
 }

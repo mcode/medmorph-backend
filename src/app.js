@@ -14,6 +14,7 @@ const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
 
 const { backendAuthorization, subscriptionAuthorization } = require('./utils/auth');
+const { refreshKnowledgeArtifacts } = require('./utils/fhir');
 
 const app = express();
 
@@ -43,5 +44,7 @@ app.use('/', backendAuthorization, indexRouter);
 app.use('/fhir', backendAuthorization, fhirRouter);
 app.use('/servers', backendAuthorization, serversRouter);
 app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
+
+setTimeout(() => refreshKnowledgeArtifacts(), 1000);
 
 module.exports = app;
