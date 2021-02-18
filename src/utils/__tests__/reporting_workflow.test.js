@@ -227,4 +227,35 @@ describe('Test reporting workflow', () => {
     // G must be before I
     expect(g).toBeLessThan(i);
   });
+
+  test('execution works with offsets between actions', done => {
+    // setup a new action specifically for this test
+    EXAMPLE_ACTION_IMPL['do-something-offset'] = () => done();
+
+    const planDef = {
+      resourceType: 'PlanDefinition',
+      meta: {
+        profile: [MEDMORPH_PLANDEF_PROFILE]
+      },
+      action: [
+        buildAction({ code: 'init-counter', next: 'increment-counter' }),
+        buildAction({ code: 'increment-counter', next: 'do-something-offset' }),
+        buildAction({ code: 'do-something-offset', next: 'create-report' }),
+        CREATE_REPORT_ACTION
+      ]
+    };
+
+    const duration = {
+      unit: 's',
+      value: 1
+    };
+
+    planDef.action[0].relatedAction[0].offsetDuration = duration;
+    planDef.action[1].relatedAction[0].offsetDuration = duration;
+
+    const context = initializeContext(planDef);
+    executeWorkflow(context);
+    // the workflow will run and call done() async.
+    // if you don't believe me, change the action impl above to not call done()
+  });
 });
