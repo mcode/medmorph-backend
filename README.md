@@ -22,7 +22,9 @@ npm start
 
 With default settings, the app will now be running at `http://localhost:3000`
 
-Certain configuration properties MUST be set via enviornment variables. The easiest way to do this is to set them in an environment file, `.env`.
+### Configuration Requirements
+
+Certain configuration properties MUST be set via enviornment variables. The easiest way to do this is to set them in an environment file, `.env`. A sample file is provided in this repo as `.env.dev` (you will need to rename/copy this into the `.env` file for it to work).
 
 | ENV | Required | Description |
 | --- | -------- | ----------- |
@@ -30,6 +32,8 @@ Certain configuration properties MUST be set via enviornment variables. The easi
 | AUTH | Yes | The Keycloak auth url. Will look something like `http://keycloak.example.com/auth`/ |
 | PORT | No | The port number for the server. Defaults to 3000 if not provided. |
 | DEBUG | No | Set to `medmorph-backend:*` to enable debug loggers for the app. |
+| DATA_TRUST_SERVICE | Yes | The base url for the data/trust service server. |
+| BASE_URL | Yes | The base url for this server. |
 
 ```env
 # Port number for the server, defaults to 3000 if not provided
@@ -41,6 +45,12 @@ REALM=backend_app
 # Keycloak auth url (required)
 AUTH=http://moonshot-dev.mitre.org:8090/auth
 
+# Data turst service url (required)
+DATA_TRUST_SERVICE=http://localhost:3005
+
+# This server base url (required)
+BASE_URL=http://localhost:3000
+
 # Enabled debug loggers
 # The app uses the debug library, see: https://github.com/visionmedia/debug
 # "The DEBUG environment variable is then used to enable these based on space or comma-delimited names."
@@ -48,6 +58,10 @@ AUTH=http://moonshot-dev.mitre.org:8090/auth
 # Enable all loggers for just the app with DEBUG=medmorph-backend:*
 DEBUG=medmorph-backend:*
 ```
+
+### Server Requirements
+
+The app expects at the minimum a single EHR server. There should also be at least one KA server for anything meaningful to happen. More details and examples can be found on the [Collections Wiki](https://github.com/mcode/medmorph-backend/wiki/Collections)
 
 # License
 Copyright 2020 The MITRE Corporation

@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
 const { getReferencedResource } = require('../utils/fhir');
+const { getEHRServer } = require('../storage/servers');
 
 const COLLECTION = 'reporting';
 
@@ -59,17 +60,17 @@ async function startReportingWorkflow(planDef, resource = null) {
   // TODO: MEDMORPH-49 to make sure the resource is always included
   if (!resource) return;
 
+  const ehrUrl = getEHRServer();
   let patient = null;
-  if (resource.patient)
-    patient = await getReferencedResource(process.env.EHR, resource.patient.reference);
+  if (resource.patient) patient = await getReferencedResource(ehrUrl, resource.patient.reference);
   else if (resource.subject) patient = await getReferencedResource(resource.subject.reference);
   else if (resource.resourceType === 'Patient') patient = resource;
 
   let encounter = null;
   if (resource.encounter)
-    encounter = await getReferencedResource(process.env.EHR, resource.encounter.reference);
+    encounter = await getReferencedResource(ehrUrl, resource.encounter.reference);
   else if (resource.context)
-    encounter = await getReferencedResource(process.env.EHR, resource.context.reference);
+    encounter = await getReferencedResource(ehrUrl, resource.context.reference);
   else if (resource.resourceType === 'Encounter') encounter = resource;
 
   // Get the endpoint to submit the report to from the PlanDefinition
