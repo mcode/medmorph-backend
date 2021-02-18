@@ -3,6 +3,8 @@ const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
 const { getReferencedResource } = require('../utils/fhir');
 const { getEHRServer } = require('../storage/servers');
+const { baseIgActions } = require('./actions');
+const debug = require('debug')('medmorph-backend:server');
 
 const COLLECTION = 'reporting';
 
@@ -46,7 +48,7 @@ const RECEIVER_ADDRESS_EXT =
  * do not have to re-implement codes unnecessarily.
  */
 const IG_REGISTRY = {
-  [BASE_REPORTING_BUNDLE_PROFILE]: {} // base action definitions, see MEDMORPH-35
+  [BASE_REPORTING_BUNDLE_PROFILE]: baseIgActions
 };
 
 /**
@@ -111,8 +113,7 @@ function initializeContext(planDefinition, patient, encounter, destEndpoint) {
     planDefinition,
     action: initialAction,
     client: {
-      dest: destEndpoint,
-      db
+      dest: destEndpoint
     },
     reportingBundle: null,
     contentBundle: null,
@@ -137,7 +138,7 @@ function findProfile(planDefinition) {
   // figure out the profile of the target bundle
 
   const createReportAction = planDefinition.action?.find(
-    a => a.code[0].coding[0].code === 'create-report'
+    a => a.code?.[0].coding[0].code === 'create-report'
   );
 
   if (!createReportAction) {
@@ -225,6 +226,7 @@ async function executeWorkflow(context) {
 
   while (context.currentActionSequenceStep < context.actionSequence.length) {
     const actionCode = context.action.code[0].coding[0].code;
+    debug(`Executing ${actionCode}`);
 
     const execute = getFunction(ig, actionCode);
 
@@ -236,7 +238,8 @@ async function executeWorkflow(context) {
     const cancelToken = db.select(COLLECTION, c => c.id === context.id).cancelToken;
     if (cancelToken) return;
 
-    await execute(context);
+    if (execute) await execute(context);
+    else debug(`No function exists for code ${actionCode}`);
 
     // update the db after every completed step
     db.update(

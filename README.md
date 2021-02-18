@@ -61,7 +61,7 @@ DEBUG=medmorph-backend:*
 
 ### Server Requirements
 
-The app expects at the minimum a single EHR server. There should also be at least one KA server for anything meaningful to happen. More details and examples can be found on the [Collections Wiki](https://github.com/mcode/medmorph-backend/wiki/Collections)
+The app expects at the minimum a single EHR server. There should also be at least one KA server and one PHA server for anything meaningful to happen. More details and examples can be found on the [Collections Wiki](https://github.com/mcode/medmorph-backend/wiki/Collections)
 
 # License
 Copyright 2020 The MITRE Corporation

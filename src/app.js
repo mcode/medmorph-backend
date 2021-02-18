@@ -40,10 +40,10 @@ app.use('/.well-known', wellKnownRouter);
 app.use('/public', publicRouter);
 
 // Protected Routes
-app.use('/', backendAuthorization, indexRouter);
 app.use('/fhir', backendAuthorization, fhirRouter);
 app.use('/servers', backendAuthorization, serversRouter);
 app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
+app.use('/', backendAuthorization, indexRouter);
 
 setTimeout(() => refreshKnowledgeArtifacts(), 1000);
 

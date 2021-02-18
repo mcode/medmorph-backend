@@ -29,6 +29,8 @@ const { Fhir, FhirPath } = require('fhir');
 const { StatusCodes } = require('http-status-codes');
 const { getEHRServer } = require('../storage/servers');
 const { getAccessToken } = require('./client');
+const db = require('../storage/DataAccess');
+const debug = require('debug')('medmorph-backend:server');
 
 const fhir = new Fhir();
 
@@ -37,7 +39,7 @@ const baseIgActions = {
     const action = context.action;
     const resources = context.records;
 
-    const boolMap = action.action[0].condition.map(condition => {
+    const boolMap = action.condition.map(condition => {
       if (condition.expression) {
         const expression = condition.expression;
         // check the records for a trigger code
@@ -81,8 +83,10 @@ const baseIgActions = {
     await submitBundle(context.reportingBundle, context.client.dest)
       .then(
         result => {
+          console.log(result);
           if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
             context.flags['submitted'] = true;
+            debug(`Reporting Bundle submitted to ${context.client.dest}`);
           }
         },
         () => {
@@ -143,7 +147,7 @@ const baseIgActions = {
     context.flags['encrypted'] = true;
   },
   'complete-reporting': context => {
-    context.client.db.insert('completed reports', context.reportingBundle);
+    db.insert('completed reports', context.reportingBundle);
     context.flags['completed'] = true;
   },
   'extract-research-data': async context => {
@@ -258,12 +262,13 @@ function compareDates(date, period) {
 }
 
 function createBundle(records, type) {
+  const now = new Date(Date.now());
   const bundle = {
     resourceType: 'Bundle',
     meta: {
-      lastUpdated: Date.now()
+      lastUpdated: now.toISOString()
     },
-    timestamp: Date.now(),
+    timestamp: now.toISOString(),
     entry: []
   };
 
@@ -356,7 +361,8 @@ async function readFromEHR(uri) {
  * @returns axios promise with data
  */
 async function submitBundle(bundle, url) {
-  const token = await getAccessToken(url);
+  const baseUrl = url.split('/$process-message')[0];
+  const token = await getAccessToken(baseUrl);
   const headers = { Authorization: `Bearer ${token}` };
   return axios.post(url, bundle, { headers: headers });
 }

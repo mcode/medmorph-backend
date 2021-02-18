@@ -153,7 +153,6 @@ describe('Test reporting workflow', () => {
     expect(context.planDefinition).toBeDefined();
     expect(context.actionSequence).toBeDefined();
     expect(context.currentActionSequenceStep).toBe(0);
-    expect(context.client.db).toBeDefined();
     expect(context.client.dest).toBeDefined();
   });
 

@@ -16,8 +16,6 @@ async function connectToServer(url) {
   // Generate the client_assertion jwt
   const tokenEndpoint = await getTokenEndpoint(url);
   const clientId = servers.getServerByUrl(url).clientId;
-  console.log(`Client id from db is ${clientId}`);
-  // const clientId = 'medmorph_backend';
   const jwt = await generateJWT(clientId, tokenEndpoint);
 
   const props = {
