@@ -25,6 +25,7 @@
 // to the current action, since we'd be cycling through actions
 // anyway.
 const axios = require('axios');
+const { v4: uuid } = require('uuid');
 const { Fhir, FhirPath } = require('fhir');
 const { StatusCodes } = require('http-status-codes');
 const { getEHRServer } = require('../storage/servers');
@@ -83,10 +84,9 @@ const baseIgActions = {
     await submitBundle(context.reportingBundle, context.client.dest)
       .then(
         result => {
-          console.log(result);
           if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
             context.flags['submitted'] = true;
-            debug(`Reporting Bundle submitted to ${context.client.dest}`);
+            debug(`/Bundle/${context.reportingBundle.id} submitted to ${context.client.dest}`);
           }
         },
         () => {
@@ -216,7 +216,6 @@ const baseIgActions = {
             }
           }
 
-          // QUESTION - should context have a mutex?
           return context.records.push(...filteredResources);
         });
         listOfPromises.push(getRecordsPromise);
@@ -264,6 +263,7 @@ function compareDates(date, period) {
 function createBundle(records, type) {
   const now = new Date(Date.now());
   const bundle = {
+    id: uuid(),
     resourceType: 'Bundle',
     meta: {
       lastUpdated: now.toISOString()

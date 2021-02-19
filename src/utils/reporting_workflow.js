@@ -226,7 +226,7 @@ async function executeWorkflow(context) {
 
   while (context.currentActionSequenceStep < context.actionSequence.length) {
     const actionCode = context.action.code[0].coding[0].code;
-    debug(`Executing ${actionCode}`);
+    debug(`Executing ${actionCode} for PlanDefinition/${planDef.id}`);
 
     const execute = getFunction(ig, actionCode);
 
@@ -239,7 +239,7 @@ async function executeWorkflow(context) {
     if (cancelToken) return;
 
     if (execute) await execute(context);
-    else debug(`No function exists for code ${actionCode}`);
+    else debug(`No function exists for code ${actionCode} (PlanDefinition/${planDef.id})`);
 
     // update the db after every completed step
     db.update(
