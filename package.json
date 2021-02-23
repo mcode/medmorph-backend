@@ -5,7 +5,9 @@
   "license": "Apache-2.0",
   "description": "MedMorph Backend Service Client",
   "scripts": {
-    "start": "nodemon ./bin/www",
+    "start": "npm-run-all --parallel startBackend startFrontend",
+    "startBackend": "nodemon ./bin/www",
+    "startFrontend": "cd client && npm start",
     "debug": "node --inspect-brk ./bin/www",
     "test": "jest",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
@@ -17,6 +19,7 @@
     "eslint-plugin-only-error": "^1.0.2",
     "eslint-plugin-prettier": "^3.3.1",
     "jest": "^26.6.3",
+    "npm-run-all": "^4.1.5",
     "prettier": "1.19.1",
     "supertest": "^6.1.3"
   },

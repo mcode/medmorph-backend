@@ -17,7 +17,7 @@ const { backendAuthorization, subscriptionAuthorization } = require('./utils/aut
 const { refreshKnowledgeArtifacts } = require('./utils/fhir');
 
 const app = express();
-
+app.use(express.static(`${__dirname}/../client/build`));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(bodyParser.json({ type: ['application/json', 'application/fhir+json'] }));
@@ -40,11 +40,10 @@ app.use('/.well-known', wellKnownRouter);
 app.use('/public', publicRouter);
 
 // Protected Routes
-app.use('/fhir', backendAuthorization, fhirRouter);
-app.use('/servers', backendAuthorization, serversRouter);
-app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
-app.use('/', backendAuthorization, indexRouter);
-
+app.use('/api',backendAuthorization, indexRouter);
+app.use('/api/fhir', backendAuthorization, fhirRouter);
+app.use('/api/servers', backendAuthorization, serversRouter);
+app.use('/api/notif', subscriptionAuthorization, subscriptionsRouter);
 setTimeout(() => refreshKnowledgeArtifacts(), 1000);
 
 module.exports = app;
