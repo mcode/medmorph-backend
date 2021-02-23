@@ -127,8 +127,8 @@ function generateSubscription(code, criteria, url, token) {
 }
 
 /**
- * Get all knowledge artifacts (from servers registered in the config
- * file) and save them. Stores all refrenced resources as well.
+ * Get all knowledge artifacts (from servers registered in the
+ * db) and save them. Stores all refrenced resources as well.
  */
 function refreshKnowledgeArtifacts() {
   const servers = db.select('servers', s => s.type === 'KA');
