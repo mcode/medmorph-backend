@@ -67,7 +67,7 @@ const context = {
       reference: 'Patient/example'
     }
   },
-  PlanDef: {
+  planDefinition: {
     resourceType: 'PlanDefinition',
     id: 'plandefinition-cancer-example',
     meta: {
@@ -293,105 +293,8 @@ const context = {
   },
   action: {},
   client: {
-    source: {
-      endpoint: 'http://example-source.com',
-      read: () => {
-        return {
-          resourceType: 'Bundle',
-          entry: [
-            {
-              resource: {
-                resourceType: 'Condition',
-                id: 'example',
-                code: {
-                  coding: {
-                    code: 'example',
-                    system: 'www.example.com'
-                  }
-                },
-                onsetDateTime: '1997-02-14T20:00:12.063Z'
-              }
-            },
-            {
-              resource: {
-                resourceType: 'Condition',
-                id: 'failure',
-                code: {
-                  coding: {
-                    code: 'notExample',
-                    system: 'www.example.com'
-                  }
-                },
-                onsetDateTime: '1997-02-14T20:00:12.063Z'
-              }
-            },
-            {
-              resource: {
-                resourceType: 'Condition',
-                id: 'failure',
-                code: {
-                  coding: {
-                    code: 'example',
-                    system: 'www.example.com'
-                  }
-                },
-                onsetDateTime: '1800-02-14T20:00:12.063Z'
-              }
-            },
-            {
-              resource: {
-                resourceType: 'Condition',
-                id: 'example',
-                code: {
-                  coding: {
-                    code: 'example',
-                    system: 'www.example.com'
-                  }
-                },
-                onsetDateTime: '1998-04-29T20:00:12.063Z'
-              }
-            }
-          ]
-        };
-      }
-    },
-    dest: {
-      endpoint: 'http://example-destination.com',
-      submit: bundle => {
-        const promise = new Promise((executor, reject) => {
-          if (bundle.type === 'error') {
-            reject({ status: 500 });
-          } else {
-            executor({ status: 200 });
-          }
-        });
-        return promise;
-      }
-    },
-    trust: {
-      deidentify: bundle => {
-        const promise = new Promise(executor => {
-          bundle.type = 'deidentified';
-          executor({ data: bundle });
-        });
-        return promise;
-      },
-      anonymize: bundle => {
-        const promise = new Promise(executor => {
-          bundle.type = 'anonymized';
-          executor({ data: bundle });
-        });
-        return promise;
-      },
-      pseudonymize: bundle => {
-        const promise = new Promise(executor => {
-          bundle.type = 'pseudonymized';
-          executor({ data: bundle });
-        });
-        return promise;
-      }
-    },
-    database: {
+    dest: 'http://example-destination.com',
+    db: {
       insert: (name, bundle) => {
         return { name: bundle };
       }
@@ -399,8 +302,6 @@ const context = {
   },
   reportingBundle: {},
   contentBundle: {},
-  prev: null,
-  next: null,
   cancelToken: null,
   flags: {},
   exitStatus: false

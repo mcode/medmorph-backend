@@ -1,5 +1,4 @@
 const db = require('../storage/DataAccess');
-const { connectToServer } = require('../utils/client');
 
 const SERVERS = 'servers';
 
@@ -44,33 +43,13 @@ function addClientId(server, clientId) {
 }
 
 function getClientId(server) {
-  return this.getServerById(server.id).clientId;
+  return getServerById(server.id).clientId;
 }
 
 function addAccessToken(server, token, tokenExp) {
   server.token = token;
   server.tokenExp = tokenExp;
   addServer(server);
-}
-
-async function getAccessToken(server) {
-  const result = this.getServerById(server.id);
-  if (!result.token || result.tokenExp < Date.now()) {
-    // create a new token if possible
-    try {
-      const token = await connectToServer(server.endpoint);
-      // expires_in is time until expiration in seconds, Date.now() is in milliseconds
-      const exp = Date.now() + token.expires_in * 1000;
-      db.addAccessToken(server, token.access_token, exp);
-      return token;
-    } catch (e) {
-      clearAccessToken(server);
-      console.error(e);
-      throw e;
-    }
-  } else {
-    return result.token;
-  }
 }
 
 function clearAccessToken(server) {
@@ -82,6 +61,10 @@ function clearAccessToken(server) {
   }
 }
 
+function getEHRServer() {
+  return db.select(SERVERS, s => s.type === 'EHR')[0];
+}
+
 module.exports = {
   addServer,
   getServers,
@@ -91,6 +74,6 @@ module.exports = {
   addClientId,
   getClientId,
   addAccessToken,
-  getAccessToken,
-  clearAccessToken
+  clearAccessToken,
+  getEHRServer
 };

@@ -1,17 +1,16 @@
 // this file provides functions for various action codes
 // it is assumed every function recieves a "context" object
 // Context:
-//  Patient: identifier for the patient whose data triggered the workflow
+//  Patient: patient whose data triggered the workflow
 //  records: list of records
 //  Encounter: encounter where some data triggered the workflow
 //  Organization: Organization that is doing the workflow
 //  PlanDef: *** do we want to keep a "pre-processed" version of the plandef?
 //  Action: action currently in context from the planDef
 //  client: set of clients to connect to
-//      source: FHIR client to make additional queries to EHR
-//      dest: FHIR client to send to PHA/TTP
+//      dest: endpoint of where to send to PHA/TTP
 //      trust services
-//      database
+//      db
 //  reportingBundle: the entire bundle to be submitted
 //  contentBundle: just the content section of the report bundle
 //  flags: various boolean or enum flags about the status of the report.
@@ -25,17 +24,23 @@
 // in turn.  I'm also assuming the context is unique
 // to the current action, since we'd be cycling through actions
 // anyway.
-const Fhir = require('fhir').Fhir;
-const FhirPath = require('fhir').FhirPath;
-const fhir = new Fhir();
+const axios = require('axios');
+const { v4: uuid } = require('uuid');
+const { Fhir, FhirPath } = require('fhir');
 const { StatusCodes } = require('http-status-codes');
+const { getEHRServer } = require('../storage/servers');
+const { getAccessToken } = require('./client');
+const db = require('../storage/DataAccess');
+const debug = require('debug')('medmorph-backend:server');
+
+const fhir = new Fhir();
 
 const baseIgActions = {
   'check-trigger-codes': context => {
     const action = context.action;
     const resources = context.records;
 
-    const boolMap = action.action[0].condition.map(condition => {
+    const boolMap = action.condition.map(condition => {
       if (condition.expression) {
         const expression = condition.expression;
         // check the records for a trigger code
@@ -76,12 +81,12 @@ const baseIgActions = {
     context.flags['valid'] = validation.valid;
   },
   'submit-report': async context => {
-    await context.client.dest
-      .submit(context.reportingBundle)
+    await submitBundle(context.reportingBundle, context.client.dest)
       .then(
         result => {
           if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
             context.flags['submitted'] = true;
+            debug(`/Bundle/${context.reportingBundle.id} submitted to ${context.client.dest}`);
           }
         },
         () => {
@@ -93,9 +98,7 @@ const baseIgActions = {
       });
   },
   'deidentify-report': async context => {
-    const client = context.client.trust;
-    await client
-      .deidentify(context.reportingBundle)
+    await dataTrustOperation('deidentify', context.reportingBundle)
       .then(
         result => {
           context.reportingBundle = result.data;
@@ -109,10 +112,8 @@ const baseIgActions = {
         context.flags['deidentified'] = false;
       });
   },
-  'anonymize-report': context => {
-    const client = context.client.trust;
-    client
-      .anonymize(context.reportingBundle)
+  'anonymize-report': async context => {
+    await dataTrustOperation('anonymize', context.reportingBundle)
       .then(
         result => {
           context.reportingBundle = result.data;
@@ -126,10 +127,8 @@ const baseIgActions = {
         context.flags['anonymized'] = false;
       });
   },
-  'pseudonymize-report': context => {
-    const client = context.client.trust;
-    client
-      .pseudonymize(context.reportingBundle)
+  'pseudonymize-report': async context => {
+    await dataTrustOperation('pseudonymize', context.reportingBundle)
       .then(
         result => {
           context.reportingBundle = result.data;
@@ -148,15 +147,15 @@ const baseIgActions = {
     context.flags['encrypted'] = true;
   },
   'complete-reporting': context => {
-    context.client.database.insert('completed reports', context.reportingBundle);
+    db.insert('completed reports', context.reportingBundle);
     context.flags['completed'] = true;
   },
-  'extract-research-data': context => {
+  'extract-research-data': async context => {
     // assume information about desired research data
     // is in the action.input element
     const inputs = context.action.input;
-    const client = context.client.source;
     if (inputs) {
+      const listOfPromises = [];
       inputs.forEach(input => {
         // each input would define a different fhir resource
         const resourceType = input.type;
@@ -166,58 +165,63 @@ const baseIgActions = {
         if (reference) {
           uri += `subject=${reference}&`;
         }
-        const resources = client.read(uri).entry.map(entry => {
-          return entry.resource;
+
+        const getRecordsPromise = readFromEHR(uri).then(result => {
+          const resources = result.data.entry.map(e => e.resource);
+
+          const dateFilter = input.dateFilter;
+          let filteredResources = [...resources];
+          // TODO: some of the filtering could
+          // be done with search params in the query
+
+          if (dateFilter) {
+            // assume two filters don't overlap
+            const path = dateFilter.path;
+            const searchParam = dateFilter.searchParam;
+            const filterPeriod = dateFilter.valuePeriod; // assume its a valuePeriod
+            if (path) {
+              filteredResources = filteredResources.filter(resource => {
+                // get value by path
+                const date = getByPath(resource, path); // assume its a datetime?
+                return compareDates(date, filterPeriod);
+              });
+            } else {
+              // path or searchParam are required
+              filteredResources = filteredResources.filter(resource => {
+                // get value by param
+                const date = getBySearchParam(resource, searchParam); // assume its a datetime?
+                return compareDates(date, filterPeriod);
+              });
+            }
+          }
+
+          const codeFilter = input.codeFilter;
+          if (codeFilter) {
+            // code filter isn't under the same constraint as datefilter
+            // we can assume that it's just a path
+            const path = codeFilter.path;
+            const searchParam = codeFilter.searchParam;
+            if (path) {
+              // no need to refilter resources
+              filteredResources = filteredResources.filter(resource => {
+                const code = getByPath(resource, path);
+                // codeFilter.code is of type Coding, could also be a valueSet?
+                return compareCodes(code, codeFilter.code[0]);
+              });
+            } else if (searchParam) {
+              filteredResources = filteredResources.filter(resource => {
+                const code = getBySearchParam(resource, searchParam);
+                return compareCodes(code, codeFilter.code);
+              });
+            }
+          }
+
+          return context.records.push(...filteredResources);
         });
-
-        const dateFilter = input.dateFilter;
-        let filteredResources = [...resources];
-        // TODO: some of the filtering could
-        // be done with search params in the query
-
-        if (dateFilter) {
-          // assume two filters don't overlap
-          const path = dateFilter.path;
-          const searchParam = dateFilter.searchParam;
-          const filterPeriod = dateFilter.valuePeriod; // assume its a valuePeriod
-          if (path) {
-            filteredResources = filteredResources.filter(resource => {
-              // get value by path
-              const date = getByPath(resource, path); // assume its a datetime?
-              return compareDates(date, filterPeriod);
-            });
-          } else {
-            // path or searchParam are required
-            filteredResources = filteredResources.filter(resource => {
-              // get value by param
-              const date = getBySearchParam(resource, searchParam); // assume its a datetime?
-              return compareDates(date, filterPeriod);
-            });
-          }
-        }
-
-        const codeFilter = input.codeFilter;
-        if (codeFilter) {
-          // code filter isn't under the same constraint as datefilter
-          // we can assume that it's just a path
-          const path = codeFilter.path;
-          const searchParam = codeFilter.searchParam;
-          if (path) {
-            // no need to refilter resources
-            filteredResources = filteredResources.filter(resource => {
-              const code = getByPath(resource, path);
-              // codeFilter.code is of type Coding, could also be a valueSet?
-              return compareCodes(code, codeFilter.code[0]);
-            });
-          } else if (searchParam) {
-            filteredResources = filteredResources.filter(resource => {
-              const code = getBySearchParam(resource, searchParam);
-              return compareCodes(code, codeFilter.code);
-            });
-          }
-        }
-        return context.records.push(...filteredResources);
+        listOfPromises.push(getRecordsPromise);
       });
+
+      await Promise.all(listOfPromises);
     }
   },
   'execute-research-query': context => {
@@ -257,12 +261,14 @@ function compareDates(date, period) {
 }
 
 function createBundle(records, type) {
+  const now = new Date(Date.now());
   const bundle = {
+    id: uuid(),
     resourceType: 'Bundle',
     meta: {
-      lastUpdated: Date.now()
+      lastUpdated: now.toISOString()
     },
-    timestamp: Date.now(),
+    timestamp: now.toISOString(),
     entry: []
   };
 
@@ -332,6 +338,44 @@ function makeHeader(context) {
   };
 
   return header;
+}
+
+/**
+ * Retrieve data from the EHR
+ *
+ * @param {string} uri - the search query for the data desired
+ * @returns axios promise with data
+ */
+async function readFromEHR(uri) {
+  const url = getEHRServer();
+  const token = await getAccessToken(url);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios.get(`${url}/${uri}`, { headers: headers });
+}
+
+/**
+ * Post the reporting bundle to the endpoint designated in the PlanDefinition
+ *
+ * @param {Bundle} bundle - the reporting Bundle to submit
+ * @param {string} url - the endpoint to post the report. Comes from context.dest.endpoint.
+ * @returns axios promise with data
+ */
+async function submitBundle(bundle, url) {
+  const baseUrl = url.split('/$process-message')[0];
+  const token = await getAccessToken(baseUrl);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios.post(url, bundle, { headers: headers });
+}
+
+/**
+ * Helper function to call specific operations on the data trust service server.
+ *
+ * @param {string} operation = 'deidentify' | 'anonymize' | 'pseudonymize'
+ * @param {Bundle} bundle - the bundle to perform operation on
+ * @returns axios promise with data
+ */
+function dataTrustOperation(operation, bundle) {
+  return axios.post(`${process.env.DATA_TRUST_SERVICE}/Bundle/$${operation}`, bundle);
 }
 
 module.exports = { baseIgActions };

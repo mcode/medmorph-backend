@@ -1,6 +1,10 @@
 const { v4: uuidv4 } = require('uuid');
 const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
+const { getReferencedResource } = require('../utils/fhir');
+const { getEHRServer } = require('../storage/servers');
+const { baseIgActions } = require('./actions');
+const debug = require('debug')('medmorph-backend:server');
 
 const COLLECTION = 'reporting';
 
@@ -32,6 +36,8 @@ https://github.com/mcode/medmorph-backend/wiki/Reporting-Workflow
 
 const BASE_REPORTING_BUNDLE_PROFILE =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle';
+const RECEIVER_ADDRESS_EXT =
+  'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-receiverAddress';
 
 /**
  * IG_REGISTRY maps the profile for a reporting bundle under an IG
@@ -42,16 +48,79 @@ const BASE_REPORTING_BUNDLE_PROFILE =
  * do not have to re-implement codes unnecessarily.
  */
 const IG_REGISTRY = {
-  [BASE_REPORTING_BUNDLE_PROFILE]: {} // base action definitions, see MEDMORPH-35
+  [BASE_REPORTING_BUNDLE_PROFILE]: baseIgActions
 };
 
-function initializeContext(planDefinition) {
-  // TODO -- see MEDMORPH-36
+/**
+ * Function to use the PlanDefinition and triggering resource to create a report. This
+ * initializes the context and begins the executeWorkflow
+ *
+ * @param {PlanDefinition} planDef - the PlanDefinition resource
+ * @param {*} resource - the resource which triggered the notification
+ */
+async function startReportingWorkflow(planDef, resource = null) {
+  // TODO: MEDMORPH-49 to make sure the resource is always included
+  if (!resource) return;
+
+  const ehrUrl = getEHRServer();
+  let patient = null;
+  if (resource.patient) patient = await getReferencedResource(ehrUrl, resource.patient.reference);
+  else if (resource.subject) patient = await getReferencedResource(resource.subject.reference);
+  else if (resource.resourceType === 'Patient') patient = resource;
+
+  let encounter = null;
+  if (resource.encounter)
+    encounter = await getReferencedResource(ehrUrl, resource.encounter.reference);
+  else if (resource.context)
+    encounter = await getReferencedResource(ehrUrl, resource.context.reference);
+  else if (resource.resourceType === 'Encounter') encounter = resource;
+
+  // Get the endpoint to submit the report to from the PlanDefinition
+  const receiverAddress = planDef.extension.find(e => e.url === RECEIVER_ADDRESS_EXT);
+  const endpointRef = receiverAddress.valueReference.reference;
+  const endpointId = endpointRef.split('/')[1];
+  const endpoint = db.select('endpoints', e => e.id === endpointId);
+  const destEndpoint = endpoint[0].address;
+
+  // QUESTION: Should encounter and patient be saved to the database?
+
+  const context = initializeContext(planDef, patient, encounter, destEndpoint);
+  executeWorkflow(context);
+}
+
+/**
+ * Create the initial workflow context
+ *
+ * @param {PlanDefinition} planDefinition - the PlanDefinition resource for this workflow
+ * @param {Patient} patient - the patient resource from the triggering resource, null if not found
+ * @param {Encounter} encounter - the encounter resource from the trigger resource,
+ *    null if not found
+ * @param {string} destEndpoint - the destination endpoint to submit the report to
+ * @returns the initialized context object
+ */
+function initializeContext(planDefinition, patient, encounter, destEndpoint) {
+  const records = [];
+  if (patient) records.push(patient);
+  if (encounter) records.push(encounter);
+  const actionSequence = determineActionSequence(planDefinition);
+  const initialAction = planDefinition.action.find(a => a.id === actionSequence[0]);
+
   return {
     id: uuidv4(),
+    patient: patient,
+    records: records,
+    encounter: encounter,
+    planDefinition,
+    action: initialAction,
+    client: {
+      dest: destEndpoint
+    },
+    reportingBundle: null,
+    contentBundle: null,
+    flags: {},
     currentActionSequenceStep: 0,
-    actionSequence: determineActionSequence(planDefinition),
-    planDefinition
+    actionSequence,
+    cancelToken: false
   };
 }
 
@@ -69,7 +138,7 @@ function findProfile(planDefinition) {
   // figure out the profile of the target bundle
 
   const createReportAction = planDefinition.action?.find(
-    a => a.code[0].coding[0].code === 'create-report'
+    a => a.code?.[0].coding[0].code === 'create-report'
   );
 
   if (!createReportAction) {
@@ -156,10 +225,8 @@ async function executeWorkflow(context) {
   const ig = findProfile(planDef);
 
   while (context.currentActionSequenceStep < context.actionSequence.length) {
-    const currentActionId = context.actionSequence[context.currentActionSequenceStep];
-    const action = planDef.action.find(a => a.id === currentActionId);
-
-    const actionCode = action.code[0].coding[0].code;
+    const actionCode = context.action.code[0].coding[0].code;
+    debug(`Executing ${actionCode} for PlanDefinition/${planDef.id}`);
 
     const execute = getFunction(ig, actionCode);
 
@@ -171,7 +238,8 @@ async function executeWorkflow(context) {
     const cancelToken = db.select(COLLECTION, c => c.id === context.id).cancelToken;
     if (cancelToken) return;
 
-    await execute(context);
+    if (execute) await execute(context);
+    else debug(`No function exists for code ${actionCode} (PlanDefinition/${planDef.id})`);
 
     // update the db after every completed step
     db.update(
@@ -183,6 +251,9 @@ async function executeWorkflow(context) {
     if (context.exitStatus) break;
 
     context.currentActionSequenceStep++;
+    const currentActionId = context.actionSequence[context.currentActionSequenceStep];
+    const action = planDef.action.find(a => a.id === currentActionId);
+    context.action = action;
   }
 }
 
@@ -191,5 +262,6 @@ module.exports = {
   executeWorkflow,
   findProfile,
   IG_REGISTRY,
-  initializeContext
+  initializeContext,
+  startReportingWorkflow
 };

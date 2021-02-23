@@ -39,7 +39,32 @@ async function connectToServer(url) {
     .post(tokenEndpoint, queryString.stringify(props), headers)
     .then(response => response.data)
     .catch(err => console.error(err));
-  return data.access_token;
+  return data;
+}
+
+/**
+ * Function to get an access token for the authorization header of request
+ *
+ * @param {string} url - the base url of the server to connect to
+ */
+async function getAccessToken(url) {
+  const server = servers.getServerByUrl(url);
+  if (!server?.token || server?.tokenExp < Date.now()) {
+    // create a new token if possible
+    try {
+      const token = await connectToServer(url);
+      // expires_in is time until expiration in seconds, Date.now() is in milliseconds
+      const exp = Date.now() + token.expires_in * 1000;
+      servers.addAccessToken(server, token.access_token, exp);
+      return token.access_token;
+    } catch (e) {
+      servers.clearAccessToken(server);
+      console.error(e);
+      throw e;
+    }
+  } else {
+    return server.token;
+  }
 }
 
 /**
@@ -77,4 +102,4 @@ async function generateJWT(client_id, aud) {
     .final();
 }
 
-module.exports = { connectToServer };
+module.exports = { getAccessToken };

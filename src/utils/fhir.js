@@ -1,5 +1,7 @@
 const axios = require('axios');
+const { getAccessToken } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
+const db = require('../storage/DataAccess');
 
 const NAMED_EVENT_EXTENSION =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-us-ph-namedEventType';
@@ -37,21 +39,30 @@ function generateOperationOutcome(code, msg) {
 }
 
 /**
- * Helper method to GET resources (and all included references) from a FHIR server
+ * Helper method to GET resources (and all included references) from a FHIR server and
+ * save them to the database.
  *
  * @param {string} server - the sourse server base url
- * @param {string} type - the type of the resource
- * @param {string[]} ids - (optional) list of ids to get
- * @returns promise of axios data
+ * @param {string} resourceType - the type of the resource
  */
-function getResources(server, type, ids = null) {
-  const id_param = ids ? `&_id=${ids.join(',')}` : '';
-  const url = `${server}/${type}?_include=*${id_param}`;
-  const headers = { Authorization: 'Bearer admin' }; // TODO: get an access token
-  return axios
+async function getResources(server, resourceType) {
+  const url = `${server}/${resourceType}?_include=*`;
+  const token = await getAccessToken(server, db);
+  const headers = { Authorization: `Bearer ${token}` };
+  const axiosResponse = axios
     .get(url, { headers: headers })
     .then(response => response.data)
     .catch(err => console.log(err));
+  axiosResponse.then(data => {
+    debug(`Fetched ${server}/${data.resourceType}/${data.id}`);
+    if (!data.entry) return;
+    const resources = data.entry.map(entry => entry.resource);
+    resources.forEach(resource => {
+      debug(`  ...${resource.resourceType}/${resource.id}`);
+      const collection = `${resource.resourceType.toLowerCase()}s`;
+      db.upsert(collection, resource, r => r.id === resource.id);
+    });
+  });
 }
 
 /**
@@ -116,21 +127,14 @@ function generateSubscription(code, criteria, url, token) {
 }
 
 /**
- * Get all knowledge artifacts (from servers registered in the config
- * file) and save them. Stores all refrenced resources as well.
+ * Get all knowledge artifacts (from servers registered in the
+ * db) and save them. Stores all refrenced resources as well.
  */
-function refreshKnowledgeArtifacts(db) {
+function refreshKnowledgeArtifacts() {
   const servers = db.select('servers', s => s.type === 'KA');
   servers.forEach(server => {
-    getResources(server.endpoint, 'PlanDefinition').then(data => {
-      debug(`Fetched ${server.endpoint}/${data.resourceType}/${data.id}`);
-      if (data.entry?.length === 0) return;
-      const resources = data.entry.map(entry => entry.resource);
-      resources.forEach(resource => {
-        const collection = `${resource.resourceType.toLowerCase()}s`;
-        db.upsert(collection, resource, r => r.id === resource.id);
-      });
-    });
+    getResources(server.endpoint, 'PlanDefinition');
+    getResources(server.endpoint, 'Endpoint');
   });
 }
 
@@ -219,9 +223,30 @@ function namedEventToCriteria(code) {
   }
 }
 
+/**
+ * Dereference a reference url. Currently only supports relative references.
+ *
+ * @param {string} url - base fhir url
+ * @param {string} reference - the reference string
+ * @returns the referenced resource
+ */
+async function getReferencedResource(url, reference) {
+  if (reference.split('/').length === 2) {
+    const [resourceType, id] = reference.split('/');
+    const token = await getAccessToken(url);
+    const headers = { Authorization: `Bearer ${token}` };
+    const resource = await axios.get(`${url}/${resourceType}/${id}`, { headers: headers });
+    return resource.data;
+  }
+
+  // TODO: update to work with other reference types
+  return null;
+}
+
 module.exports = {
   generateOperationOutcome,
   refreshKnowledgeArtifacts,
   subscriptionsFromBundle,
-  subscriptionsFromPlanDef
+  subscriptionsFromPlanDef,
+  getReferencedResource
 };

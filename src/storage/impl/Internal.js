@@ -12,8 +12,6 @@
 
 const loki = require('lokijs');
 
-const { refreshKnowledgeArtifacts } = require('../../utils/fhir');
-
 const isTest = process.env.NODE_ENV === 'test';
 
 class Internal {
@@ -24,7 +22,6 @@ class Internal {
       this.db = new loki('medmorph.db', {
         autoload: true,
         autosave: true,
-        autoloadCallback: () => refreshKnowledgeArtifacts(this),
         serializationMethod: 'pretty'
       });
     } else {

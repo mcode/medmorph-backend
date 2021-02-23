@@ -1,8 +1,6 @@
 {
     "check-trigger-codes-success": {
         "id": "check-trigger-codes",
-        "action": [
-            {
                 "code": [
                     {
                         "coding": [
@@ -36,13 +34,9 @@
                         "relationship": "before-start"
                     }
                 ]
-            }
-        ]
     },
     "check-trigger-codes-failure": {
             "id": "check-trigger-codes",
-            "action": [
-                {
                     "code": [
                         {
                             "coding": [
@@ -76,8 +70,6 @@
                             "relationship": "before-start"
                         }
                     ]
-                }
-            ]
     },
     "create-report": {
         "id": "create-report",
