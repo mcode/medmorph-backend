@@ -1,8 +1,10 @@
-import './App.css';
+import useStyles from './styles';
 
 function App() {
+  const styles = useStyles();
+
   return (
-    <div className="App">
+    <div className={styles.app}>
         Medmorph Frontend
     </div>
   );
