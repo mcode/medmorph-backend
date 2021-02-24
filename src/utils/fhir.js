@@ -48,6 +48,7 @@ function generateOperationOutcome(code, msg) {
  *
  * @param {string} server - the sourse server base url
  * @param {string} resourceType - the type of the resource
+ * @returns FHIR bundle of resources
  */
 async function getResources(server, resourceType) {
   const url = `${server}/${resourceType}?_include=*`;
@@ -57,7 +58,7 @@ async function getResources(server, resourceType) {
     .get(url, { headers: headers })
     .then(response => response.data)
     .catch(err => console.log(err));
-  axiosResponse.then(data => {
+  return axiosResponse.then(data => {
     debug(`Fetched ${server}/${data.resourceType}/${data.id}`);
     if (!data.entry) return;
     const resources = data.entry.map(entry => entry.resource);
@@ -66,6 +67,8 @@ async function getResources(server, resourceType) {
       const collection = `${resource.resourceType.toLowerCase()}s`;
       db.upsert(collection, resource, r => r.id === resource.id);
     });
+
+    return data;
   });
 }
 
@@ -139,7 +142,7 @@ function generateSubscription(criteria, url, token, id = undefined, subscription
 
 /**
  * Get all knowledge artifacts (from servers registered in the
- * db) and save them. Stores all refrenced resources as well.
+ * db) and save them. Stores all referenced resources as well.
  */
 function refreshAllKnowledgeArtifacts() {
   const servers = db.select('servers', s => s.type === 'KA');
@@ -152,7 +155,10 @@ function refreshAllKnowledgeArtifacts() {
  * @param {*} server - the server to refresh artifacts from
  */
 function refreshKnowledgeArtifact(server) {
-  getResources(server.endpoint, 'PlanDefinition');
+  getResources(server.endpoint, 'PlanDefinition').then(bundle =>
+    // Create/Update subscriptions from PlanDefinitions
+    subscriptionsFromBundle(bundle, server.endpoint, 'admin')
+  );
   getResources(server.endpoint, 'Endpoint');
 }
 
@@ -192,7 +198,17 @@ function subscriptionsFromBundle(specBundle, url, token) {
     throw new Error('Specification Bundle does not contain a PlanDefinition');
   }
 
-  return planDefs.map(planDef => subscriptionsFromPlanDef(planDef.resource, url, token)).flat();
+  const subscriptions = planDefs
+    .map(planDef => subscriptionsFromPlanDef(planDef.resource, url, token))
+    .flat();
+
+  subscriptions.forEach(async subscription => {
+    // Store subscriptions in database
+    debug(`  ...${subscription.resourceType}/${subscription.id}`);
+    db.upsert('subscriptions', subscription, s => s.id === subscription.id);
+  });
+
+  return subscriptions;
 }
 
 /**
@@ -215,8 +231,9 @@ function subscriptionsFromPlanDef(planDef, url, token) {
     );
 
     const criteria = namedEventToCriteria(namedEventCoding.code);
+    const id = `${planDef.id}${namedEventCoding.code}`;
     if (criteria)
-      subscriptions.push(generateSubscription(criteria, url, token, namedEventCoding.code));
+      subscriptions.push(generateSubscription(criteria, url, token, id, namedEventCoding.code));
     return subscriptions;
   }, []);
 }
