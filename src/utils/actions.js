@@ -89,7 +89,7 @@ const baseIgActions = {
             context.flags['submitted'] = true;
             debug(`/Bundle/${context.reportingBundle.id} submitted to ${context.client.dest}`);
 
-            if (result.data) {
+            if (result.data?.resourceType === 'Bundle') {
               forwardMessageResponse(result.data).then(() =>
                 debug(`Response to /Bundle/${context.reportingBundle.id} forwarded to EHR`)
               );
