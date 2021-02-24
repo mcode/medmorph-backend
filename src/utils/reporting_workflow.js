@@ -202,8 +202,8 @@ function determineActionSequence(planDefinition) {
           // assume that the offsetDuration indicates a minimum, not a maximum.
           // Duration object has a 'comparator' field which can be </<=/>/>=
           // TODO: if there's a case of offset < x, just ignore it and run immediately
-          const { value, unit } = relatedAction.offsetDuration;
-          const offsetTimeInMs = convertTimeToMs(value, unit);
+          const { value, code } = relatedAction.offsetDuration;
+          const offsetTimeInMs = convertTimeToMs(value, code);
 
           // FHIR IDs must be [A-Za-z0-9\-\.]{1,64}
           // so our fake ID here just has to include something else

@@ -246,7 +246,7 @@ describe('Test reporting workflow', () => {
     };
 
     const duration = {
-      unit: 's',
+      code: 's',
       value: 1
     };
 
