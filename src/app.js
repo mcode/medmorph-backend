@@ -40,7 +40,7 @@ app.use('/.well-known', wellKnownRouter);
 app.use('/public', publicRouter);
 
 // Protected Routes
-app.use('/api',backendAuthorization, indexRouter);
+app.use('/api', backendAuthorization, indexRouter);
 app.use('/api/fhir', backendAuthorization, fhirRouter);
 app.use('/api/servers', backendAuthorization, serversRouter);
 app.use('/api/notif', subscriptionAuthorization, subscriptionsRouter);
