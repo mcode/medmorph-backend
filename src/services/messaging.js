@@ -1,5 +1,6 @@
 const { StatusCodes } = require('http-status-codes');
-const { generateOperationOutcome } = require('../utils/fhir');
+const { generateOperationOutcome, forwardMessageResponse } = require('../utils/fhir');
+const debug = require('debug')('medmorph-backend:server');
 
 function processMessage(req, res) {
   // Validate the message bundle
@@ -36,7 +37,9 @@ function processMessage(req, res) {
     return;
   }
 
-  // TODO: do something with the message response
+  forwardMessageResponse(messageBundle).then(() =>
+    debug(`Response to /Bundle/${messageBundle.id} forwarded to EHR`)
+  );
 
   res.sendStatus(StatusCodes.OK);
 }

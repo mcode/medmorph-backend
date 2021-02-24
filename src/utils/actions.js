@@ -31,6 +31,7 @@ const { StatusCodes } = require('http-status-codes');
 const { getEHRServer } = require('../storage/servers');
 const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
+const { forwardMessageResponse } = require('./fhir');
 const debug = require('debug')('medmorph-backend:server');
 
 const fhir = new Fhir();
@@ -87,6 +88,12 @@ const baseIgActions = {
           if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
             context.flags['submitted'] = true;
             debug(`/Bundle/${context.reportingBundle.id} submitted to ${context.client.dest}`);
+
+            if (result.data) {
+              forwardMessageResponse(result.data).then(() =>
+                debug(`Response to /Bundle/${context.reportingBundle.id} forwarded to EHR`)
+              );
+            }
           }
         },
         () => {
@@ -347,7 +354,7 @@ function makeHeader(context) {
  * @returns axios promise with data
  */
 async function readFromEHR(uri) {
-  const url = getEHRServer();
+  const url = getEHRServer().endpoint;
   const token = await getAccessToken(url);
   const headers = { Authorization: `Bearer ${token}` };
   return axios.get(`${url}/${uri}`, { headers: headers });
