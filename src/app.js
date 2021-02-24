@@ -45,4 +45,6 @@ app.use('/fhir', backendAuthorization, fhirRouter);
 app.use('/servers', backendAuthorization, serversRouter);
 app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
 
+setTimeout(() => refreshKnowledgeArtifacts(), 1000);
+
 module.exports = app;
