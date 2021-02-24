@@ -8,10 +8,8 @@ const { startReportingWorkflow } = require('../utils/reporting_workflow');
 const { getServerById } = require('../storage/servers');
 const { refreshKnowledgeArtifact, getEndpointId } = require('../utils/fhir');
 const { getAccessToken } = require('../utils/client');
+const { PLANDEFINITIONS, ENDPOINTS } = require('../storage/collections');
 const debug = require('debug')('medmorph-backend:server');
-
-const COLLECTION = 'plandefinitions';
-const ENDPOINTS = 'endpoints';
 
 /**
  * Notification from KA Repo to refresh artifacts. The id param is the
@@ -42,7 +40,7 @@ router.put('/ka/:id/:resource/:resourceId', async (req, res) => {
     return;
   }
 
-  db.upsert(COLLECTION, planDefinition, r => r.id === planDefinition.id);
+  db.upsert(PLANDEFINITIONS, planDefinition, r => r.id === planDefinition.id);
   debug(`Fetched ${server.endpoint}/PlanDefinition/${planDefinition.id}`);
 
   const token = await getAccessToken(server.endpoint);
@@ -96,7 +94,7 @@ router.put('/:id/:resource/:resourceId', (req, res) => {
  * @returns the PlanDefinition with the given id or null if not found
  */
 function getPlanDef(id) {
-  const resultList = db.select(COLLECTION, s => s.id === id);
+  const resultList = db.select(PLANDEFINITIONS, s => s.id === id);
   if (resultList[0]) return resultList[0];
   else return null;
 }

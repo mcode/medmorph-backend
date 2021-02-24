@@ -32,6 +32,7 @@ const { getEHRServer } = require('../storage/servers');
 const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const { forwardMessageResponse } = require('./fhir');
+const { COMPLETED_REPORTS } = require('../storage/collections');
 const debug = require('debug')('medmorph-backend:server');
 
 const fhir = new Fhir();
@@ -154,7 +155,7 @@ const baseIgActions = {
     context.flags['encrypted'] = true;
   },
   'complete-reporting': context => {
-    db.insert('completed reports', context.reportingBundle);
+    db.insert(COMPLETED_REPORTS, context.reportingBundle);
     context.flags['completed'] = true;
   },
   'extract-research-data': async context => {

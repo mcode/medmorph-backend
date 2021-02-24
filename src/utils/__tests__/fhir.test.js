@@ -2,7 +2,6 @@ const { subscriptionsFromPlanDef, subscriptionsFromBundle } = require('../fhir')
 
 describe('Test creating Subscriptions', () => {
   const TEST_URL = 'http://example.org';
-  const TEST_TOKEN = 'test';
   const planDef = {
     resourceType: 'PlanDefinition',
     action: [
@@ -46,19 +45,19 @@ describe('Test creating Subscriptions', () => {
         }
       ]
     };
-    const bundleSubscriptions = subscriptionsFromBundle(bundle, TEST_URL, TEST_TOKEN);
+    const bundleSubscriptions = subscriptionsFromBundle(bundle, TEST_URL);
     expect(bundleSubscriptions.length).toBe(4);
   });
 
   test('It converts medication-change correctly', () => {
-    const subscriptions = subscriptionsFromPlanDef(planDef, TEST_URL, TEST_TOKEN);
+    const subscriptions = subscriptionsFromPlanDef(planDef, TEST_URL);
     expect(subscriptions.length).toBe(1);
 
     const subscription = subscriptions[0];
-    expect(subscription.criteria).toBe('MedicationRequest');
+    expect(subscription.criteria).toBe('MedicationRequest?_lastUpdated=gt2021-01-01');
     expect(subscription._criteria.length).toBe(3);
     expect(subscription.channel.endpoint).toBe(TEST_URL);
-    expect(subscription.channel.header[0]).toBe(`Authorization: Bearer ${TEST_TOKEN}`);
+    expect(subscription.channel.header[0].split('Authorization: Bearer ')[1]).toBeDefined();
   });
 
   test('It does not include undefined in the list when a Subscription could not be created', () => {
@@ -79,7 +78,7 @@ describe('Test creating Subscriptions', () => {
       ]
     };
     planDef.action[0].trigger.push(trigger);
-    const subscriptions = subscriptionsFromPlanDef(planDef, TEST_URL, TEST_TOKEN);
+    const subscriptions = subscriptionsFromPlanDef(planDef, TEST_URL);
     expect(subscriptions.length).toBe(1);
     expect(subscriptions).not.toContain(undefined);
   });
