@@ -157,6 +157,16 @@ function refreshAllKnowledgeArtifacts() {
  *
  * @param {*} server - the server to refresh artifacts from
  */
+function refreshAllKnowledgeArtifacts() {
+  const servers = db.select('servers', s => s.type === 'KA');
+  servers.forEach(server => refreshKnowledgeArtifact(server));
+}
+
+/**
+ * Get knowledge artifacts from a specific server.
+ *
+ * @param {*} server - the server to refresh artifacts from
+ */
 function refreshKnowledgeArtifact(server) {
   getResources(server.endpoint, 'PlanDefinition').then(bundle =>
     // Create/Update subscriptions from PlanDefinitions
@@ -328,6 +338,7 @@ async function forwardMessageResponse(response) {
   const headers = { Authorization: `Bearer ${token}` };
   return axios.post(`${baseUrl}/$process-message`, response, { headers: headers });
 }
+
 /**
  * Extracts the Endpoint id from the receiver address extension of the PlanDefinition
  *
