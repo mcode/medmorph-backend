@@ -71,41 +71,45 @@ async function getResources(server, resourceType) {
 /**
  * Helper method to create a Subscription resource
  *
- * @param {string} code - named event code
  * @param {string} criteria - the criteria for the named event code
  * @param {string} url - the notification endpoint url
  * @param {string} token - access token for header
+ * @param {string} subscriptionTopic - R5 backport subscription topic
  * @returns a R5 Backport Subscription
  */
-function generateSubscription(code, criteria, url, token) {
+function generateSubscription(criteria, url, token, subscriptionTopic = undefined) {
   const subscription = {
     resourceType: 'Subscription',
-    meta: {
-      profile: [BACKPORT_SUBSCRIPTION_PROFILE]
-    },
-    extension: [
-      {
-        url: BACKPORT_TOPIC_EXTENSION,
-        valueUri: `http://example.org/medmorph/subscriptiontopic/${code}`
-      }
-    ],
     criteria: `${criteria}`,
     status: 'requested',
     channel: {
       type: 'rest-hook',
       endpoint: url,
       payload: 'application/fhir+json',
-      _payload: {
-        extension: [
-          {
-            url: BACKPORT_PAYLOAD_EXTENSION,
-            valueCode: 'full-resource'
-          }
-        ]
-      },
       header: [`Authorization: Bearer ${token}`]
     }
   };
+
+  // Add R5 Backport properties if required
+  if (subscriptionTopic) {
+    subscription.meta = {
+      profile: [BACKPORT_SUBSCRIPTION_PROFILE]
+    };
+    subscription.extension = [
+      {
+        url: BACKPORT_TOPIC_EXTENSION,
+        valueUri: `http://example.org/medmorph/subscriptiontopic/${subscriptionTopic}`
+      }
+    ];
+    subscription._payload = {
+      extension: [
+        {
+          url: BACKPORT_PAYLOAD_EXTENSION,
+          valueCode: 'full-resource'
+        }
+      ]
+    };
+  }
 
   // Fix the criteria for Medication by adding all criteria
   if (criteria === 'Medication') {
@@ -157,7 +161,6 @@ function subscribeToKnowledgeArtifacts() {
   servers.forEach(async server => {
     // TODO: generate access token for subscription
     const subscription = generateSubscription(
-      null,
       'PlanDefinition?_lastUpdated=gt2021-01-01',
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
       'admin'
@@ -208,7 +211,7 @@ function subscriptionsFromPlanDef(planDef, url, token) {
 
     const criteria = namedEventToCriteria(namedEventCoding.code);
     if (criteria)
-      subscriptions.push(generateSubscription(namedEventCoding.code, criteria, url, token));
+      subscriptions.push(generateSubscription(criteria, url, token, namedEventCoding.code));
     return subscriptions;
   }, []);
 }
