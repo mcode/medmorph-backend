@@ -45,7 +45,7 @@ router.put('/ka/:id/:resource/:resourceId', async (req, res) => {
   db.upsert(COLLECTION, planDefinition, r => r.id === planDefinition.id);
   debug(`Fetched ${server.endpoint}/PlanDefinition/${planDefinition.id}`);
 
-  const token = await getAccessToken(server);
+  const token = await getAccessToken(server.endpoint);
   const headers = { Authorization: `Bearer ${token}` };
   axios.get(`${server.endpoint}/Endpoint/${endpointId}`, { headers: headers }).then(response => {
     if (response.data) {
