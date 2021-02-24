@@ -17,7 +17,7 @@ const { backendAuthorization, subscriptionAuthorization } = require('./utils/aut
 const { refreshKnowledgeArtifacts } = require('./utils/fhir');
 
 const app = express();
-app.use(express.static(`${__dirname}/../client/build`));
+app.use('/public', express.static(__dirname+'/../public'));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(bodyParser.json({ type: ['application/json', 'application/fhir+json'] }));
@@ -38,6 +38,9 @@ passport.use(
 // Open Routes
 app.use('/.well-known', wellKnownRouter);
 app.use('/public', publicRouter);
+// frontend
+app.get('/', (req, res) => res.sendFile('index.html', {root: __dirname+'/../public'}));
+
 
 // Protected Routes
 app.use('/index', backendAuthorization, indexRouter);
