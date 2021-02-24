@@ -1,5 +1,5 @@
 module.exports = {
-	entry: __dirname+'/ui/index.jsx',
+	entry: __dirname+'/src/ui/index.jsx',
 	mode: 'production',
 	output: {
 		path: __dirname+'/public/js',
