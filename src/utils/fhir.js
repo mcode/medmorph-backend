@@ -1,9 +1,9 @@
 const axios = require('axios');
-const { v4: uuidv4 } = require('uuid');
-const { getAccessToken } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
 const db = require('../storage/DataAccess');
+const { getAccessToken } = require('./client');
 const { getEHRServer } = require('../storage/servers');
+const { v4: uuidv4 } = require('uuid');
 
 const NAMED_EVENT_EXTENSION =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-us-ph-namedEventType';
