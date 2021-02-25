@@ -48,7 +48,7 @@ function generateOperationOutcome(code, msg) {
  *
  * @param {string} server - the sourse server base url
  * @param {string} resourceType - the type of the resource
- * @returns FHIR bundle of resources
+ * @returns axios promise of FHIR bundle of resources
  */
 async function getResources(server, resourceType) {
   const url = `${server}/${resourceType}?_include=*`;
@@ -205,17 +205,19 @@ function subscriptionsFromBundle(specBundle, url, token) {
     .flat();
 
   subscriptions.forEach(async subscription => {
+    const subscriptionId = subscription.id;
+
     // Store subscriptions in database
-    debug(`  ...${subscription.resourceType}/${subscription.id}`);
-    db.upsert('subscriptions', subscription, s => s.id === subscription.id);
+    debug(`  ...Subscription/${subscriptionId}`);
+    db.upsert('subscriptions', subscription, s => s.id === subscriptionId);
 
     // Create/Update Subscriptions on EHR server
     const ehrServer = getEHRServer();
     const ehrToken = await getAccessToken(ehrServer.endpoint);
     const headers = { Authorization: `Bearer ${ehrToken}` };
     axios
-      .post(`${ehrServer.endpoint}/Subscription`, subscription, { headers: headers })
-      .then(() => debug(`Subscription created on EHR server`));
+      .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
+      .then(() => debug(`Subscription with id ${subscriptionId} created/updated on EHR server`));
   });
 
   return subscriptions;
@@ -241,7 +243,7 @@ function subscriptionsFromPlanDef(planDef, url, token) {
     );
 
     const criteria = namedEventToCriteria(namedEventCoding.code);
-    const id = `${planDef.id}${namedEventCoding.code}`;
+    const id = `sub${planDef.id}${namedEventCoding.code}`;
     if (criteria)
       subscriptions.push(generateSubscription(criteria, url, token, id, namedEventCoding.code));
     return subscriptions;
