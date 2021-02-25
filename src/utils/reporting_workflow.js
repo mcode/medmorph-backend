@@ -103,7 +103,6 @@ function initializeContext(planDefinition, patient, encounter, destEndpoint) {
   if (patient) records.push(patient);
   if (encounter) records.push(encounter);
   const actionSequence = determineActionSequence(planDefinition);
-  const initialAction = planDefinition.action.find(a => a.id === actionSequence[0]);
 
   return {
     id: uuidv4(),
@@ -111,7 +110,6 @@ function initializeContext(planDefinition, patient, encounter, destEndpoint) {
     records: records,
     encounter: encounter,
     planDefinition,
-    action: initialAction,
     client: {
       dest: destEndpoint
     },
@@ -200,11 +198,28 @@ function determineActionSequence(planDefinition) {
         // spec requires relationship SHALL === 'before-start'
         // so relatedAction is after currentAction
 
-        // directed edge from arg1 --> arg2
-        // TODO: track the offset on the edge label maybe?
-        g.setEdge(action.id, relatedAction.actionId);
-        // note that relatedAction.id doesn't already have to be in the graph
-        // it will be added if not
+        if (relatedAction.offsetDuration) {
+          // assume that the offsetDuration indicates a minimum, not a maximum.
+          // Duration object has a 'comparator' field which can be </<=/>/>=
+          // TODO: if there's a case of offset < x, just ignore it and run immediately
+          const { value, code } = relatedAction.offsetDuration;
+          const offsetTimeInMs = convertTimeToMs(value, code);
+
+          // FHIR IDs must be [A-Za-z0-9\-\.]{1,64}
+          // so our fake ID here just has to include something else
+          // format is "&&(time) (from) (to)" to ensure it's unique
+          const fakeId = `&&${offsetTimeInMs} ${action.id} ${relatedAction.actionId}`;
+
+          // instead of a -> b
+          // add a -> offset -> b
+          g.setEdge(action.id, fakeId);
+          g.setEdge(fakeId, relatedAction.actionId);
+        } else {
+          // directed edge from arg1 --> arg2
+          g.setEdge(action.id, relatedAction.actionId);
+          // note that relatedAction.id doesn't already have to be in the graph
+          // it will be added if not
+        }
       }
     }
   }
@@ -218,6 +233,28 @@ function determineActionSequence(planDefinition) {
   return path;
 }
 
+function convertTimeToMs(value, unit) {
+  // assumption: we will never have to deal with units larger than weeks
+  // because those get complicated (ex, how many ms is a month?)
+
+  switch (unit) {
+    case 'ms':
+      return value;
+    case 's':
+      return value * 1000;
+    case 'min':
+      return value * 1000 * 60;
+    case 'h':
+      return value * 1000 * 60 * 60;
+    case 'd':
+      return value * 1000 * 60 * 60 * 24;
+    case 'wk':
+      return value * 1000 * 60 * 60 * 24 * 7;
+    default:
+      throw new Error(`unsupported unit ${unit}`);
+  }
+}
+
 async function executeWorkflow(context) {
   db.upsert(COLLECTION, context, c => c.id === context.id);
 
@@ -225,11 +262,25 @@ async function executeWorkflow(context) {
   const ig = findProfile(planDef);
 
   while (context.currentActionSequenceStep < context.actionSequence.length) {
+    const currentActionId = context.actionSequence[context.currentActionSequenceStep];
+
+    if (currentActionId.startsWith('&&')) {
+      // delay the specified amount of time
+      const waitTime = Number(currentActionId.substring(2).split(' ')[0]); // split off the first && and pick out the time
+      context.currentActionSequenceStep++;
+
+      // TODO: do we even need a job scheduler?
+      setTimeout(() => executeWorkflow(context), waitTime);
+      break;
+    }
+
+    const action = planDef.action.find(a => a.id === currentActionId);
+    context.action = action;
+
     const actionCode = context.action.code[0].coding[0].code;
     debug(`Executing ${actionCode} for PlanDefinition/${planDef.id}`);
 
     const execute = getFunction(ig, actionCode);
-
     // TODO: maintain context at each step for debugging?
     // context = deepCopy(context);
 
@@ -251,9 +302,6 @@ async function executeWorkflow(context) {
     if (context.exitStatus) break;
 
     context.currentActionSequenceStep++;
-    const currentActionId = context.actionSequence[context.currentActionSequenceStep];
-    const action = planDef.action.find(a => a.id === currentActionId);
-    context.action = action;
   }
 }
 
