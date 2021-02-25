@@ -246,8 +246,8 @@ describe('Test reporting workflow', () => {
     };
 
     const duration = {
-      code: 's',
-      value: 1
+      code: 'ms',
+      value: 50
     };
 
     planDef.action[0].relatedAction[0].offsetDuration = duration;
