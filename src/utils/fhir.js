@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
 const { getAccessToken } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
 const db = require('../storage/DataAccess');
@@ -75,10 +76,12 @@ async function getResources(server, resourceType) {
  * @param {string} url - the notification endpoint url
  * @param {string} token - access token for header
  * @param {string} subscriptionTopic - R5 backport subscription topic
+ * @param {string} id - the id to assign the Subscription
  * @returns a R5 Backport Subscription
  */
-function generateSubscription(criteria, url, token, subscriptionTopic = undefined) {
+function generateSubscription(criteria, url, token, subscriptionTopic = undefined, id = undefined) {
   const subscription = {
+    id: id ?? `sub${uuidv4()}`,
     resourceType: 'Subscription',
     criteria: `${criteria}`,
     status: 'requested',
@@ -160,15 +163,17 @@ function subscribeToKnowledgeArtifacts() {
   const servers = db.select('servers', s => s.type === 'KA');
   servers.forEach(async server => {
     // TODO: generate access token for subscription
+    const id = `sub${server.id}`;
     const subscription = generateSubscription(
       'PlanDefinition?_lastUpdated=gt2021-01-01',
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
-      'admin'
+      'admin',
+      id
     );
     const token = await getAccessToken(server.endpoint);
     const headers = { Authorization: `Bearer ${token}` };
     axios
-      .post(`${server.endpoint}/Subscription`, subscription, { headers: headers })
+      .put(`${server.endpoint}/Subscription/id`, subscription, { headers: headers })
       .then(() => debug(`Subscription created for KA from ${server.name}`));
   });
 }
