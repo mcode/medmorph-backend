@@ -2,6 +2,7 @@ const axios = require('axios');
 const { getAccessToken } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
 const db = require('../storage/DataAccess');
+const { getEHRServer } = require('../storage/servers');
 
 const NAMED_EVENT_EXTENSION =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-us-ph-namedEventType';
@@ -243,10 +244,24 @@ async function getReferencedResource(url, reference) {
   return null;
 }
 
+/**
+ * Forward a message response to the EHR server
+ *
+ * @param {*} response - the message response to forward
+ * @returns axios promise
+ */
+async function forwardMessageResponse(response) {
+  const baseUrl = getEHRServer().endpoint;
+  const token = await getAccessToken(baseUrl);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios.post(`${baseUrl}/$process-message`, response, { headers: headers });
+}
+
 module.exports = {
   generateOperationOutcome,
   refreshKnowledgeArtifacts,
   subscriptionsFromBundle,
   subscriptionsFromPlanDef,
-  getReferencedResource
+  getReferencedResource,
+  forwardMessageResponse
 };
