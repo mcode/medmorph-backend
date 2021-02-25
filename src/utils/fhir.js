@@ -83,10 +83,12 @@ async function getResources(server, resourceType) {
  * @returns a R5 Backport Subscription
  */
 function generateSubscription(criteria, url, token, id = undefined, subscriptionTopic = undefined) {
+  // Add regex to check if criteria has at least one search param since HAPI is expecting this
+  const criteriaReg = /(.+)(\?.)+/;
   const subscription = {
     id: id ?? `sub${uuidv4()}`,
     resourceType: 'Subscription',
-    criteria: `${criteria}`,
+    criteria: criteriaReg.test(criteria) ? `${criteria}` : `${criteria}?_lastUpdated=gt2021-01-01`,
     status: 'requested',
     channel: {
       type: 'rest-hook',
@@ -206,6 +208,14 @@ function subscriptionsFromBundle(specBundle, url, token) {
     // Store subscriptions in database
     debug(`  ...${subscription.resourceType}/${subscription.id}`);
     db.upsert('subscriptions', subscription, s => s.id === subscription.id);
+
+    // Create/Update Subscriptions on EHR server
+    const ehrServer = getEHRServer();
+    const ehrToken = await getAccessToken(ehrServer.endpoint);
+    const headers = { Authorization: `Bearer ${ehrToken}` };
+    axios
+      .post(`${ehrServer.endpoint}/Subscription`, subscription, { headers: headers })
+      .then(() => debug(`Subscription created on EHR server`));
   });
 
   return subscriptions;
