@@ -213,11 +213,13 @@ function subscriptionsFromBundle(specBundle, url, token) {
 
     // Create/Update Subscriptions on EHR server
     const ehrServer = getEHRServer();
-    const ehrToken = await getAccessToken(ehrServer.endpoint);
-    const headers = { Authorization: `Bearer ${ehrToken}` };
-    axios
-      .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
-      .then(() => debug(`Subscription with id ${subscriptionId} created/updated on EHR server`));
+    if (ehrServer) {
+      const ehrToken = await getAccessToken(ehrServer.endpoint);
+      const headers = { Authorization: `Bearer ${ehrToken}` };
+      axios
+        .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
+        .then(() => debug(`Subscription with id ${subscriptionId} created/updated on EHR server`));
+    }
   });
 
   return subscriptions;
