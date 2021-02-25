@@ -75,11 +75,11 @@ async function getResources(server, resourceType) {
  * @param {string} criteria - the criteria for the named event code
  * @param {string} url - the notification endpoint url
  * @param {string} token - access token for header
- * @param {string} subscriptionTopic - R5 backport subscription topic
  * @param {string} id - the id to assign the Subscription
+ * @param {string} subscriptionTopic - R5 backport subscription topic
  * @returns a R5 Backport Subscription
  */
-function generateSubscription(criteria, url, token, subscriptionTopic = undefined, id = undefined) {
+function generateSubscription(criteria, url, token, id = undefined, subscriptionTopic = undefined) {
   const subscription = {
     id: id ?? `sub${uuidv4()}`,
     resourceType: 'Subscription',
@@ -173,7 +173,7 @@ function subscribeToKnowledgeArtifacts() {
     const token = await getAccessToken(server.endpoint);
     const headers = { Authorization: `Bearer ${token}` };
     axios
-      .put(`${server.endpoint}/Subscription/id`, subscription, { headers: headers })
+      .put(`${server.endpoint}/Subscription/${id}`, subscription, { headers: headers })
       .then(() => debug(`Subscription created for KA from ${server.name}`));
   });
 }
