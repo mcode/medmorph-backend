@@ -1,3 +1,4 @@
+const watch = process.env.WATCH !== "false";
 module.exports = {
 	entry: __dirname+'/src/ui/index.jsx',
 	mode: 'production',
@@ -5,7 +6,7 @@ module.exports = {
 		path: __dirname+'/public/js',
 		filename: 'bundle.js'
 	},
-	watch: true,
+	watch: watch,
 	module: {
 		rules: [
 			{

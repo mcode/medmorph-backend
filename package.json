@@ -6,6 +6,7 @@
   "description": "MedMorph Backend Service Client",
   "scripts": {
     "start": "npm-run-all --parallel startFrontend startBackend",
+    "startProd": "WATCH=false npm-run-all -s startFrontend startBackend",
     "startBackend": "nodemon ./bin/www",
     "startFrontend": "webpack",
     "debug": "node --inspect-brk ./bin/www",
