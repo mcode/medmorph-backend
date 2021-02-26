@@ -208,7 +208,7 @@ function subscriptionsFromBundle(specBundle, url, token) {
     const subscriptionId = subscription.id;
 
     // Store subscriptions in database
-    debug(`  ...Subscription/${subscriptionId}`);
+    debug(`Saved Subscription/${subscriptionId}`);
     db.upsert('subscriptions', subscription, s => s.id === subscriptionId);
 
     // Create/Update Subscriptions on EHR server
