@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  medmorph_backend:
+    image: medmorph_backend
+    container_name: medmorph_backend
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    environment:
+      - AUTH=http://moonshot-dev.mitre.org:8090/auth
+      - REALM=backend_app
+      - BASE_URL=http://localhost:3000
