@@ -1,9 +1,9 @@
 const axios = require('axios');
-const { v4: uuidv4 } = require('uuid');
-const { getAccessToken } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
 const db = require('../storage/DataAccess');
+const { getAccessToken } = require('./client');
 const { getEHRServer } = require('../storage/servers');
+const { v4: uuidv4 } = require('uuid');
 
 const NAMED_EVENT_EXTENSION =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-us-ph-namedEventType';
@@ -48,6 +48,7 @@ function generateOperationOutcome(code, msg) {
  *
  * @param {string} server - the sourse server base url
  * @param {string} resourceType - the type of the resource
+ * @returns axios promise of FHIR bundle of resources
  */
 async function getResources(server, resourceType) {
   const url = `${server}/${resourceType}?_include=*`;
@@ -57,7 +58,7 @@ async function getResources(server, resourceType) {
     .get(url, { headers: headers })
     .then(response => response.data)
     .catch(err => console.log(err));
-  axiosResponse.then(data => {
+  return axiosResponse.then(data => {
     debug(`Fetched ${server}/${data.resourceType}/${data.id}`);
     if (!data.entry) return;
     const resources = data.entry.map(entry => entry.resource);
@@ -66,6 +67,8 @@ async function getResources(server, resourceType) {
       const collection = `${resource.resourceType.toLowerCase()}s`;
       db.upsert(collection, resource, r => r.id === resource.id);
     });
+
+    return data;
   });
 }
 
@@ -80,10 +83,12 @@ async function getResources(server, resourceType) {
  * @returns a R5 Backport Subscription
  */
 function generateSubscription(criteria, url, token, id = undefined, subscriptionTopic = undefined) {
+  // Add regex to check if criteria has at least one search param since HAPI is expecting this
+  const criteriaReg = /(.+)(\?)+/;
   const subscription = {
     id: id ?? `sub${uuidv4()}`,
     resourceType: 'Subscription',
-    criteria: `${criteria}`,
+    criteria: criteriaReg.test(criteria) ? `${criteria}` : `${criteria}?`,
     status: 'requested',
     channel: {
       type: 'rest-hook',
@@ -139,7 +144,7 @@ function generateSubscription(criteria, url, token, id = undefined, subscription
 
 /**
  * Get all knowledge artifacts (from servers registered in the
- * db) and save them. Stores all refrenced resources as well.
+ * db) and save them. Stores all referenced resources as well.
  */
 function refreshAllKnowledgeArtifacts() {
   const servers = db.select('servers', s => s.type === 'KA');
@@ -148,11 +153,15 @@ function refreshAllKnowledgeArtifacts() {
 
 /**
  * Get knowledge artifacts from a specific server.
+ * Generate Subscription resources from the KA Bundle with PlanDefinition
  *
  * @param {*} server - the server to refresh artifacts from
  */
 function refreshKnowledgeArtifact(server) {
-  getResources(server.endpoint, 'PlanDefinition');
+  getResources(server.endpoint, 'PlanDefinition').then(bundle =>
+    // Create/Update subscriptions from PlanDefinitions
+    subscriptionsFromBundle(bundle, server.endpoint, 'admin')
+  );
   getResources(server.endpoint, 'Endpoint');
 }
 
@@ -180,6 +189,7 @@ function subscribeToKnowledgeArtifacts() {
 
 /**
  * Take a Knowledge Artifact Bundle and generate Subscription resources for the named events
+ * Saves Subscription resources to DB and posts them to EHR server
  *
  * @param {Bundle} specBundle - KA Bundle with PlanDefinition
  * @param {string} url - the notification endpoint url
@@ -192,7 +202,29 @@ function subscriptionsFromBundle(specBundle, url, token) {
     throw new Error('Specification Bundle does not contain a PlanDefinition');
   }
 
-  return planDefs.map(planDef => subscriptionsFromPlanDef(planDef.resource, url, token)).flat();
+  const subscriptions = planDefs
+    .map(planDef => subscriptionsFromPlanDef(planDef.resource, url, token))
+    .flat();
+
+  subscriptions.forEach(async subscription => {
+    const subscriptionId = subscription.id;
+
+    // Store subscriptions in database
+    debug(`Saved Subscription/${subscriptionId}`);
+    db.upsert('subscriptions', subscription, s => s.id === subscriptionId);
+
+    // Create/Update Subscriptions on EHR server
+    const ehrServer = getEHRServer();
+    if (ehrServer) {
+      const ehrToken = await getAccessToken(ehrServer.endpoint);
+      const headers = { Authorization: `Bearer ${ehrToken}` };
+      axios
+        .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
+        .then(() => debug(`Subscription with id ${subscriptionId} created/updated on EHR server`));
+    }
+  });
+
+  return subscriptions;
 }
 
 /**
@@ -215,8 +247,9 @@ function subscriptionsFromPlanDef(planDef, url, token) {
     );
 
     const criteria = namedEventToCriteria(namedEventCoding.code);
+    const id = `sub${planDef.id}${namedEventCoding.code}`;
     if (criteria)
-      subscriptions.push(generateSubscription(criteria, url, token, namedEventCoding.code));
+      subscriptions.push(generateSubscription(criteria, url, token, id, namedEventCoding.code));
     return subscriptions;
   }, []);
 }
