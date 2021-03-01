@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
-const { getReferencedResource } = require('../utils/fhir');
+const { getReferencedResource, getEndpointId } = require('../utils/fhir');
 const { getEHRServer } = require('../storage/servers');
 const { baseIgActions } = require('./actions');
 const debug = require('debug')('medmorph-backend:server');
@@ -36,8 +36,6 @@ https://github.com/mcode/medmorph-backend/wiki/Reporting-Workflow
 
 const BASE_REPORTING_BUNDLE_PROFILE =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle';
-const RECEIVER_ADDRESS_EXT =
-  'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-receiverAddress';
 
 /**
  * IG_REGISTRY maps the profile for a reporting bundle under an IG
@@ -76,9 +74,7 @@ async function startReportingWorkflow(planDef, resource = null) {
   else if (resource.resourceType === 'Encounter') encounter = resource;
 
   // Get the endpoint to submit the report to from the PlanDefinition
-  const receiverAddress = planDef.extension.find(e => e.url === RECEIVER_ADDRESS_EXT);
-  const endpointRef = receiverAddress.valueReference.reference;
-  const endpointId = endpointRef.split('/')[1];
+  const endpointId = getEndpointId(planDef);
   const endpoint = db.select('endpoints', e => e.id === endpointId);
   const destEndpoint = endpoint[0].address;
 

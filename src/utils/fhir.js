@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
 const { getAccessToken } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
 const db = require('../storage/DataAccess');
@@ -16,6 +17,8 @@ const BACKPORT_PAYLOAD_EXTENSION =
   'http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content';
 const BACKPORT_ADDITIONAL_CRITERIA_EXTENSION =
   'http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-additional-criteria';
+const RECEIVER_ADDRESS_EXT =
+  'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-receiverAddress';
 
 /**
  * Helper method to create an OperationOutcome fwith a message
@@ -69,40 +72,47 @@ async function getResources(server, resourceType) {
 /**
  * Helper method to create a Subscription resource
  *
- * @param {string} code - named event code
  * @param {string} criteria - the criteria for the named event code
  * @param {string} url - the notification endpoint url
  * @param {string} token - access token for header
+ * @param {string} id - the id to assign the Subscription
+ * @param {string} subscriptionTopic - R5 backport subscription topic
  * @returns a R5 Backport Subscription
  */
-function generateSubscription(code, criteria, url, token) {
+function generateSubscription(criteria, url, token, id = undefined, subscriptionTopic = undefined) {
   const subscription = {
+    id: id ?? `sub${uuidv4()}`,
     resourceType: 'Subscription',
-    meta: {
-      profile: [BACKPORT_SUBSCRIPTION_PROFILE]
-    },
-    extension: [
-      {
-        url: BACKPORT_TOPIC_EXTENSION,
-        valueUri: `http://example.org/medmorph/subscriptiontopic/${code}`
-      }
-    ],
     criteria: `${criteria}`,
+    status: 'requested',
     channel: {
       type: 'rest-hook',
       endpoint: url,
       payload: 'application/fhir+json',
-      _payload: {
-        extension: [
-          {
-            url: BACKPORT_PAYLOAD_EXTENSION,
-            valueCode: 'full-resource'
-          }
-        ]
-      },
       header: [`Authorization: Bearer ${token}`]
     }
   };
+
+  // Add R5 Backport properties if required
+  if (subscriptionTopic) {
+    subscription.meta = {
+      profile: [BACKPORT_SUBSCRIPTION_PROFILE]
+    };
+    subscription.extension = [
+      {
+        url: BACKPORT_TOPIC_EXTENSION,
+        valueUri: `http://example.org/medmorph/subscriptiontopic/${subscriptionTopic}`
+      }
+    ];
+    subscription._payload = {
+      extension: [
+        {
+          url: BACKPORT_PAYLOAD_EXTENSION,
+          valueCode: 'full-resource'
+        }
+      ]
+    };
+  }
 
   // Fix the criteria for Medication by adding all criteria
   if (criteria === 'Medication') {
@@ -131,11 +141,40 @@ function generateSubscription(code, criteria, url, token) {
  * Get all knowledge artifacts (from servers registered in the
  * db) and save them. Stores all refrenced resources as well.
  */
-function refreshKnowledgeArtifacts() {
+function refreshAllKnowledgeArtifacts() {
   const servers = db.select('servers', s => s.type === 'KA');
-  servers.forEach(server => {
-    getResources(server.endpoint, 'PlanDefinition');
-    getResources(server.endpoint, 'Endpoint');
+  servers.forEach(server => refreshKnowledgeArtifact(server));
+}
+
+/**
+ * Get knowledge artifacts from a specific server.
+ *
+ * @param {*} server - the server to refresh artifacts from
+ */
+function refreshKnowledgeArtifact(server) {
+  getResources(server.endpoint, 'PlanDefinition');
+  getResources(server.endpoint, 'Endpoint');
+}
+
+/**
+ * Subscribe to PlanDefinitions on all Knowledge Artifact repos.
+ */
+function subscribeToKnowledgeArtifacts() {
+  const servers = db.select('servers', s => s.type === 'KA');
+  servers.forEach(async server => {
+    // TODO: generate access token for subscription
+    const id = `sub${server.id}`;
+    const subscription = generateSubscription(
+      'PlanDefinition?_lastUpdated=gt2021-01-01',
+      `${process.env.BASE_URL}/notif/ka/${server.id}`,
+      'admin',
+      id
+    );
+    const token = await getAccessToken(server.endpoint);
+    const headers = { Authorization: `Bearer ${token}` };
+    axios
+      .put(`${server.endpoint}/Subscription/${id}`, subscription, { headers: headers })
+      .then(() => debug(`Subscription created for KA from ${server.name}`));
   });
 }
 
@@ -177,7 +216,7 @@ function subscriptionsFromPlanDef(planDef, url, token) {
 
     const criteria = namedEventToCriteria(namedEventCoding.code);
     if (criteria)
-      subscriptions.push(generateSubscription(namedEventCoding.code, criteria, url, token));
+      subscriptions.push(generateSubscription(criteria, url, token, namedEventCoding.code));
     return subscriptions;
   }, []);
 }
@@ -256,12 +295,26 @@ async function forwardMessageResponse(response) {
   const headers = { Authorization: `Bearer ${token}` };
   return axios.post(`${baseUrl}/$process-message`, response, { headers: headers });
 }
+/**
+ * Extracts the Endpoint id from the receiver address extension of the PlanDefinition
+ *
+ * @param {PlanDefinition} planDefinition - PlanDefinition to extract from
+ * @returns Endpoint id
+ */
+function getEndpointId(planDefinition) {
+  const receiverAddress = planDefinition.extension.find(e => e.url === RECEIVER_ADDRESS_EXT);
+  const endpointRef = receiverAddress.valueReference.reference;
+  return endpointRef.split('/')[1];
+}
 
 module.exports = {
   generateOperationOutcome,
-  refreshKnowledgeArtifacts,
+  refreshAllKnowledgeArtifacts,
+  refreshKnowledgeArtifact,
   subscriptionsFromBundle,
   subscriptionsFromPlanDef,
   getReferencedResource,
-  forwardMessageResponse
+  forwardMessageResponse,
+  subscribeToKnowledgeArtifacts,
+  getEndpointId
 };

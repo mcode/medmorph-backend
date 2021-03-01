@@ -5,8 +5,6 @@ const express = require('express');
 const router = express.Router();
 const servers = require('../storage/servers');
 
-const db = require('../storage/DataAccess');
-
 // GET /
 // List all servers
 router.get('/', (req, res) => {
@@ -47,7 +45,7 @@ router.put('/:id', (req, res) => {
     return;
   }
 
-  db.addServer(req.body);
+  servers.addServer(req.body);
   res.sendStatus(StatusCodes.OK); // 200
 });
 
