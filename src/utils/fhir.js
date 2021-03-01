@@ -153,6 +153,7 @@ function refreshAllKnowledgeArtifacts() {
 
 /**
  * Get knowledge artifacts from a specific server.
+ * Generate Subscription resources from the KA Bundle with PlanDefinition
  *
  * @param {*} server - the server to refresh artifacts from
  */
@@ -188,6 +189,7 @@ function subscribeToKnowledgeArtifacts() {
 
 /**
  * Take a Knowledge Artifact Bundle and generate Subscription resources for the named events
+ * Saves Subscription resources to DB and posts them to EHR server
  *
  * @param {Bundle} specBundle - KA Bundle with PlanDefinition
  * @param {string} url - the notification endpoint url
