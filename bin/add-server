@@ -1,0 +1,87 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+const axios = require('axios');
+
+// step 1, check command line args
+const args = process.argv.slice(2); // first 2 are "node add-server"
+// console.log(args);
+
+const newServer = {};
+
+for (let i = 0 ; i < args.length ; i++) {
+  const argKey = args[i];
+  const argValue = args[++i];
+
+  switch (argKey) {
+    case '-e':
+    case '--endpoint':
+      newServer['endpoint'] = argValue;
+      break;
+
+    case '-t':
+    case '--type':
+      newServer['type'] = argValue;
+      break;
+
+    case '-c':
+    case '--clientId':
+      newServer['clientId'] = argValue;
+      break;
+
+    case '-n':
+    case '--name':
+      newServer['name'] = argValue;
+      break;
+
+    default:
+      console.error(`Unknown command line option: ${argKey}`);
+      console.error(`Full args: ${args}`);
+      process.exit(1);
+  }
+}
+
+if (!newServer['endpoint']) {
+  console.error("Required argument -e|--endpoint missing!");
+  process.exit(1);
+}
+
+if (!newServer['name']) {
+  // if a name wasn't provided, use the endpoint URL as the name
+  newServer['name'] = newServer['endpoint'];
+}
+
+const baseURL = process.env.BASE_URL;
+
+// see if the server is already running
+// by hitting the base url.
+// no connection = it's not running, add to DB directly
+// connection succeeds = it's running, use the API
+
+axios.get(baseURL).then(callApi).catch(addToDb);
+
+function addToDb() {
+  console.log('App not running. Adding server to db directly.');
+
+  const servers = require('../src/storage/servers');
+  // TODO: this doesn't actually work. need to async wait for it to init
+  // and even then it seems to hang for no reason
+  servers.addServer(newServer);
+  console.log('Added successfully.');
+}
+
+function callApi() {
+  try {
+    console.log('App running. Adding server via api.');
+    const addServerUrl = baseURL + (baseURL.endsWith('/') ? '' : '/') + 'servers';
+    axios.post(addServerUrl, newServer, {
+      headers: {
+        'Authorization': 'Bearer admin'
+      }
+    })
+      .then(() => console.log('Added successfully.'))
+      .catch(e => console.log(e));
+  } catch (e) {
+    console.error(e);
+  }
+}
