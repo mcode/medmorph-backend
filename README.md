@@ -22,6 +22,13 @@ npm start
 
 With default settings, the app will now be running at `http://localhost:3000`
 
+The Backend Service Client can also be run using docker.  Make sure you have docker installed and running, then build the image and run the client.
+
+```./build-docker-image.bat
+docker-compose up
+```
+
+The app will now be running at `http://localhost:3000`.
 ### Configuration Requirements
 
 Certain configuration properties MUST be set via enviornment variables. The easiest way to do this is to set them in an environment file, `.env`. A sample file is provided in this repo as `.env.dev` (you will need to rename/copy this into the `.env` file for it to work).

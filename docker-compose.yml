@@ -11,3 +11,4 @@ services:
       - AUTH=http://moonshot-dev.mitre.org:8090/auth
       - REALM=backend_app
       - BASE_URL=http://localhost:3000
+      - DATA_TRUST_SERVICE=http://localhost:3005
