@@ -84,11 +84,11 @@ async function getResources(server, resourceType) {
  */
 function generateSubscription(criteria, url, token, id = undefined, subscriptionTopic = undefined) {
   // Add regex to check if criteria has at least one search param since HAPI is expecting this
-  const criteriaReg = /(.+)(\?.)+/;
+  const criteriaReg = /(.+)(\?)+/;
   const subscription = {
     id: id ?? `sub${uuidv4()}`,
     resourceType: 'Subscription',
-    criteria: criteriaReg.test(criteria) ? `${criteria}` : `${criteria}?_lastUpdated=gt2021-01-01`,
+    criteria: criteriaReg.test(criteria) ? `${criteria}` : `${criteria}?`,
     status: 'requested',
     channel: {
       type: 'rest-hook',
