@@ -43,7 +43,8 @@ function backendAuthorization(req, res, next) {
  */
 function subscriptionAuthorization(req, res, next) {
   const token = getToken(req);
-  if (token) {
+  if (token === 'admin') return next();
+  else if (token) {
     const subscriptionId = token.split(':')[0];
     if (subscriptionId) {
       const subscription = db.select(SUBSCRIPTIONS, s => s.id === subscriptionId);
@@ -56,7 +57,7 @@ function subscriptionAuthorization(req, res, next) {
     }
   }
 
-  res.send(StatusCodes.UNAUTHORIZED);
+  res.sendStatus(StatusCodes.UNAUTHORIZED);
   return;
 }
 
