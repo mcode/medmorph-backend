@@ -52,29 +52,38 @@ if (!newServer['name']) {
 }
 
 const baseURL = process.env.BASE_URL;
+// assumption is that BASE_URL does not contain a trailing /
+
+const serversURL = baseURL + '/servers';
 
 // see if the server is already running
 // by hitting the base url.
 // no connection = it's not running, add to DB directly
 // connection succeeds = it's running, use the API
-
-axios.get(baseURL).then(callApi).catch(addToDb);
+axios.get(serversURL, {
+  headers: {
+    'Authorization': 'Bearer admin'
+  }
+}).then(callApi).catch(addToDb);
 
 function addToDb() {
   console.log('App not running. Adding server to db directly.');
 
   const servers = require('../src/storage/servers');
-  // TODO: this doesn't actually work. need to async wait for it to init
-  // and even then it seems to hang for no reason
-  servers.addServer(newServer);
-  console.log('Added successfully.');
+  // TODO: refactor this to use a better db post-init process
+  setTimeout(() => {
+    servers.addServer(newServer);
+    setTimeout(() => {
+      console.log('Added successfully.');
+      process.exit(0);
+    }, 10000);
+  }, 10000);
 }
 
 function callApi() {
   try {
     console.log('App running. Adding server via api.');
-    const addServerUrl = baseURL + (baseURL.endsWith('/') ? '' : '/') + 'servers';
-    axios.post(addServerUrl, newServer, {
+    axios.post(serversURL, newServer, {
       headers: {
         'Authorization': 'Bearer admin'
       }
