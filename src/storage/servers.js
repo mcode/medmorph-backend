@@ -1,6 +1,5 @@
 const db = require('../storage/DataAccess');
-
-const SERVERS = 'servers';
+const { SERVERS } = require('./collections');
 
 /**
  * Fields for Servers Data Types:

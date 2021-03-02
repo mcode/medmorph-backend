@@ -4,9 +4,8 @@ const db = require('../storage/DataAccess');
 const { getReferencedResource, getEndpointId } = require('../utils/fhir');
 const { getEHRServer } = require('../storage/servers');
 const { baseIgActions } = require('./actions');
+const { REPORTING, ENDPOINTS } = require('../storage/collections');
 const debug = require('debug')('medmorph-backend:server');
-
-const COLLECTION = 'reporting';
 
 /*
 
@@ -75,7 +74,7 @@ async function startReportingWorkflow(planDef, resource = null) {
 
   // Get the endpoint to submit the report to from the PlanDefinition
   const endpointId = getEndpointId(planDef);
-  const endpoint = db.select('endpoints', e => e.id === endpointId);
+  const endpoint = db.select(ENDPOINTS, e => e.id === endpointId);
   const destEndpoint = endpoint[0].address;
 
   // QUESTION: Should encounter and patient be saved to the database?
@@ -252,7 +251,7 @@ function convertTimeToMs(value, unit) {
 }
 
 async function executeWorkflow(context) {
-  db.upsert(COLLECTION, context, c => c.id === context.id);
+  db.upsert(REPORTING, context, c => c.id === context.id);
 
   const planDef = context.planDefinition;
   const ig = findProfile(planDef);
@@ -282,7 +281,7 @@ async function executeWorkflow(context) {
 
     // check the DB to get cancelToken
     // TODO: is there a better way to do this?
-    const cancelToken = db.select(COLLECTION, c => c.id === context.id).cancelToken;
+    const cancelToken = db.select(REPORTING, c => c.id === context.id).cancelToken;
     if (cancelToken) return;
 
     if (execute) await execute(context);
@@ -290,7 +289,7 @@ async function executeWorkflow(context) {
 
     // update the db after every completed step
     db.update(
-      COLLECTION,
+      REPORTING,
       c => c.id === context.id,
       c => Object.assign(c, context)
     );

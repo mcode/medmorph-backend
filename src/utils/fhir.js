@@ -1,9 +1,11 @@
 const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
+const { getAccessToken } = require('./client');
 const debug = require('debug')('medmorph-backend:server');
 const db = require('../storage/DataAccess');
-const { getAccessToken } = require('./client');
 const { getEHRServer } = require('../storage/servers');
-const { v4: uuidv4 } = require('uuid');
+const { generateToken } = require('./auth');
+const { SUBSCRIPTIONS, SERVERS } = require('../storage/collections');
 
 const NAMED_EVENT_EXTENSION =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-us-ph-namedEventType';
@@ -77,16 +79,16 @@ async function getResources(server, resourceType) {
  *
  * @param {string} criteria - the criteria for the named event code
  * @param {string} url - the notification endpoint url
- * @param {string} token - access token for header
  * @param {string} id - the id to assign the Subscription
  * @param {string} subscriptionTopic - R5 backport subscription topic
  * @returns a R5 Backport Subscription
  */
-function generateSubscription(criteria, url, token, id = undefined, subscriptionTopic = undefined) {
+function generateSubscription(criteria, url, id = undefined, subscriptionTopic = undefined) {
   // Add regex to check if criteria has at least one search param since HAPI is expecting this
   const criteriaReg = /(.+)(\?)+/;
+  const subId = id ?? `sub${uuidv4()}`;
   const subscription = {
-    id: id ?? `sub${uuidv4()}`,
+    id: subId,
     resourceType: 'Subscription',
     criteria: criteriaReg.test(criteria) ? `${criteria}` : `${criteria}?`,
     status: 'requested',
@@ -94,7 +96,7 @@ function generateSubscription(criteria, url, token, id = undefined, subscription
       type: 'rest-hook',
       endpoint: url,
       payload: 'application/fhir+json',
-      header: [`Authorization: Bearer ${token}`]
+      header: [`Authorization: Bearer ${generateToken(subId)}`]
     }
   };
 
@@ -122,7 +124,7 @@ function generateSubscription(criteria, url, token, id = undefined, subscription
   // Fix the criteria for Medication by adding all criteria
   if (criteria === 'Medication') {
     // Multiple criteria indicates logical OR
-    subscription.criteria = 'MedicationRequest';
+    subscription.criteria = 'MedicationRequest?_lastUpdated=gt2021-01-01';
     subscription._criteria = [
       {
         url: BACKPORT_ADDITIONAL_CRITERIA_EXTENSION,
@@ -147,21 +149,20 @@ function generateSubscription(criteria, url, token, id = undefined, subscription
  * db) and save them. Stores all referenced resources as well.
  */
 function refreshAllKnowledgeArtifacts() {
-  const servers = db.select('servers', s => s.type === 'KA');
+  const servers = db.select(SERVERS, s => s.type === 'KA');
   servers.forEach(server => refreshKnowledgeArtifact(server));
 }
 
 /**
  * Get knowledge artifacts from a specific server.
- * Generate Subscription resources from the KA Bundle with PlanDefinition
  *
  * @param {*} server - the server to refresh artifacts from
  */
 function refreshKnowledgeArtifact(server) {
-  getResources(server.endpoint, 'PlanDefinition').then(bundle =>
+  getResources(server.endpoint, 'PlanDefinition').then(bundle => {
     // Create/Update subscriptions from PlanDefinitions
-    subscriptionsFromBundle(bundle, server.endpoint, 'admin')
-  );
+    if (bundle) subscriptionsFromBundle(bundle, server.endpoint);
+  });
   getResources(server.endpoint, 'Endpoint');
 }
 
@@ -169,16 +170,15 @@ function refreshKnowledgeArtifact(server) {
  * Subscribe to PlanDefinitions on all Knowledge Artifact repos.
  */
 function subscribeToKnowledgeArtifacts() {
-  const servers = db.select('servers', s => s.type === 'KA');
+  const servers = db.select(SERVERS, s => s.type === 'KA');
   servers.forEach(async server => {
-    // TODO: generate access token for subscription
     const id = `sub${server.id}`;
     const subscription = generateSubscription(
-      'PlanDefinition?_lastUpdated=gt2021-01-01',
+      'PlanDefinition',
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
-      'admin',
       id
     );
+    db.upsert(SUBSCRIPTIONS, subscription, s => s.id === subscription.id);
     const token = await getAccessToken(server.endpoint);
     const headers = { Authorization: `Bearer ${token}` };
     axios
@@ -193,17 +193,16 @@ function subscribeToKnowledgeArtifacts() {
  *
  * @param {Bundle} specBundle - KA Bundle with PlanDefinition
  * @param {string} url - the notification endpoint url
- * @param {string} token - the authorization token for the Subscription notification
  * @returns list of Subscription resources
  */
-function subscriptionsFromBundle(specBundle, url, token) {
+function subscriptionsFromBundle(specBundle, url) {
   const planDefs = specBundle.entry.filter(e => e.resource.resourceType === 'PlanDefinition');
   if (!planDefs.length) {
     throw new Error('Specification Bundle does not contain a PlanDefinition');
   }
 
   const subscriptions = planDefs
-    .map(planDef => subscriptionsFromPlanDef(planDef.resource, url, token))
+    .map(planDef => subscriptionsFromPlanDef(planDef.resource, url))
     .flat();
 
   subscriptions.forEach(async subscription => {
@@ -232,10 +231,9 @@ function subscriptionsFromBundle(specBundle, url, token) {
  *
  * @param {PlanDefinition} planDef - KA PlanDefinition
  * @param {string} url - the notification endpoint url
- * @param {string} token - the authorization token for the Subscription notification
  * @returns list of Subscription resources (one for each trigger on the first action).
  */
-function subscriptionsFromPlanDef(planDef, url, token) {
+function subscriptionsFromPlanDef(planDef, url) {
   const action = planDef.action[0];
 
   if (action.trigger?.length === 0) return [];
@@ -249,7 +247,7 @@ function subscriptionsFromPlanDef(planDef, url, token) {
     const criteria = namedEventToCriteria(namedEventCoding.code);
     const id = `sub${planDef.id}${namedEventCoding.code}`;
     if (criteria)
-      subscriptions.push(generateSubscription(criteria, url, token, id, namedEventCoding.code));
+      subscriptions.push(generateSubscription(criteria, url, id, namedEventCoding.code));
     return subscriptions;
   }, []);
 }
@@ -328,6 +326,7 @@ async function forwardMessageResponse(response) {
   const headers = { Authorization: `Bearer ${token}` };
   return axios.post(`${baseUrl}/$process-message`, response, { headers: headers });
 }
+
 /**
  * Extracts the Endpoint id from the receiver address extension of the PlanDefinition
  *
