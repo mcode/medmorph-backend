@@ -58,7 +58,6 @@ function subscriptionAuthorization(req, res, next) {
   }
 
   res.sendStatus(StatusCodes.UNAUTHORIZED);
-  return;
 }
 
 module.exports = { generateToken, backendAuthorization, subscriptionAuthorization };

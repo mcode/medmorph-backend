@@ -85,7 +85,7 @@ async function getResources(server, resourceType) {
  */
 function generateSubscription(criteria, url, id = undefined, subscriptionTopic = undefined) {
   // Add regex to check if criteria has at least one search param since HAPI is expecting this
-  const criteriaReg = /(.+)(\?.)+/;
+  const criteriaReg = /(.+)(\?)+/;
   const subId = id ?? `sub${uuidv4()}`;
   const subscription = {
     id: subId,
