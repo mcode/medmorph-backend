@@ -40,10 +40,16 @@ for (let i = 0 ; i < args.length ; i++) {
   }
 }
 
-if (!newServer['endpoint']) {
-  console.error("Required argument -e|--endpoint missing!");
-  process.exit(1);
+const requiredFields = ['endpoint', 'type', 'clientId'];
+let exit = false;
+for (const field of requiredFields) {
+  const short = field.charAt(0);
+  if (!newServer[field]) {
+    console.error(`Required argument -${short}|--${field} missing!`);
+    exit = true;
+  }
 }
+if (exit) process.exit(1);
 
 if (!newServer['name']) {
   // if a name wasn't provided, use the endpoint URL as the name
