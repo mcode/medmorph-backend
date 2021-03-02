@@ -12,6 +12,8 @@
 
 const loki = require('lokijs');
 
+const { markDBReady } = require('../postinit');
+
 const isTest = process.env.NODE_ENV === 'test';
 
 class Internal {
@@ -21,6 +23,7 @@ class Internal {
     if (persist) {
       this.db = new loki('medmorph.db', {
         autoload: true,
+        autoloadCallback: markDBReady,
         autosave: true,
         serializationMethod: 'pretty'
       });

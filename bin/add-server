@@ -5,7 +5,6 @@ const axios = require('axios');
 
 // step 1, check command line args
 const args = process.argv.slice(2); // first 2 are "node add-server"
-// console.log(args);
 
 const newServer = {};
 
@@ -69,15 +68,18 @@ axios.get(serversURL, {
 function addToDb() {
   console.log('App not running. Adding server to db directly.');
 
+  const { runWhenDBReady } = require('../src/storage/postinit');
   const servers = require('../src/storage/servers');
-  // TODO: refactor this to use a better db post-init process
-  setTimeout(() => {
+
+  runWhenDBReady(() => {
     servers.addServer(newServer);
+
+    // TODO: ideally we wouldn't have to end the process manually
     setTimeout(() => {
       console.log('Added successfully.');
       process.exit(0);
-    }, 10000);
-  }, 10000);
+    }, 6000);
+  });
 }
 
 function callApi() {

@@ -15,6 +15,7 @@ const subscriptionsRouter = require('./routes/subscriptions');
 
 const { backendAuthorization, subscriptionAuthorization } = require('./utils/auth');
 const { refreshAllKnowledgeArtifacts, subscribeToKnowledgeArtifacts } = require('./utils/fhir');
+const { runWhenDBReady } = require('./storage/postinit');
 
 const app = express();
 app.use('/public', express.static(__dirname + '/../public'));
@@ -47,9 +48,7 @@ app.use('/fhir', backendAuthorization, fhirRouter);
 app.use('/servers', backendAuthorization, serversRouter);
 app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
 
-setTimeout(() => {
-  refreshAllKnowledgeArtifacts();
-  subscribeToKnowledgeArtifacts();
-}, 1000);
+runWhenDBReady(refreshAllKnowledgeArtifacts);
+runWhenDBReady(subscribeToKnowledgeArtifacts);
 
 module.exports = app;
