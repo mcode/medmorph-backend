@@ -161,7 +161,7 @@ function refreshAllKnowledgeArtifacts() {
 function refreshKnowledgeArtifact(server) {
   getResources(server.endpoint, 'PlanDefinition').then(bundle => {
     // Create/Update subscriptions from PlanDefinitions
-    if (bundle) subscriptionsFromBundle(bundle, server.endpoint);
+    if (bundle) subscriptionsFromBundle(bundle);
   });
   getResources(server.endpoint, 'Endpoint');
 }
@@ -192,18 +192,15 @@ function subscribeToKnowledgeArtifacts() {
  * Saves Subscription resources to DB and posts them to EHR server
  *
  * @param {Bundle} specBundle - KA Bundle with PlanDefinition
- * @param {string} url - the notification endpoint url
  * @returns list of Subscription resources
  */
-function subscriptionsFromBundle(specBundle, url) {
+function subscriptionsFromBundle(specBundle) {
   const planDefs = specBundle.entry.filter(e => e.resource.resourceType === 'PlanDefinition');
   if (!planDefs.length) {
     throw new Error('Specification Bundle does not contain a PlanDefinition');
   }
 
-  const subscriptions = planDefs
-    .map(planDef => subscriptionsFromPlanDef(planDef.resource, url))
-    .flat();
+  const subscriptions = planDefs.map(planDef => subscriptionsFromPlanDef(planDef.resource)).flat();
 
   subscriptions.forEach(async subscription => {
     const subscriptionId = subscription.id;
@@ -230,10 +227,9 @@ function subscriptionsFromBundle(specBundle, url) {
  * Take a single PlanDefinition and generate a Subscription resource for the named events
  *
  * @param {PlanDefinition} planDef - KA PlanDefinition
- * @param {string} url - the notification endpoint url
  * @returns list of Subscription resources (one for each trigger on the first action).
  */
-function subscriptionsFromPlanDef(planDef, url) {
+function subscriptionsFromPlanDef(planDef) {
   const action = planDef.action[0];
 
   if (action.trigger?.length === 0) return [];
@@ -246,8 +242,9 @@ function subscriptionsFromPlanDef(planDef, url) {
 
     const criteria = namedEventToCriteria(namedEventCoding.code);
     const id = `sub${planDef.id}${namedEventCoding.code}`;
+    const notifUrl = `${process.env.BASE_URL}/notif/${planDef.id}`;
     if (criteria)
-      subscriptions.push(generateSubscription(criteria, url, id, namedEventCoding.code));
+      subscriptions.push(generateSubscription(criteria, notifUrl, id, namedEventCoding.code));
     return subscriptions;
   }, []);
 }

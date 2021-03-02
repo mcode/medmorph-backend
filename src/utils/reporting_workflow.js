@@ -59,10 +59,11 @@ async function startReportingWorkflow(planDef, resource = null) {
   // TODO: MEDMORPH-49 to make sure the resource is always included
   if (!resource) return;
 
-  const ehrUrl = getEHRServer();
+  const ehrUrl = getEHRServer().endpoint;
   let patient = null;
   if (resource.patient) patient = await getReferencedResource(ehrUrl, resource.patient.reference);
-  else if (resource.subject) patient = await getReferencedResource(resource.subject.reference);
+  else if (resource.subject)
+    patient = await getReferencedResource(ehrUrl, resource.subject.reference);
   else if (resource.resourceType === 'Patient') patient = resource;
 
   let encounter = null;
@@ -265,6 +266,7 @@ async function executeWorkflow(context) {
       context.currentActionSequenceStep++;
 
       // TODO: do we even need a job scheduler?
+      debug(`Waiting ${waitTime}ms until next action`);
       setTimeout(() => executeWorkflow(context), waitTime);
       break;
     }
