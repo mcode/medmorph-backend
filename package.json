@@ -10,6 +10,7 @@
     "startBackend": "nodemon ./bin/www",
     "startFrontend": "webpack",
     "debug": "node --inspect-brk ./bin/www",
+    "add-server": "node ./bin/add-server",
     "test": "jest",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "lint": "eslint './src/**/*.{js,jsx}'",

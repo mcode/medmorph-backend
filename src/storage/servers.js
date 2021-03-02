@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require('uuid');
 const db = require('../storage/DataAccess');
 const { SERVERS } = require('./collections');
 
@@ -17,6 +18,10 @@ const { SERVERS } = require('./collections');
  */
 
 function addServer(server) {
+  if (!server.id) {
+    server.id = uuidv4();
+  }
+
   db.upsert(SERVERS, server, s => s.id === server.id);
 }
 

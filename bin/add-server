@@ -1,0 +1,104 @@
+#!/usr/bin/env node
+
+require('dotenv').config();
+const axios = require('axios');
+
+// step 1, check command line args
+const args = process.argv.slice(2); // first 2 are "node add-server"
+
+const newServer = {};
+
+for (let i = 0 ; i < args.length ; i++) {
+  const argKey = args[i];
+  const argValue = args[++i];
+
+  switch (argKey) {
+    case '-e':
+    case '--endpoint':
+      newServer['endpoint'] = argValue;
+      break;
+
+    case '-t':
+    case '--type':
+      newServer['type'] = argValue;
+      break;
+
+    case '-c':
+    case '--clientId':
+      newServer['clientId'] = argValue;
+      break;
+
+    case '-n':
+    case '--name':
+      newServer['name'] = argValue;
+      break;
+
+    default:
+      console.error(`Unknown command line option: ${argKey}`);
+      console.error(`Full args: ${args}`);
+      process.exit(1);
+  }
+}
+
+const requiredFields = ['endpoint', 'type', 'clientId'];
+let exit = false;
+for (const field of requiredFields) {
+  const short = field.charAt(0);
+  if (!newServer[field]) {
+    console.error(`Required argument -${short}|--${field} missing!`);
+    exit = true;
+  }
+}
+if (exit) process.exit(1);
+
+if (!newServer['name']) {
+  // if a name wasn't provided, use the endpoint URL as the name
+  newServer['name'] = newServer['endpoint'];
+}
+
+const baseURL = process.env.BASE_URL;
+// assumption is that BASE_URL does not contain a trailing /
+
+const serversURL = baseURL + '/servers';
+
+// see if the server is already running
+// by hitting the base url.
+// no connection = it's not running, add to DB directly
+// connection succeeds = it's running, use the API
+axios.get(serversURL, {
+  headers: {
+    'Authorization': 'Bearer admin'
+  }
+}).then(callApi).catch(addToDb);
+
+function addToDb() {
+  console.log('App not running. Adding server to db directly.');
+
+  const { runWhenDBReady } = require('../src/storage/postinit');
+  const servers = require('../src/storage/servers');
+
+  runWhenDBReady(() => {
+    servers.addServer(newServer);
+
+    // TODO: ideally we wouldn't have to end the process manually
+    setTimeout(() => {
+      console.log('Added successfully.');
+      process.exit(0);
+    }, 6000);
+  });
+}
+
+function callApi() {
+  try {
+    console.log('App running. Adding server via api.');
+    axios.post(serversURL, newServer, {
+      headers: {
+        'Authorization': 'Bearer admin'
+      }
+    })
+      .then(() => console.log('Added successfully.'))
+      .catch(e => console.log(e));
+  } catch (e) {
+    console.error(e);
+  }
+}

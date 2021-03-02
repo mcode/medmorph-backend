@@ -1,4 +1,3 @@
-const { v4: uuidv4 } = require('uuid');
 const { StatusCodes } = require('http-status-codes');
 
 const express = require('express');
@@ -16,11 +15,6 @@ router.get('/', (req, res) => {
 // Add a new server
 router.post('/', (req, res) => {
   const newItem = req.body;
-
-  if (!newItem.id) {
-    newItem.id = uuidv4();
-  }
-
   servers.addServer(newItem);
   res.status(StatusCodes.CREATED).send(newItem);
 });
