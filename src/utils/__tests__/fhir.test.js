@@ -1,7 +1,6 @@
 const { subscriptionsFromPlanDef, subscriptionsFromBundle } = require('../fhir');
 
 describe('Test creating Subscriptions', () => {
-  const TEST_URL = 'http://example.org';
   const planDef = {
     resourceType: 'PlanDefinition',
     action: [
@@ -45,18 +44,17 @@ describe('Test creating Subscriptions', () => {
         }
       ]
     };
-    const bundleSubscriptions = subscriptionsFromBundle(bundle, TEST_URL);
+    const bundleSubscriptions = subscriptionsFromBundle(bundle);
     expect(bundleSubscriptions.length).toBe(4);
   });
 
   test('It converts medication-change correctly', () => {
-    const subscriptions = subscriptionsFromPlanDef(planDef, TEST_URL);
+    const subscriptions = subscriptionsFromPlanDef(planDef);
     expect(subscriptions.length).toBe(1);
 
     const subscription = subscriptions[0];
     expect(subscription.criteria).toBe('MedicationRequest?_lastUpdated=gt2021-01-01');
     expect(subscription._criteria.length).toBe(3);
-    expect(subscription.channel.endpoint).toBe(TEST_URL);
     expect(subscription.channel.header[0].split('Authorization: Bearer ')[1]).toBeDefined();
   });
 
@@ -78,7 +76,7 @@ describe('Test creating Subscriptions', () => {
       ]
     };
     planDef.action[0].trigger.push(trigger);
-    const subscriptions = subscriptionsFromPlanDef(planDef, TEST_URL);
+    const subscriptions = subscriptionsFromPlanDef(planDef);
     expect(subscriptions.length).toBe(1);
     expect(subscriptions).not.toContain(undefined);
   });
