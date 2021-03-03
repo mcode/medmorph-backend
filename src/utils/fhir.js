@@ -202,23 +202,7 @@ function subscriptionsFromBundle(specBundle) {
 
   const subscriptions = planDefs.map(planDef => subscriptionsFromPlanDef(planDef.resource)).flat();
 
-  subscriptions.forEach(async subscription => {
-    const subscriptionId = subscription.id;
-
-    // Store subscriptions in database
-    debug(`Saved Subscription/${subscriptionId}`);
-    db.upsert('subscriptions', subscription, s => s.id === subscriptionId);
-
-    // Create/Update Subscriptions on EHR server
-    const ehrServer = getEHRServer();
-    if (ehrServer) {
-      const ehrToken = await getAccessToken(ehrServer.endpoint);
-      const headers = { Authorization: `Bearer ${ehrToken}` };
-      axios
-        .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
-        .then(() => debug(`Subscription with id ${subscriptionId} created/updated on EHR server`));
-    }
-  });
+  postSubscriptionsToEHR(subscriptions);
 
   return subscriptions;
 }
@@ -247,6 +231,31 @@ function subscriptionsFromPlanDef(planDef) {
       subscriptions.push(generateSubscription(criteria, notifUrl, id, namedEventCoding.code));
     return subscriptions;
   }, []);
+}
+
+/**
+ * Helper function to save subscriptions and post them to the EHR
+ *
+ * @param {Subscription[]} subscriptions - list of subscription resources
+ */
+function postSubscriptionsToEHR(subscriptions) {
+  subscriptions.forEach(async subscription => {
+    const subscriptionId = subscription.id;
+
+    // Store subscriptions in database
+    debug(`Saved Subscription/${subscriptionId}`);
+    db.upsert('subscriptions', subscription, s => s.id === subscriptionId);
+
+    // Create/Update Subscriptions on EHR server
+    const ehrServer = getEHRServer();
+    if (ehrServer) {
+      const ehrToken = await getAccessToken(ehrServer.endpoint);
+      const headers = { Authorization: `Bearer ${ehrToken}` };
+      axios
+        .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
+        .then(() => debug(`Subscription with id ${subscriptionId} created/updated on EHR server`));
+    }
+  });
 }
 
 /**
@@ -345,5 +354,6 @@ module.exports = {
   getReferencedResource,
   forwardMessageResponse,
   subscribeToKnowledgeArtifacts,
+  postSubscriptionsToEHR,
   getEndpointId
 };
