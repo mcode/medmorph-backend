@@ -266,7 +266,7 @@ async function executeWorkflow(context) {
       context.currentActionSequenceStep++;
 
       // TODO: do we even need a job scheduler?
-      debug(`Waiting ${waitTime}ms until next action`);
+      debug(`Waiting ${waitTime}ms until next action for PlanDefinition/${planDef.id}`);
       setTimeout(() => executeWorkflow(context), waitTime);
       break;
     }
