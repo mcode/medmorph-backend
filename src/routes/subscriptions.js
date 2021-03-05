@@ -6,7 +6,12 @@ const axios = require('axios');
 const db = require('../storage/DataAccess');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
 const { getServerById } = require('../storage/servers');
-const { refreshKnowledgeArtifact, getEndpointId } = require('../utils/fhir');
+const {
+  refreshKnowledgeArtifact,
+  getEndpointId,
+  subscriptionsFromPlanDef,
+  postSubscriptionsToEHR
+} = require('../utils/fhir');
 const { getAccessToken } = require('../utils/client');
 const { PLANDEFINITIONS, ENDPOINTS } = require('../storage/collections');
 const debug = require('debug')('medmorph-backend:server');
@@ -52,6 +57,9 @@ router.put('/ka/:id/:resource/:resourceId', async (req, res) => {
       debug(`Fetched ${server.endpoint}/Endpoint/${endpoint.id}`);
     }
   });
+
+  const subscriptions = subscriptionsFromPlanDef(planDefinition);
+  postSubscriptionsToEHR(subscriptions);
 
   res.sendStatus(StatusCodes.OK);
 });

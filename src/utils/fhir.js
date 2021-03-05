@@ -161,7 +161,7 @@ function refreshAllKnowledgeArtifacts() {
 function refreshKnowledgeArtifact(server) {
   getResources(server.endpoint, 'PlanDefinition').then(bundle => {
     // Create/Update subscriptions from PlanDefinitions
-    if (bundle) subscriptionsFromBundle(bundle, server.endpoint);
+    if (bundle) subscriptionsFromBundle(bundle);
   });
   getResources(server.endpoint, 'Endpoint');
 }
@@ -192,19 +192,53 @@ function subscribeToKnowledgeArtifacts() {
  * Saves Subscription resources to DB and posts them to EHR server
  *
  * @param {Bundle} specBundle - KA Bundle with PlanDefinition
- * @param {string} url - the notification endpoint url
  * @returns list of Subscription resources
  */
-function subscriptionsFromBundle(specBundle, url) {
+function subscriptionsFromBundle(specBundle) {
   const planDefs = specBundle.entry.filter(e => e.resource.resourceType === 'PlanDefinition');
   if (!planDefs.length) {
     throw new Error('Specification Bundle does not contain a PlanDefinition');
   }
 
-  const subscriptions = planDefs
-    .map(planDef => subscriptionsFromPlanDef(planDef.resource, url))
-    .flat();
+  const subscriptions = planDefs.map(planDef => subscriptionsFromPlanDef(planDef.resource)).flat();
 
+  postSubscriptionsToEHR(subscriptions);
+
+  return subscriptions;
+}
+
+/**
+ * Take a single PlanDefinition and generate a Subscription resource for the named events
+ *
+ * @param {PlanDefinition} planDef - KA PlanDefinition
+ * @returns list of Subscription resources (one for each trigger on the first action).
+ */
+function subscriptionsFromPlanDef(planDef) {
+  const action = planDef.action[0];
+
+  if (action.trigger?.length === 0) return [];
+
+  return action.trigger.reduce((subscriptions, trigger) => {
+    const namedEventExt = trigger.extension.find(e => e.url === NAMED_EVENT_EXTENSION);
+    const namedEventCoding = namedEventExt.valueCodeableConcept.coding.find(
+      c => c.system === NAMED_EVENT_CODE_SYSTEM
+    );
+
+    const criteria = namedEventToCriteria(namedEventCoding.code);
+    const id = `sub${planDef.id}${namedEventCoding.code}`;
+    const notifUrl = `${process.env.BASE_URL}/notif/${planDef.id}`;
+    if (criteria)
+      subscriptions.push(generateSubscription(criteria, notifUrl, id, namedEventCoding.code));
+    return subscriptions;
+  }, []);
+}
+
+/**
+ * Helper function to save subscriptions and post them to the EHR
+ *
+ * @param {Subscription[]} subscriptions - list of subscription resources
+ */
+function postSubscriptionsToEHR(subscriptions) {
   subscriptions.forEach(async subscription => {
     const subscriptionId = subscription.id;
 
@@ -222,34 +256,6 @@ function subscriptionsFromBundle(specBundle, url) {
         .then(() => debug(`Subscription with id ${subscriptionId} created/updated on EHR server`));
     }
   });
-
-  return subscriptions;
-}
-
-/**
- * Take a single PlanDefinition and generate a Subscription resource for the named events
- *
- * @param {PlanDefinition} planDef - KA PlanDefinition
- * @param {string} url - the notification endpoint url
- * @returns list of Subscription resources (one for each trigger on the first action).
- */
-function subscriptionsFromPlanDef(planDef, url) {
-  const action = planDef.action[0];
-
-  if (action.trigger?.length === 0) return [];
-
-  return action.trigger.reduce((subscriptions, trigger) => {
-    const namedEventExt = trigger.extension.find(e => e.url === NAMED_EVENT_EXTENSION);
-    const namedEventCoding = namedEventExt.valueCodeableConcept.coding.find(
-      c => c.system === NAMED_EVENT_CODE_SYSTEM
-    );
-
-    const criteria = namedEventToCriteria(namedEventCoding.code);
-    const id = `sub${planDef.id}${namedEventCoding.code}`;
-    if (criteria)
-      subscriptions.push(generateSubscription(criteria, url, id, namedEventCoding.code));
-    return subscriptions;
-  }, []);
 }
 
 /**
@@ -348,5 +354,6 @@ module.exports = {
   getReferencedResource,
   forwardMessageResponse,
   subscribeToKnowledgeArtifacts,
+  postSubscriptionsToEHR,
   getEndpointId
 };
