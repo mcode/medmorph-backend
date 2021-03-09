@@ -14,7 +14,7 @@ const {
 } = require('../utils/fhir');
 const { getAccessToken } = require('../utils/client');
 const { PLANDEFINITIONS, ENDPOINTS } = require('../storage/collections');
-const debug = require('debug')('medmorph-backend:server');
+const debug = require('../storage/logs').debug('medmorph-backend:subscriptions');
 
 /**
  * Notification from KA Repo to refresh artifacts. The id param is the
@@ -25,6 +25,7 @@ router.post('/ka/:id', (req, res) => {
   const server = getServerById(id);
   if (server) {
     refreshKnowledgeArtifact(server);
+    debug(`Recieved notification to refresh knowledge artifacts for server with id ${id}`);
     res.sendStatus(StatusCodes.OK);
   } else res.sendStatus(StatusCodes.NOT_FOUND);
 });
@@ -89,6 +90,9 @@ router.put('/:id/:resource/:resourceId', (req, res) => {
   const planDef = getPlanDef(id);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
+    debug(`Received ${req.params.resource}/${req.params.resourceId} from subscription ${id}`)
+    const collection = `${req.body.resourceType.toLowerCase()}s`;
+    db.upsert(collection, resource, r => r.id === resource.id);
     startReportingWorkflow(planDef, req.body);
   } else {
     res.sendStatus(StatusCodes.NOT_FOUND); // 404

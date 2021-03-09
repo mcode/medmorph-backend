@@ -5,7 +5,7 @@ const { getReferencedResource, getEndpointId } = require('../utils/fhir');
 const { getEHRServer } = require('../storage/servers');
 const { baseIgActions } = require('./actions');
 const { REPORTING, ENDPOINTS } = require('../storage/collections');
-const debug = require('debug')('medmorph-backend:server');
+const debug = require('../storage/logs').debug('medmorph-backend:reporting_workflow');
 
 /*
 
