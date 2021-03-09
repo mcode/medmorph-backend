@@ -90,9 +90,9 @@ router.put('/:id/:resource/:resourceId', (req, res) => {
   const planDef = getPlanDef(id);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
-    debug(`Received ${req.params.resource}/${req.params.resourceId} from subscription ${id}`)
+    debug(`Received ${req.params.resource}/${req.params.resourceId} from subscription ${id}`);
     const collection = `${req.body.resourceType.toLowerCase()}s`;
-    db.upsert(collection, resource, r => r.id === resource.id);
+    db.upsert(collection, req.body, r => r.id === req.body.id);
     startReportingWorkflow(planDef, req.body);
   } else {
     res.sendStatus(StatusCodes.NOT_FOUND); // 404

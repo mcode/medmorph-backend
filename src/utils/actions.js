@@ -101,7 +101,7 @@ const baseIgActions = {
           context.flags['submitted'] = false;
         }
       )
-      .catch((err) => {
+      .catch(err => {
         error(err);
         context.flags['submitted'] = false;
       });
@@ -117,7 +117,7 @@ const baseIgActions = {
           context.flags['deidentified'] = false;
         }
       )
-      .catch((err) => {
+      .catch(err => {
         error(err);
         context.flags['deidentified'] = false;
       });
@@ -133,7 +133,7 @@ const baseIgActions = {
           context.flags['anonymized'] = false;
         }
       )
-      .catch((err) => {
+      .catch(err => {
         error(err);
         context.flags['anonymized'] = false;
       });
@@ -149,7 +149,7 @@ const baseIgActions = {
           context.flags['pseudonymized'] = false;
         }
       )
-      .catch((err) => {
+      .catch(err => {
         error(err);
         context.flags['pseudonymized'] = false;
       });

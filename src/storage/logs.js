@@ -32,17 +32,13 @@ function error(location) {
 }
 
 function storeRequest(request) {
-    const log = {
-        id: uuidv4(),
-        timestamp: Date.now(),
-        url: request.url,
-        body: request.body
-    }
-    db.insert(REQUESTS, log);
-}
-
-function getLogs() {
-  return db.select(LOGS, () => true);
+  const log = {
+    id: uuidv4(),
+    timestamp: Date.now(),
+    url: request.url,
+    body: request.body
+  };
+  db.insert(REQUESTS, log);
 }
 
 module.exports = { debug, error, storeRequest };

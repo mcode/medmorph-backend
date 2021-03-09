@@ -254,7 +254,9 @@ function postSubscriptionsToEHR(subscriptions) {
       const headers = { Authorization: `Bearer ${ehrToken}` };
       axios
         .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
-        .then(() => debug(`Subscription with id ${subscriptionId} created/updated on ${ehrServer.endpoint}`));
+        .then(() =>
+          debug(`Subscription with id ${subscriptionId} created/updated on ${ehrServer.endpoint}`)
+        );
     }
   });
 }

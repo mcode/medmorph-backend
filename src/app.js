@@ -24,8 +24,8 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(bodyParser.json({ type: ['application/json', 'application/fhir+json'] }));
 app.use(function(req, res, next) {
-    storeRequest(req);
-    next();
+  storeRequest(req);
+  next();
 });
 
 app.use(passport.initialize());
