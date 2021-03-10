@@ -51,6 +51,7 @@ function processMessage(req, res) {
 
 function sendOperationOutcome(res, code, msg) {
   const operationOutcome = generateOperationOutcome(code, msg);
+  debug(`Message rejected with code ${code} and message ${msg}`);
   res
     .status(StatusCodes.BAD_REQUEST)
     .header('Content-Type', 'application/json')

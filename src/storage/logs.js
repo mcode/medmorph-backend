@@ -36,7 +36,8 @@ function storeRequest(request) {
     id: uuidv4(),
     timestamp: Date.now(),
     url: request.url,
-    body: request.body
+    body: request.body,
+    headers: request.headers
   };
   db.insert(REQUESTS, log);
 }
