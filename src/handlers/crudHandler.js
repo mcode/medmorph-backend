@@ -1,7 +1,6 @@
 const db = require('../storage/DataAccess');
 const express = require('express');
 const { StatusCodes } = require('http-status-codes');
-const router = express.Router();
 
 function createHandler(collectionName, req, res) {
   const newItem = req.body;
@@ -38,6 +37,8 @@ function deleteHandler(collectionName, req, res) {
 }
 
 function genericController(collectionName) {
+  const router = express.Router();
+
   router.post('/', (req, res) => {
     createHandler(collectionName, req, res);
   });
