@@ -9,7 +9,6 @@ const KeycloakBearerStrategy = require('passport-keycloak-bearer');
 const fhirRouter = require('./routes/fhir');
 const indexRouter = require('./routes/index');
 const publicRouter = require('./routes/public');
-const serversRouter = require('./routes/servers');
 const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
 const { storeRequest } = require('./storage/logs');
@@ -17,6 +16,8 @@ const { storeRequest } = require('./storage/logs');
 const { backendAuthorization, subscriptionAuthorization } = require('./utils/auth');
 const { refreshAllKnowledgeArtifacts, subscribeToKnowledgeArtifacts } = require('./utils/fhir');
 const { runWhenDBReady } = require('./storage/postinit');
+const { genericController } = require('./handlers/crudHandler');
+const collections = require('./storage/collections');
 
 const app = express();
 app.use('/public', express.static(__dirname + '/../public'));
@@ -45,13 +46,19 @@ passport.use(
 // Open Routes
 app.use('/.well-known', wellKnownRouter);
 app.use('/public', publicRouter);
+
+// Routes for collections
+// TODO: Add authorization
+Object.values(collections).forEach(collectionName => {
+  app.use(`/${collectionName}`, genericController(collectionName));
+});
+
 // frontend
 app.get('/', (req, res) => res.sendFile('index.html', { root: __dirname + '/../public' }));
 
 // Protected Routes
 app.use('/index', backendAuthorization, indexRouter);
 app.use('/fhir', backendAuthorization, fhirRouter);
-app.use('/servers', backendAuthorization, serversRouter);
 app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
 
 runWhenDBReady(refreshAllKnowledgeArtifacts);
