@@ -12,6 +12,7 @@ const publicRouter = require('./routes/public');
 const serversRouter = require('./routes/servers');
 const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
+const { storeRequest } = require('./storage/logs');
 
 const { backendAuthorization, subscriptionAuthorization } = require('./utils/auth');
 const { refreshAllKnowledgeArtifacts, subscribeToKnowledgeArtifacts } = require('./utils/fhir');
@@ -22,6 +23,11 @@ app.use('/public', express.static(__dirname + '/../public'));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(bodyParser.json({ type: ['application/json', 'application/fhir+json'] }));
+app.use(function(req, res, next) {
+  storeRequest(req);
+  next();
+});
+
 app.use(passport.initialize());
 
 passport.use(

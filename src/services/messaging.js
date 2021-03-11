@@ -1,6 +1,8 @@
 const { StatusCodes } = require('http-status-codes');
 const { generateOperationOutcome, forwardMessageResponse } = require('../utils/fhir');
-const debug = require('debug')('medmorph-backend:server');
+const debug = require('../storage/logs').debug('medmorph-backend:messaging');
+const db = require('../storage/DataAccess');
+const { MESSAGES } = require('../storage/collections');
 
 function processMessage(req, res) {
   // Validate the message bundle
@@ -37,6 +39,9 @@ function processMessage(req, res) {
     return;
   }
 
+  db.upsert(MESSAGES, messageBundle, r => r.id === messageBundle.id);
+  debug(`Message bundle ${messageBundle.id} added to database`);
+
   forwardMessageResponse(messageBundle).then(() =>
     debug(`Response to /Bundle/${messageBundle.id} forwarded to EHR`)
   );
@@ -46,6 +51,7 @@ function processMessage(req, res) {
 
 function sendOperationOutcome(res, code, msg) {
   const operationOutcome = generateOperationOutcome(code, msg);
+  debug(`Message rejected with code ${code} and message ${msg}`);
   res
     .status(StatusCodes.BAD_REQUEST)
     .header('Content-Type', 'application/json')

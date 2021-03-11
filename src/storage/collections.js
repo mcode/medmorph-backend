@@ -4,5 +4,9 @@ module.exports = {
   SUBSCRIPTIONS: 'subscriptions',
   ENDPOINTS: 'endpoints',
   COMPLETED_REPORTS: 'completedreports',
-  REPORTING: 'reporting'
+  REPORTING: 'reporting',
+  LOGS: 'logs',
+  ERRORS: 'errors',
+  MESSAGES: 'messages',
+  REQUESTS: 'requests'
 };

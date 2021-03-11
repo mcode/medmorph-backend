@@ -1,7 +1,8 @@
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const { getAccessToken } = require('./client');
-const debug = require('debug')('medmorph-backend:server');
+const debug = require('../storage/logs').debug('medmorph-backend:fhir');
+const error = require('../storage/logs').error('medmorph-backend:fhir');
 const db = require('../storage/DataAccess');
 const { getEHRServer } = require('../storage/servers');
 const { generateToken } = require('./auth');
@@ -59,13 +60,13 @@ async function getResources(server, resourceType) {
   const axiosResponse = axios
     .get(url, { headers: headers })
     .then(response => response.data)
-    .catch(err => console.log(err));
+    .catch(err => error(err));
   return axiosResponse.then(data => {
     debug(`Fetched ${server}/${data.resourceType}/${data.id}`);
     if (!data.entry) return;
     const resources = data.entry.map(entry => entry.resource);
     resources.forEach(resource => {
-      debug(`  ...${resource.resourceType}/${resource.id}`);
+      debug(`Extracted ${resource.resourceType}/${resource.id} from bundle`);
       const collection = `${resource.resourceType.toLowerCase()}s`;
       db.upsert(collection, resource, r => r.id === resource.id);
     });
@@ -183,7 +184,7 @@ function subscribeToKnowledgeArtifacts() {
     const headers = { Authorization: `Bearer ${token}` };
     axios
       .put(`${server.endpoint}/Subscription/${id}`, subscription, { headers: headers })
-      .then(() => debug(`Subscription created for KA from ${server.name}`));
+      .then(() => debug(`Subscription created for KA from ${server.name} at ${server.endpoint}`));
   });
 }
 
@@ -253,7 +254,9 @@ function postSubscriptionsToEHR(subscriptions) {
       const headers = { Authorization: `Bearer ${ehrToken}` };
       axios
         .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
-        .then(() => debug(`Subscription with id ${subscriptionId} created/updated on EHR server`));
+        .then(() =>
+          debug(`Subscription with id ${subscriptionId} created/updated on ${ehrServer.endpoint}`)
+        );
     }
   });
 }
@@ -313,6 +316,9 @@ async function getReferencedResource(url, reference) {
     const token = await getAccessToken(url);
     const headers = { Authorization: `Bearer ${token}` };
     const resource = await axios.get(`${url}/${resourceType}/${id}`, { headers: headers });
+    debug(
+      `Retrieved reference resource ${resource.data.resourceType}/${resource.data.id} from ${url}`
+    );
     return resource.data;
   }
 

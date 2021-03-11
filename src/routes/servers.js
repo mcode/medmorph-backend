@@ -1,5 +1,5 @@
 const { StatusCodes } = require('http-status-codes');
-
+const error = require('../storage/logs').error('medmorph-backend:servers');
 const express = require('express');
 const router = express.Router();
 const servers = require('../storage/servers');
@@ -27,6 +27,7 @@ router.get('/:id', (req, res) => {
   if (resultList[0]) {
     res.send(resultList[0]);
   } else {
+    error(`Failed to find server with ID ${id} in database`);
     res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
 });

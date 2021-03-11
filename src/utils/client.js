@@ -4,6 +4,7 @@ const { v4 } = require('uuid');
 const queryString = require('query-string');
 const keys = require('../keys/privateKey.json');
 const servers = require('../storage/servers');
+const error = require('../storage/logs').error('medmorph-backend:client');
 
 /**
  * Generate and return access token for the specified server. If tokenEndpoint
@@ -38,7 +39,7 @@ async function connectToServer(url) {
   const data = await axios
     .post(tokenEndpoint, queryString.stringify(props), headers)
     .then(response => response.data)
-    .catch(err => console.error(err));
+    .catch(err => error(err));
   return data;
 }
 
@@ -59,7 +60,7 @@ async function getAccessToken(url) {
       return token.access_token;
     } catch (e) {
       servers.clearAccessToken(server);
-      console.error(e);
+      error(e);
       throw e;
     }
   } else {

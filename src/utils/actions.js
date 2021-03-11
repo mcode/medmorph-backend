@@ -33,8 +33,8 @@ const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const { forwardMessageResponse } = require('./fhir');
 const { COMPLETED_REPORTS } = require('../storage/collections');
-const debug = require('debug')('medmorph-backend:server');
-
+const debug = require('../storage/logs').debug('medmorph-backend:actions');
+const error = require('../storage/logs').error('medmorph-backend:actions');
 const fhir = new Fhir();
 
 const baseIgActions = {
@@ -101,7 +101,8 @@ const baseIgActions = {
           context.flags['submitted'] = false;
         }
       )
-      .catch(() => {
+      .catch(err => {
+        error(err);
         context.flags['submitted'] = false;
       });
   },
@@ -116,7 +117,8 @@ const baseIgActions = {
           context.flags['deidentified'] = false;
         }
       )
-      .catch(() => {
+      .catch(err => {
+        error(err);
         context.flags['deidentified'] = false;
       });
   },
@@ -131,7 +133,8 @@ const baseIgActions = {
           context.flags['anonymized'] = false;
         }
       )
-      .catch(() => {
+      .catch(err => {
+        error(err);
         context.flags['anonymized'] = false;
       });
   },
@@ -146,7 +149,8 @@ const baseIgActions = {
           context.flags['pseudonymized'] = false;
         }
       )
-      .catch(() => {
+      .catch(err => {
+        error(err);
         context.flags['pseudonymized'] = false;
       });
   },
@@ -175,7 +179,13 @@ const baseIgActions = {
         }
 
         const getRecordsPromise = readFromEHR(uri).then(result => {
-          const resources = result.data.entry.map(e => e.resource);
+          debug(`/Bundle/${result.data.id} recieved from ${uri}`);
+          const resources = result.data.entry.map(e => {
+            const resource = e.resource;
+            const collection = `${resource.resourceType.toLowerCase()}s`;
+            db.upsert(collection, resource, r => r.id === resource.id);
+            return resource;
+          });
 
           const dateFilter = input.dateFilter;
           let filteredResources = [...resources];
