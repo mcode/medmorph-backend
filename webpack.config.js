@@ -7,7 +7,7 @@ module.exports = {
 		filename: 'bundle.js'
 	},
 	watch: watch,
-    resolve: { extensions: ["*", ".js", ".jsx"] },
+    resolve: { extensions: [".js", ".jsx"] },
 	module: {
 		rules: [
 			{
