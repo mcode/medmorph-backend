@@ -48,6 +48,7 @@ app.use('/.well-known', wellKnownRouter);
 app.use('/public', publicRouter);
 
 // Routes for collections
+// TODO: Add authorization
 Object.values(collections).forEach(collectionName => {
   app.use(`/${collectionName}`, genericController(collectionName));
 });
