@@ -21,11 +21,7 @@ function getByIdHandler(collectionName, req, res) {
 function updateHandler(collectionName, req, res) {
   const { id } = req.params;
   const changedItem = req.body;
-  db.update(
-    collectionName,
-    r => r.id === id,
-    oldValue => Object.assign(oldValue, changedItem)
-  );
+  db.upsert(collectionName, changedItem, r => r.id === id);
 
   res.send(StatusCodes.OK);
 }
