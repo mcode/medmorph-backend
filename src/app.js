@@ -76,7 +76,6 @@ app.use('/public', publicRouter);
 app.use('/auth', authRouter);
 
 // Routes for collections
-// TODO: Add authorization
 Object.values(collections).forEach(collectionName => {
   app.use(`/${collectionName}`, userAuthorization, genericController(collectionName));
 });
