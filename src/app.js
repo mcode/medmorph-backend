@@ -17,7 +17,11 @@ const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
 const { storeRequest } = require('./storage/logs');
 
-const { backendAuthorization, subscriptionAuthorization } = require('./utils/auth');
+const {
+  backendAuthorization,
+  subscriptionAuthorization,
+  userAuthorization
+} = require('./utils/auth');
 const { refreshAllKnowledgeArtifacts, subscribeToKnowledgeArtifacts } = require('./utils/fhir');
 const { runWhenDBReady } = require('./storage/postinit');
 const { genericController } = require('./handlers/crudHandler');
@@ -74,7 +78,7 @@ app.use('/auth', authRouter);
 // Routes for collections
 // TODO: Add authorization
 Object.values(collections).forEach(collectionName => {
-  app.use(`/${collectionName}`, genericController(collectionName));
+  app.use(`/${collectionName}`, userAuthorization, genericController(collectionName));
 });
 
 // frontend

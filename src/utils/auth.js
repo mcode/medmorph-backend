@@ -60,4 +60,17 @@ function subscriptionAuthorization(req, res, next) {
   res.sendStatus(StatusCodes.UNAUTHORIZED);
 }
 
-module.exports = { generateToken, backendAuthorization, subscriptionAuthorization };
+/**
+ * Middleware for verifying the session for a user on the Admin UI
+ */
+function userAuthorization(req, res, next) {
+  if (req.isAuthenticated()) return next();
+  else res.sendStatus(StatusCodes.UNAUTHORIZED);
+}
+
+module.exports = {
+  generateToken,
+  backendAuthorization,
+  subscriptionAuthorization,
+  userAuthorization
+};
