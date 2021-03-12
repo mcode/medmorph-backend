@@ -1,0 +1,9 @@
+.login-container {
+    width: 80%;
+    margin: auto;
+}
+
+.form-row {
+    width: 100%;
+    margin-top: 10px !important;
+}

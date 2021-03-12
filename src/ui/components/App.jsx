@@ -1,14 +1,16 @@
 import './app.css';
 import React from 'react';
-import Auth from './Auth';
-import { UserProvider } from './UserProvider';
+import Admin from './Admin';
+import { QueryCache, ReactQueryCacheProvider } from 'react-query';
+
+const cache = new QueryCache();
 
 function App() {
   return (
     <div className={'app'}>
-      <UserProvider>
-        <Auth />
-      </UserProvider>
+      <ReactQueryCacheProvider queryCache={cache}>
+        <Admin />
+      </ReactQueryCacheProvider>
     </div>
   );
 }
