@@ -39,7 +39,8 @@ function processMessage(req, res) {
     return;
   }
 
-  db.upsert(MESSAGES, messageBundle, r => r.id === messageBundle.id);
+  const fullUrl = `${messageHeader.source.endpoint}/Bundle/${messageBundle.id}`;
+  db.upsert(MESSAGES, { fullUrl, ...messageBundle }, r => r.fullUrl === fullUrl);
   debug(`Message bundle ${messageBundle.id} added to database`);
 
   forwardMessageResponse(messageBundle).then(() =>

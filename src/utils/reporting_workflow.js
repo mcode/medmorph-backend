@@ -53,9 +53,10 @@ const IG_REGISTRY = {
  * initializes the context and begins the executeWorkflow
  *
  * @param {PlanDefinition} planDef - the PlanDefinition resource
+ * @param {string} serverUrl - the server base url the PlanDefinition came from
  * @param {*} resource - the resource which triggered the notification
  */
-async function startReportingWorkflow(planDef, resource = null) {
+async function startReportingWorkflow(planDef, serverUrl, resource = null) {
   // TODO: MEDMORPH-49 to make sure the resource is always included
   if (!resource) return;
 
@@ -75,7 +76,8 @@ async function startReportingWorkflow(planDef, resource = null) {
 
   // Get the endpoint to submit the report to from the PlanDefinition
   const endpointId = getEndpointId(planDef);
-  const endpoint = db.select(ENDPOINTS, e => e.id === endpointId);
+  const endpointFullUrl = `${serverUrl}/Endpoint/${endpointId}`;
+  const endpoint = db.select(ENDPOINTS, e => e.fullUrl === endpointFullUrl);
   const destEndpoint = endpoint[0].address;
 
   // QUESTION: Should encounter and patient be saved to the database?

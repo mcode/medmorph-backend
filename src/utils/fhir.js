@@ -7,6 +7,7 @@ const db = require('../storage/DataAccess');
 const { getEHRServer } = require('../storage/servers');
 const { generateToken } = require('./auth');
 const { SUBSCRIPTIONS, SERVERS } = require('../storage/collections');
+const base64url = require('base64url');
 
 const NAMED_EVENT_EXTENSION =
   'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-us-ph-namedEventType';
@@ -68,7 +69,8 @@ async function getResources(server, resourceType) {
     resources.forEach(resource => {
       debug(`Extracted ${resource.resourceType}/${resource.id} from bundle`);
       const collection = `${resource.resourceType.toLowerCase()}s`;
-      db.upsert(collection, resource, r => r.id === resource.id);
+      const fullUrl = `${server}/${resource.resourceType}/${resource.id}`;
+      db.upsert(collection, { fullUrl, ...resource }, r => r.fullUrl === fullUrl);
     });
 
     return data;
@@ -162,7 +164,7 @@ function refreshAllKnowledgeArtifacts() {
 function refreshKnowledgeArtifact(server) {
   getResources(server.endpoint, 'PlanDefinition').then(bundle => {
     // Create/Update subscriptions from PlanDefinitions
-    if (bundle) subscriptionsFromBundle(bundle);
+    if (bundle) subscriptionsFromBundle(bundle, server.endpoint);
   });
   getResources(server.endpoint, 'Endpoint');
 }
@@ -174,12 +176,13 @@ function subscribeToKnowledgeArtifacts() {
   const servers = db.select(SERVERS, s => s.type === 'KA');
   servers.forEach(async server => {
     const id = `sub${server.id}`;
+    const fullUrl = `${server.endpoint}/Subscription/${id}`;
     const subscription = generateSubscription(
       'PlanDefinition',
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
       id
     );
-    db.upsert(SUBSCRIPTIONS, subscription, s => s.id === subscription.id);
+    db.upsert(SUBSCRIPTIONS, { fullUrl, ...subscription }, s => s.fullUrl === fullUrl);
     const token = await getAccessToken(server.endpoint);
     const headers = { Authorization: `Bearer ${token}` };
     axios
@@ -193,15 +196,18 @@ function subscribeToKnowledgeArtifacts() {
  * Saves Subscription resources to DB and posts them to EHR server
  *
  * @param {Bundle} specBundle - KA Bundle with PlanDefinition
+ * @param {string} serverUrl - the base url of the server the Bundle came from
  * @returns list of Subscription resources
  */
-function subscriptionsFromBundle(specBundle) {
+function subscriptionsFromBundle(specBundle, serverUrl) {
   const planDefs = specBundle.entry.filter(e => e.resource.resourceType === 'PlanDefinition');
   if (!planDefs.length) {
     throw new Error('Specification Bundle does not contain a PlanDefinition');
   }
 
-  const subscriptions = planDefs.map(planDef => subscriptionsFromPlanDef(planDef.resource)).flat();
+  const subscriptions = planDefs
+    .map(planDef => subscriptionsFromPlanDef(planDef.resource, serverUrl))
+    .flat();
 
   postSubscriptionsToEHR(subscriptions);
 
@@ -212,9 +218,11 @@ function subscriptionsFromBundle(specBundle) {
  * Take a single PlanDefinition and generate a Subscription resource for the named events
  *
  * @param {PlanDefinition} planDef - KA PlanDefinition
+ * @param {string} serverUrl - the base url of the server the PlanDef came from
  * @returns list of Subscription resources (one for each trigger on the first action).
  */
-function subscriptionsFromPlanDef(planDef) {
+function subscriptionsFromPlanDef(planDef, serverUrl) {
+  // TODO: make sure eveyrwhere which calls this passes in serverURL
   const action = planDef.action[0];
 
   if (action.trigger?.length === 0) return [];
@@ -227,7 +235,8 @@ function subscriptionsFromPlanDef(planDef) {
 
     const criteria = namedEventToCriteria(namedEventCoding.code);
     const id = `sub${planDef.id}${namedEventCoding.code}`;
-    const notifUrl = `${process.env.BASE_URL}/notif/${planDef.id}`;
+    const planDefFullUrl = `${serverUrl}/PlanDefinition/${planDef.id}`;
+    const notifUrl = `${process.env.BASE_URL}/notif/${base64url.encode(planDefFullUrl)}`;
     if (criteria)
       subscriptions.push(generateSubscription(criteria, notifUrl, id, namedEventCoding.code));
     return subscriptions;
@@ -241,15 +250,16 @@ function subscriptionsFromPlanDef(planDef) {
  */
 function postSubscriptionsToEHR(subscriptions) {
   subscriptions.forEach(async subscription => {
-    const subscriptionId = subscription.id;
-
-    // Store subscriptions in database
-    debug(`Saved Subscription/${subscriptionId}`);
-    db.upsert('subscriptions', subscription, s => s.id === subscriptionId);
-
-    // Create/Update Subscriptions on EHR server
     const ehrServer = getEHRServer();
     if (ehrServer) {
+      const subscriptionId = subscription.id;
+      const fullUrl = `${ehrServer.endpoint}/Subscription/${subscriptionId}`;
+
+      // Store subscriptions in database
+      debug(`Saved Subscription/${subscriptionId}`);
+      db.upsert('subscriptions', { fullUrl, ...subscription }, s => s.fullUrl === fullUrl);
+
+      // Create/Update Subscriptions on EHR server
       const ehrToken = await getAccessToken(ehrServer.endpoint);
       const headers = { Authorization: `Bearer ${ehrToken}` };
       axios
@@ -351,6 +361,18 @@ function getEndpointId(planDefinition) {
   return endpointRef.split('/')[1];
 }
 
+/**
+ * Extracts the baseUrl from the fullUrl. Assumes the fullUrl is in the form
+ *  {baseUrl}/{resourceType}/{id}
+ *
+ * @param {string} fullUrl - the fullUrl
+ * @returns the base url
+ */
+function getBaseUrlFromFullUrl(fullUrl) {
+  const temp = fullUrl.substring(0, fullUrl.lastIndexOf('/'));
+  return temp.substring(0, temp.lastIndexOf('/'));
+}
+
 module.exports = {
   generateOperationOutcome,
   refreshAllKnowledgeArtifacts,
@@ -361,5 +383,6 @@ module.exports = {
   forwardMessageResponse,
   subscribeToKnowledgeArtifacts,
   postSubscriptionsToEHR,
-  getEndpointId
+  getEndpointId,
+  getBaseUrlFromFullUrl
 };

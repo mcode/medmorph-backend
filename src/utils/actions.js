@@ -183,7 +183,8 @@ const baseIgActions = {
           const resources = result.data.entry.map(e => {
             const resource = e.resource;
             const collection = `${resource.resourceType.toLowerCase()}s`;
-            db.upsert(collection, resource, r => r.id === resource.id);
+            const fullUrl = `${getEHRServer().endpoint}/${resource.resourceType}/${resource.id}`;
+            db.upsert(collection, { fullUrl, ...resource }, r => r.fullUrl === fullUrl);
             return resource;
           });
 
