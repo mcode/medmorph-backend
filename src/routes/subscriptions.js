@@ -101,12 +101,12 @@ router.put('/:fullUrl/:resource/:resourceId', (req, res) => {
   const planDef = getPlanDef(req.params.fullUrl);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
-    const serverUrl = getBaseUrlFromFullUrl(fullUrl);
+    const serverUrl = getBaseUrlFromFullUrl(base64url.decode(req.params.fullUrl));
     const fullUrl = `${serverUrl}/${req.params.resource}/${req.params.resourceId}`;
     debug(`Received ${req.params.resource}/${req.params.resourceId} from subscription ${fullUrl}`);
     const collection = `${req.body.resourceType.toLowerCase()}s`;
     db.upsert(collection, { fullUrl, ...req.body }, r => r.fullUrl === fullUrl);
-    startReportingWorkflow(planDef, fullUrl, req.body);
+    startReportingWorkflow(planDef, serverUrl, req.body);
   } else {
     res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
