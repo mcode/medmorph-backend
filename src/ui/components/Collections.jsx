@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
 import {
-  TableContainer,
   Table,
-  TableHead,
   TableBody,
-  TableRow,
-  TableCell
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@material-ui/core';
+import ResourceCell from './ResourceCell';
 
 const Collections = () => {
   const [data, setData] = useState({ collectionName: '', headers: [], data: [] });
@@ -51,9 +52,12 @@ const Collections = () => {
     return data.data.map((d, i) => {
       return (
         <TableRow key={`${collectionName}-${i}`}>
-          {headers.map((h, j) => (
-            <TableCell key={`${i}-${j}`}> {d[h.toLowerCase()]} </TableCell>
-          ))}
+          {headers.map((h, j) => {
+            const cellKey = `${i}-${j}`;
+            if (h === 'RESOURCE') return <ResourceCell cellKey={cellKey} resource={d} />;
+
+            return <TableCell key={cellKey}> {d[h.toLowerCase()]} </TableCell>;
+          })}
         </TableRow>
       );
     });
@@ -61,7 +65,6 @@ const Collections = () => {
 
   return (
     <div>
-      Medmorph Frontend
       <Select options={collections} onChange={onSelect} />
       <TableContainer>
         <Table>
