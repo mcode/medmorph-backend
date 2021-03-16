@@ -1,16 +1,16 @@
 import React, { memo, useCallback } from 'react';
 import { Button } from '@material-ui/core';
 import axios from 'axios';
-import { useQueryCache } from 'react-query';
+import { useQueryClient } from 'react-query';
 
 const Logout = () => {
-  const cache = useQueryCache();
+  const queryClient = useQueryClient();
 
   const logout = useCallback(() => {
     axios
       .post('/auth/logout', null, { withCredentials: true })
-      .then(() => cache.invalidateQueries('authorized-user'));
-  }, [cache]);
+      .then(() => queryClient.invalidateQueries('authorized-user'));
+  }, [queryClient]);
 
   return (
     <div>

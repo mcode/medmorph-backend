@@ -1,13 +1,17 @@
 import './auth.css';
-import React, { memo, useCallback, useRef } from 'react';
-import { TextField, Button } from '@material-ui/core';
+import React, { memo, useCallback, useRef, useState } from 'react';
+import { TextField, Button, Snackbar } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import axios from 'axios';
-import { useQueryCache } from 'react-query';
+import { useQueryClient } from 'react-query';
 
 const Login = () => {
-  const cache = useQueryCache();
+  const queryClient = useQueryClient();
   const emailTextField = useRef();
   const passwordTextField = useRef();
+  const [message, setMessage] = useState(null);
+
+  const handleClose = useCallback(() => setMessage(null));
 
   const onSubmit = useCallback(() => {
     if (emailTextField.current?.value && passwordTextField.current?.value) {
@@ -21,14 +25,27 @@ const Login = () => {
           { withCredentials: true }
         )
         .then(() => {
-          cache.invalidateQueries('authorized-user');
+          queryClient.invalidateQueries('authorized-user');
         })
-        .catch(err => console.log(err));
+        .catch(err => {
+          setMessage('Unable to Login');
+          console.error(err);
+        });
     }
-  }, [cache]);
+  }, [queryClient]);
 
   return (
     <div className={'login-container'}>
+      <Snackbar
+        open={message !== null}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleClose} severity="error">
+          {message}
+        </Alert>
+      </Snackbar>
       <h2>Login</h2>
       <TextField
         id="email-text-field"

@@ -28,7 +28,13 @@ const { genericController } = require('./handlers/crudHandler');
 const collections = require('./storage/collections');
 
 const app = express();
-app.use(session({ secret: crypto.randomBytes(32).toString('hex') }));
+app.use(
+  session({
+    secret: crypto.randomBytes(32).toString('hex'),
+    resave: false,
+    saveUninitialized: false
+  })
+);
 app.use('/public', express.static(__dirname + '/../public'));
 app.use(logger('dev'));
 app.use(express.json());
@@ -60,8 +66,8 @@ passport.serializeUser((user, done) => {
   done(null, user.uid);
 });
 passport.deserializeUser((uid, done) => {
-  // In the future, we might store user info (name, roles, etc) in Mongo via the passport.authenticate cb.
-  // If we did that, this is where we would reconstitute the user from Mongo.
+  // In the future, we might store user info (name, roles, etc) via the passport.authenticate
+  // cb. If we did that, this is where we would reconstitute the user.
   done(null, { uid });
 });
 async function localConfig(email, password, done) {

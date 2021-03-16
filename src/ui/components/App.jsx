@@ -1,16 +1,16 @@
 import './app.css';
 import React from 'react';
 import Admin from './Admin';
-import { QueryCache, ReactQueryCacheProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from 'react-query';
 
-const cache = new QueryCache();
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <div className={'app'}>
-      <ReactQueryCacheProvider queryCache={cache}>
+      <QueryClientProvider client={queryClient}>
         <Admin />
-      </ReactQueryCacheProvider>
+      </QueryClientProvider>
     </div>
   );
 }
