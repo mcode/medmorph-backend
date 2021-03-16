@@ -2,7 +2,6 @@ const db = require('../storage/DataAccess');
 const express = require('express');
 const { StatusCodes } = require('http-status-codes');
 const { default: base64url } = require('base64url');
-const e = require('express');
 
 function createHandler(collectionName, req, res) {
   const newItem = req.body;
