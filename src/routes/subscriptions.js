@@ -10,10 +10,12 @@ const {
   refreshKnowledgeArtifact,
   getEndpointId,
   subscriptionsFromPlanDef,
-  postSubscriptionsToEHR
+  postSubscriptionsToEHR,
+  getBaseUrlFromFullUrl
 } = require('../utils/fhir');
 const { getAccessToken } = require('../utils/client');
 const { PLANDEFINITIONS, ENDPOINTS } = require('../storage/collections');
+const { default: base64url } = require('base64url');
 const debug = require('../storage/logs').debug('medmorph-backend:subscriptions');
 
 /**
@@ -46,7 +48,12 @@ router.put('/ka/:id/:resource/:resourceId', async (req, res) => {
     return;
   }
 
-  db.upsert(PLANDEFINITIONS, planDefinition, r => r.id === planDefinition.id);
+  const planDefinitionFullUrl = `${server.endpoint}/PlanDefinition/${planDefinition.id}`;
+  db.upsert(
+    PLANDEFINITIONS,
+    { fullUrl: planDefinitionFullUrl, ...planDefinition },
+    r => r.fullUrl === planDefinitionFullUrl
+  );
   debug(`Fetched ${server.endpoint}/PlanDefinition/${planDefinition.id}`);
 
   const token = await getAccessToken(server.endpoint);
@@ -54,12 +61,17 @@ router.put('/ka/:id/:resource/:resourceId', async (req, res) => {
   axios.get(`${server.endpoint}/Endpoint/${endpointId}`, { headers: headers }).then(response => {
     if (response.data) {
       const endpoint = response.data;
-      db.upsert(ENDPOINTS, endpoint, r => r.id === endpoint.id);
-      debug(`Fetched ${server.endpoint}/Endpoint/${endpoint.id}`);
+      const endpointFullUrl = `${server.endpoint}/Endpoint/${endpoint.id}`;
+      db.upsert(
+        ENDPOINTS,
+        { fullUrl: endpointFullUrl, ...endpoint },
+        r => r.fullUrl === endpointFullUrl
+      );
+      debug(`Fetched ${endpointFullUrl}`);
     }
   });
 
-  const subscriptions = subscriptionsFromPlanDef(planDefinition);
+  const subscriptions = subscriptionsFromPlanDef(planDefinition, server.endpoint);
   postSubscriptionsToEHR(subscriptions);
 
   res.sendStatus(StatusCodes.OK);
@@ -69,12 +81,12 @@ router.put('/ka/:id/:resource/:resourceId', async (req, res) => {
  * Notification from EHR of changed data to start workflow process. The
  * id param is the PlanDefinition id which defines the workflow
  */
-router.post('/:id', (req, res) => {
-  const id = req.params.id;
-  const planDef = getPlanDef(id);
+router.post('/:fullUrl', (req, res) => {
+  const fullUrl = req.params.fullUrl;
+  const planDef = getPlanDef(fullUrl);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
-    startReportingWorkflow(planDef);
+    startReportingWorkflow(planDef, fullUrl);
   } else {
     res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
@@ -85,15 +97,16 @@ router.post('/:id', (req, res) => {
  * id param is the PlanDefinition if which defines the workflow. The body
  * contains the triggering resource.
  */
-router.put('/:id/:resource/:resourceId', (req, res) => {
-  const id = req.params.id;
-  const planDef = getPlanDef(id);
+router.put('/:fullUrl/:resource/:resourceId', (req, res) => {
+  const planDef = getPlanDef(req.params.fullUrl);
   if (planDef) {
     res.sendStatus(StatusCodes.OK);
-    debug(`Received ${req.params.resource}/${req.params.resourceId} from subscription ${id}`);
+    const serverUrl = getBaseUrlFromFullUrl(base64url.decode(req.params.fullUrl));
+    const fullUrl = `${serverUrl}/${req.params.resource}/${req.params.resourceId}`;
+    debug(`Received ${req.params.resource}/${req.params.resourceId} from subscription ${fullUrl}`);
     const collection = `${req.body.resourceType.toLowerCase()}s`;
-    db.upsert(collection, req.body, r => r.id === req.body.id);
-    startReportingWorkflow(planDef, req.body);
+    db.upsert(collection, { fullUrl, ...req.body }, r => r.fullUrl === fullUrl);
+    startReportingWorkflow(planDef, serverUrl, req.body);
   } else {
     res.sendStatus(StatusCodes.NOT_FOUND); // 404
   }
@@ -102,11 +115,12 @@ router.put('/:id/:resource/:resourceId', (req, res) => {
 /**
  * Retrieves the PlanDefinition with the given id from the db
  *
- * @param {string} id - the id of the PlanDefinition
+ * @param {string} fullUrl - the base 64 url encoded fullUrl of the PlanDefinition
  * @returns the PlanDefinition with the given id or null if not found
  */
-function getPlanDef(id) {
-  const resultList = db.select(PLANDEFINITIONS, s => s.id === id);
+function getPlanDef(fullUrl) {
+  const decodedFullUrl = base64url.decode(fullUrl);
+  const resultList = db.select(PLANDEFINITIONS, s => s.fullUrl === decodedFullUrl);
   if (resultList[0]) return resultList[0];
   else return null;
 }

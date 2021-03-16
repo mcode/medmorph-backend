@@ -83,7 +83,7 @@ app.use('/auth', authRouter);
 
 // Routes for collections
 Object.values(collections).forEach(collectionName => {
-  app.use(`/${collectionName}`, userAuthorization, genericController(collectionName));
+  app.use(`/collection/${collectionName}`, userAuthorization, genericController(collectionName));
 });
 
 // frontend
