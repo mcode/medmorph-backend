@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import useAuthorizedUser from '../../hooks/useAuthorizedUser';
 import { Login, Logout } from '../Auth';
+import Collections from '../Collections';
 
 const Admin = () => {
   const { error: authError, data: user } = useAuthorizedUser();
@@ -13,6 +14,7 @@ const Admin = () => {
         <div>
           User: {user.uid}
           <Logout />
+          <Collections />
         </div>
       )}
     </>
