@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { Button, TableCell } from '@material-ui/core';
 
 const ResourceCell = ({ cellKey, resource }) => {
@@ -15,9 +16,13 @@ const ResourceCell = ({ cellKey, resource }) => {
           </TableCell>
         </div>
       )}
-      {/* {!open && <Button>hi</Button>} */}
     </div>
   );
+};
+
+ResourceCell.propTypes = {
+  cellKey: PropTypes.string,
+  resource: PropTypes.object
 };
 
 export default ResourceCell;
