@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import Select from 'react-select';
-import axios from 'axios';
 import {
   Table,
   TableBody,
@@ -9,6 +8,7 @@ import {
   TableHead,
   TableRow
 } from '@material-ui/core';
+import { useQuery } from 'react-query';
 import ResourceCell from './ResourceCell';
 
 const Collections = () => {
@@ -27,7 +27,7 @@ const Collections = () => {
   ];
 
   const onSelect = selectedOption => {
-    axios.get(`http://localhost:3000/${selectedOption.value}`).then(response => {
+    useQuery(`http://localhost:3000/${selectedOption.value}`).then(response => {
       setData({
         collectionName: selectedOption.value,
         headers: getHeaders(selectedOption.value),
