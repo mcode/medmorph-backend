@@ -2,6 +2,7 @@ const db = require('../storage/DataAccess');
 const express = require('express');
 const { StatusCodes } = require('http-status-codes');
 const { default: base64url } = require('base64url');
+const e = require('express');
 
 function createHandler(collectionName, req, res) {
   const newItem = req.body;
@@ -29,16 +30,29 @@ function getByFullUrlHandler(collectionName, encodedFullUrl) {
 }
 
 function updateHandler(collectionName, req, res) {
-  const { id } = req.params;
   const changedItem = req.body;
-  db.upsert(collectionName, changedItem, r => r.id === id);
+  if (req.query.id) db.upsert(collectionName, changedItem, r => r.id === req.query.id);
+  else if (req.query.fullUrl) {
+    const fullUrl = base64url.decode(req.query.fullUrl);
+    db.upsert(collectionName, changedItem, r => r.fullUrl === fullUrl);
+  } else {
+    res.send('Must include id or fullUrl').status(StatusCodes.BAD_REQUEST);
+    return;
+  }
 
   res.send(StatusCodes.OK);
 }
 
 function deleteHandler(collectionName, req, res) {
-  const { id } = req.params;
-  db.delete(collectionName, r => r.id === id);
+  if (req.query.id) db.delete(collectionName, r => r.id === req.query.id);
+  else if (req.query.fullUrl) {
+    const fullUrl = base64url.decode(req.query.fullUrl);
+    db.delete(collectionName, r => r.fullUrl === fullUrl);
+  } else {
+    res.send('Must include id or fullUrl').status(StatusCodes.BAD_REQUEST);
+    return;
+  }
+
   res.send(StatusCodes.OK);
 }
 
@@ -53,11 +67,11 @@ function genericController(collectionName) {
     getHandler(collectionName, req, res);
   });
 
-  router.put('/:id', (req, res) => {
+  router.put('/', (req, res) => {
     updateHandler(collectionName, req, res);
   });
 
-  router.delete('/:id', (req, res) => {
+  router.delete('/', (req, res) => {
     deleteHandler(collectionName, req, res);
   });
 
