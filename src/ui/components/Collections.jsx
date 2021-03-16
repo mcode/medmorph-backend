@@ -9,7 +9,7 @@ import {
   TableHead,
   TableRow
 } from '@material-ui/core';
-import ResourceCell from './ResourceCell';
+import ReactJson from 'react-json-view';
 
 const Collections = () => {
   const [data, setData] = useState({ collectionName: '', headers: [], data: [] });
@@ -61,9 +61,17 @@ const Collections = () => {
         <TableRow key={`${collectionName}-${i}`}>
           {headers.map((h, j) => {
             const cellKey = `${i}-${j}`;
-            if (h === 'RESOURCE') return <ResourceCell cellKey={cellKey} resource={d} />;
 
-            return <TableCell key={cellKey}> {d[h.toLowerCase()]} </TableCell>;
+            return (
+              <TableCell key={cellKey}>
+                {' '}
+                {h === 'RESOURCE' ? (
+                  <ReactJson src={d} collapsed={true} />
+                ) : (
+                  d[h.toLowerCase()]
+                )}{' '}
+              </TableCell>
+            );
           })}
         </TableRow>
       );
