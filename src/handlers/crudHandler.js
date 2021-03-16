@@ -1,6 +1,7 @@
 const db = require('../storage/DataAccess');
 const express = require('express');
 const { StatusCodes } = require('http-status-codes');
+const { default: base64url } = require('base64url');
 
 function createHandler(collectionName, req, res) {
   const newItem = req.body;
@@ -8,14 +9,23 @@ function createHandler(collectionName, req, res) {
   res.status(StatusCodes.CREATED).send(newItem);
 }
 
-function getAllHandler(collectionName, res) {
-  res.send(db.select(collectionName, () => true));
+function getHandler(collectionName, req, res) {
+  let result;
+  if (req.query.id) result = getByIdHandler(collectionName, req.query.id);
+  else if (req.query.fullUrl) result = getByFullUrlHandler(collectionName, req.query.fullUrl);
+  else result = db.select(collectionName, () => true);
+  result ? res.send(result) : res.sendStatus(StatusCodes.NOT_FOUND);
 }
 
-function getByIdHandler(collectionName, req, res) {
-  const { id } = req.params;
+function getByIdHandler(collectionName, id) {
   const result = db.select(collectionName, r => r.id === id);
-  result[0] ? res.send(result[0]) : res.sendStatus(StatusCodes.NOT_FOUND);
+  return result[0] ? result[0] : undefined;
+}
+
+function getByFullUrlHandler(collectionName, encodedFullUrl) {
+  const fullUrl = base64url.decode(encodedFullUrl);
+  const result = db.select(collectionName, r => r.fullUrl === fullUrl);
+  return result[0] ? result[0] : undefined;
 }
 
 function updateHandler(collectionName, req, res) {
@@ -39,12 +49,8 @@ function genericController(collectionName) {
     createHandler(collectionName, req, res);
   });
 
-  router.get('/', (_, res) => {
-    getAllHandler(collectionName, res);
-  });
-
-  router.get('/:id', (req, res) => {
-    getByIdHandler(collectionName, req, res);
+  router.get('/', (req, res) => {
+    getHandler(collectionName, req, res);
   });
 
   router.put('/:id', (req, res) => {
