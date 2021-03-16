@@ -28,7 +28,7 @@ const Collections = () => {
   ];
 
   const { data } = useQuery(['collections', { selectedCollection }], () =>
-    axios.get(`http://localhost:3000/${selectedCollection}`)
+    axios.get(`http://localhost:3000/collection/${selectedCollection}`)
   );
 
   const getHeaders = () => {
@@ -38,11 +38,10 @@ const Collections = () => {
       case 'servers':
         return ['ID', 'NAME', 'ENDPOINT', 'TYPE'];
       case 'endpoints':
-        return ['ID', 'NAME', 'RESOURCE'];
-      case 'subscriptions':
-        return ['ID', 'CRITERIA', 'RESOURCE'];
       case 'plandefinitions':
-        return ['ID', 'NAME', 'RESOURCE'];
+        return ['ID', { value: 'fullUrl', label: 'FULLURL' }, 'NAME', 'RESOURCE'];
+      case 'subscriptions':
+        return ['ID', { value: 'fullUrl', label: 'FULLURL' }, 'CRITERIA', 'RESOURCE'];
       case 'logs':
         return ['ID', 'TIMESTAMP', 'MESSAGE', 'LOCATION'];
       default:
@@ -55,16 +54,16 @@ const Collections = () => {
     return data.data.map((d, i) => {
       return (
         <TableRow key={`${selectedCollection}-${i}`}>
-          {getHeaders().map((h, j) => {
+          {getHeaders().map((header, j) => {
             const cellKey = `${i}-${j}`;
 
             return (
               <TableCell key={cellKey}>
                 {' '}
-                {h === 'RESOURCE' ? (
+                {header === 'RESOURCE' ? (
                   <ReactJson src={d} collapsed={true} />
                 ) : (
-                  d[h.toLowerCase()]
+                  d[header.value || header.toLowerCase()]
                 )}{' '}
               </TableCell>
             );
@@ -83,7 +82,7 @@ const Collections = () => {
             <TableHead>
               <TableRow>
                 {getHeaders().map(header => (
-                  <TableCell key={header}> {header} </TableCell>
+                  <TableCell key={header}> {header.label || header} </TableCell>
                 ))}
               </TableRow>
             </TableHead>
