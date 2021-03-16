@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Select from 'react-select';
 import axios from 'axios';
+import { useQuery } from 'react-query';
 import {
   Table,
   TableBody,
@@ -12,7 +13,7 @@ import {
 import ReactJson from 'react-json-view';
 
 const Collections = () => {
-  const [data, setData] = useState({ collectionName: '', headers: [], data: [] });
+  const [selectedCollection, setSelectedCollection] = useState('');
   const collections = [
     { value: 'servers', label: 'Servers' },
     { value: 'endpoints', label: 'Endpoints' },
@@ -26,18 +27,14 @@ const Collections = () => {
     { value: 'requests', label: 'Requests' }
   ];
 
-  const onSelect = selectedOption => {
-    axios.get(`http://localhost:3000/${selectedOption.value}`).then(response => {
-      setData({
-        collectionName: selectedOption.value,
-        headers: getHeaders(selectedOption.value),
-        data: response.data
-      });
-    });
-  };
+  const { data } = useQuery(['collections', { selectedCollection }], () =>
+    axios.get(`http://localhost:3000/${selectedCollection}`)
+  );
 
-  const getHeaders = collectionName => {
-    switch (collectionName) {
+  const getHeaders = () => {
+    switch (selectedCollection) {
+      case '':
+        return [];
       case 'servers':
         return ['ID', 'NAME', 'ENDPOINT', 'TYPE'];
       case 'endpoints':
@@ -54,12 +51,11 @@ const Collections = () => {
   };
 
   const formatRows = () => {
-    const { collectionName, headers } = data;
-
+    if (!data) return [];
     return data.data.map((d, i) => {
       return (
-        <TableRow key={`${collectionName}-${i}`}>
-          {headers.map((h, j) => {
+        <TableRow key={`${selectedCollection}-${i}`}>
+          {getHeaders().map((h, j) => {
             const cellKey = `${i}-${j}`;
 
             return (
@@ -80,19 +76,21 @@ const Collections = () => {
 
   return (
     <div>
-      <Select options={collections} onChange={onSelect} />
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              {data.headers.map(header => (
-                <TableCell key={header}> {header} </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>{formatRows()}</TableBody>
-        </Table>
-      </TableContainer>
+      <Select options={collections} onChange={e => setSelectedCollection(e.value)} />
+      {selectedCollection !== '' && (
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                {getHeaders().map(header => (
+                  <TableCell key={header}> {header} </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>{formatRows()}</TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </div>
   );
 };
