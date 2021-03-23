@@ -12,20 +12,9 @@ import {
 } from '@material-ui/core';
 import ReactJson from 'react-json-view';
 
-const Collections = () => {
-  const [selectedCollection, setSelectedCollection] = useState('');
-  const collections = [
-    { value: 'servers', label: 'Servers' },
-    { value: 'endpoints', label: 'Endpoints' },
-    { value: 'subscriptions', label: 'Subscriptions' },
-    { value: 'plandefinitions', label: 'PlanDefinitions' },
-    { value: 'reporting', label: 'Reporting' },
-    { value: 'completedreports', label: 'Completed Reports' },
-    { value: 'logs', label: 'Logs' },
-    { value: 'errors', label: 'Errors' },
-    { value: 'messages', label: 'Messages' },
-    { value: 'requests', label: 'Requests' }
-  ];
+const Collections = (props) => {
+  const { selectedCollection } = props;
+
 
   const { data } = useQuery(['collections', { selectedCollection }], () =>
     axios.get(`http://localhost:3000/collection/${selectedCollection}`)
@@ -75,7 +64,6 @@ const Collections = () => {
 
   return (
     <div>
-      <Select options={collections} onChange={e => setSelectedCollection(e.value)} />
       {selectedCollection !== '' && (
         <TableContainer>
           <Table>
