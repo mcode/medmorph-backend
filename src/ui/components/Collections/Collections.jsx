@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import Select from 'react-select';
+import React from 'react';
 import axios from 'axios';
 import { useQuery } from 'react-query';
 import {
@@ -11,10 +10,10 @@ import {
   TableRow
 } from '@material-ui/core';
 import ReactJson from 'react-json-view';
+import PropTypes from 'prop-types';
 
-const Collections = (props) => {
+const Collections = props => {
   const { selectedCollection } = props;
-
 
   const { data } = useQuery(['collections', { selectedCollection }], () =>
     axios.get(`http://localhost:3000/collection/${selectedCollection}`)
@@ -82,4 +81,7 @@ const Collections = (props) => {
   );
 };
 
+Collections.propTypes = {
+  selectedCollection: PropTypes.string
+};
 export default Collections;
