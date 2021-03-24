@@ -83,7 +83,7 @@ export default makeStyles(
     },
     icon: {
       margin: '0 12px 0 12px',
-      cursor: 'pointer',
+      cursor: 'pointer'
     },
     menu: {
       width: '300px',
