@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import useStyles from './styles';
 import Sidebar from './Sidebar';
 import NavBar from './NavBar';
@@ -46,7 +46,7 @@ function Dashboard() {
     return tabs.find(tab => {
       return tab.key === contentKey;
     });
-  }, [contentKey]);
+  }, [contentKey, tabs]);
 
   return (
     <div className={classes.container}>
@@ -60,4 +60,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default memo(Dashboard);

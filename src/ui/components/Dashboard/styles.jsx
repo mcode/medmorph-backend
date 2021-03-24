@@ -41,7 +41,8 @@ export default makeStyles(
     },
     corner: {
       backgroundColor: theme.palette.common.purple,
-      verticalAlign: 'middle'
+      verticalAlign: 'middle',
+      cursor: 'pointer'
     },
     cornerText: {
       fontSize: '20px',
@@ -81,11 +82,13 @@ export default makeStyles(
       color: theme.palette.common.grayVeryDark
     },
     icon: {
-      margin: '0 12px 0 12px'
+      margin: '0 12px 0 12px',
+      cursor: 'pointer',
     },
     menu: {
       width: '300px',
       fontSize: '25px',
+      paddingTop: '35px',
       color: theme.palette.common.grayVeryDark
     },
     overflow: {

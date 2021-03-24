@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import useStyles from './styles';
 import Drawer from '@material-ui/core/Drawer';
 import ListItem from '@material-ui/core/ListItem';
@@ -21,7 +21,7 @@ function Sidebar(props) {
         anchor="left"
       >
         <div className={`${classes.spacer} ${classes.corner}`}>
-          <div className={classes.cornerText}>
+          <div className={classes.cornerText} onClick={callback.bind(this, 'dashboard')}>
             <strong>MedMorph</strong> Admin Console
           </div>
         </div>
@@ -38,9 +38,7 @@ function Sidebar(props) {
                   button
                   key={tab.key}
                   classes={{ root: itemClass }}
-                  onClick={() => {
-                    callback(tab.key);
-                  }}
+                  onClick={callback.bind(this, tab.key)}
                 >
                   <ListItemText primary={tab.label} classes={{ primary: classes.drawerItemText }} />
                   <ChevronRightIcon classes={{ root: classes.chevron }} />
@@ -71,4 +69,4 @@ Sidebar.propTypes = {
   selected: PropTypes.bool
 };
 
-export default Sidebar;
+export default memo(Sidebar);

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, memo } from 'react';
 import useStyles from './styles';
 import Drawer from '@material-ui/core/Drawer';
 import List from '@material-ui/core/List';
@@ -11,7 +11,7 @@ import axios from 'axios';
 import PropTypes from 'prop-types';
 import { useQueryClient } from 'react-query';
 
-export default function Menu(props) {
+function Menu(props) {
   const classes = useStyles();
   const queryClient = useQueryClient();
   const { open, callback } = props;
@@ -22,7 +22,7 @@ export default function Menu(props) {
       .then(() => queryClient.invalidateQueries('authorized-user'));
   }, [queryClient]);
   const menu = [
-    { key: 'Settings', icon: <SettingsIcon fontSize="large" />, callback: () => {} },
+    { key: 'Settings', icon: <SettingsIcon fontSize="large" />, callback: null },
     { key: 'Logout', icon: <ExitToAppIcon fontSize="large" />, callback: logout }
   ];
 
@@ -48,3 +48,5 @@ Menu.propTypes = {
   open: PropTypes.bool,
   callback: PropTypes.func
 };
+
+export default memo(Menu);

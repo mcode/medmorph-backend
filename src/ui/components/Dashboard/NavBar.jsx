@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import useStyles from './styles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -35,20 +35,13 @@ function NavBar() {
           <MenuOpenIcon
             className={classes.icon}
             fontSize={'large'}
-            onClick={() => {
-              setOpen(true);
-            }}
+            onClick={setOpen.bind(this, true)}
           />
-          <Menu
-            open={open}
-            callback={() => {
-              setOpen(false);
-            }}
-          ></Menu>
+          <Menu open={open} callback={setOpen.bind(this, false)}></Menu>
         </Toolbar>
       </AppBar>
     </div>
   );
 }
 
-export default NavBar;
+export default memo(NavBar);
