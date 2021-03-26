@@ -16,6 +16,9 @@ const { PLANDEFINITIONS, ENDPOINTS } = require('../storage/collections');
 const { default: base64url } = require('base64url');
 const debug = require('../storage/logs').debug('medmorph-backend:subscriptions');
 
+/**
+ * Handle KA notifications
+ */
 async function knowledgeArtifact(req, res) {
   const id = req.params.id;
   const server = getServerById(id);
@@ -64,6 +67,9 @@ async function knowledgeArtifact(req, res) {
   res.sendStatus(StatusCodes.OK);
 }
 
+/**
+ * Handle EHR Notifications and begin reporting workflow
+ */
 function reportTrigger(req, res) {
   const { fullUrl, resource: resourceType, resourceId } = req.params;
   const planDefFullUrl = base64url.decode(fullUrl);
