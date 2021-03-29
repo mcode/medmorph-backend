@@ -29,7 +29,7 @@ async function knowledgeArtifact(req, res) {
   else if (bundle.entry.length <= 1) {
     // TODO: MEDMORPH-50 will implement this for payload type "empty"
     error(`Unsupported notification payload type 'empty' from Bundle/${bundle.id}`);
-    res.sendStatus(StatusCode.BAD_REQUEST);
+    res.sendStatus(StatusCodes.BAD_REQUEST);
   } else {
     const planDefinitions = bundle.entry.reduce((filtered, entry) => {
       if (entry.resource?.resourceType === 'PlanDefinition') filtered.push(entry.resource);
