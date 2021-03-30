@@ -149,14 +149,16 @@ function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
       { fullUrl: planDefinitionFullUrl, ...planDefinition },
       r => r.fullUrl === planDefinitionFullUrl
     );
-    debug(`Fetched ${serverUrl}/PlanDefinition/${planDefinition.id}`);
+    debug(
+      `KA full-resource notification contained ${serverUrl}/PlanDefinition/${planDefinition.id}`
+    );
 
     const token = await getAccessToken(serverUrl);
     const headers = { Authorization: `Bearer ${token}` };
     axios.get(`${serverUrl}/Endpoint/${endpointId}`, { headers: headers }).then(response => {
       if (response.data) {
         const endpoint = response.data;
-        const endpointFullUrl = `${endpoint}/Endpoint/${endpoint.id}`;
+        const endpointFullUrl = `${serverUrl}/Endpoint/${endpoint.id}`;
         db.upsert(
           ENDPOINTS,
           { fullUrl: endpointFullUrl, ...endpoint },
