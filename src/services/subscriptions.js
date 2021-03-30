@@ -3,7 +3,7 @@ const { StatusCodes } = require('http-status-codes');
 const axios = require('axios');
 const db = require('../storage/DataAccess');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
-const { getServerById } = require('../storage/servers');
+const { getServerById, getEHRServer } = require('../storage/servers');
 const {
   getEndpointId,
   subscriptionsFromPlanDef,
@@ -27,9 +27,7 @@ async function knowledgeArtifact(req, res) {
 
   if (!server) res.sendStatus(StatusCodes.NOT_FOUND);
   else if (bundle.entry.length <= 1) {
-    // TODO: MEDMORPH-50 will implement this for payload type "empty"
-    error(`Unsupported notification payload type 'empty' from Bundle/${bundle.id}`);
-    res.sendStatus(StatusCodes.BAD_REQUEST);
+    knowledgeArtifactEmptyHandler(bundle, res);
   } else {
     const planDefinitions = bundle.entry.reduce((filtered, entry) => {
       if (entry.resource?.resourceType === 'PlanDefinition') filtered.push(entry.resource);
@@ -37,43 +35,10 @@ async function knowledgeArtifact(req, res) {
     }, []);
 
     if (!planDefinitions.length) {
-      // TODO: MEDMORPH-50 will implement this for payload type "id-only"
-      error(`Unsupported notification payload type 'id-only' from Bundle/${bundle.id}`);
-      res.sendStatus(StatusCodes.BAD_REQUEST);
+      knowledgeArtifactIdOnlyHandler(bundle, res);
+    } else {
+      knowledgeArtifactFullResourceHandler(planDefinitions, server.endpoint, res);
     }
-
-    planDefinitions.forEach(async planDefinition => {
-      const endpointId = getEndpointId(planDefinition);
-      const planDefinitionFullUrl = `${server.endpoint}/PlanDefinition/${planDefinition.id}`;
-      db.upsert(
-        PLANDEFINITIONS,
-        { fullUrl: planDefinitionFullUrl, ...planDefinition },
-        r => r.fullUrl === planDefinitionFullUrl
-      );
-      debug(`Fetched ${server.endpoint}/PlanDefinition/${planDefinition.id}`);
-
-      const token = await getAccessToken(server.endpoint);
-      const headers = { Authorization: `Bearer ${token}` };
-      axios
-        .get(`${server.endpoint}/Endpoint/${endpointId}`, { headers: headers })
-        .then(response => {
-          if (response.data) {
-            const endpoint = response.data;
-            const endpointFullUrl = `${server.endpoint}/Endpoint/${endpoint.id}`;
-            db.upsert(
-              ENDPOINTS,
-              { fullUrl: endpointFullUrl, ...endpoint },
-              r => r.fullUrl === endpointFullUrl
-            );
-            debug(`Fetched ${endpointFullUrl}`);
-          }
-        });
-
-      const subscriptions = subscriptionsFromPlanDef(planDefinition, server.endpoint);
-      postSubscriptionsToEHR(subscriptions);
-    });
-
-    res.sendStatus(StatusCodes.OK);
   }
 }
 
@@ -84,14 +49,12 @@ function reportTrigger(req, res) {
   const bundle = req.body;
   const { fullUrl } = req.params;
   const planDefFullUrl = base64url.decode(fullUrl);
-  const serverUrl = getBaseUrlFromFullUrl(planDefFullUrl);
+  const kaBaseUrl = getBaseUrlFromFullUrl(planDefFullUrl);
   const planDef = getPlanDef(planDefFullUrl);
 
   if (!planDef) res.sendStatus(StatusCodes.NOT_FOUND);
   else if (bundle.entry.length <= 1) {
-    // TODO: MEDMORPH-50 will implement this for payload type "empty"
-    error(`Unsupported notification payload type 'empty' from Bundle/${bundle.id}`);
-    res.sendStatus(StatusCodes.BAD_REQUEST);
+    reportTriggerEmptyHandler(bundle, res);
   } else {
     // Filter to only resource(s) which triggered the notification
     const parameters = bundle.entry[0].resource;
@@ -103,25 +66,10 @@ function reportTrigger(req, res) {
     }, []);
 
     if (!resources.length) {
-      // TODO: MEDMORPH-50 will implement this for payload type "id-only"
-      error(`Unsupported notification payload type 'id-only' from Bundle/${bundle.id}`);
-      res.sendStatus(StatusCodes.BAD_REQUEST);
+      reportTriggerIdOnlyHandler(bundle, res);
+    } else {
+      reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBaseUrl, res);
     }
-
-    // For each triggering resource save to the db and begin reporting workflow
-    resources.forEach(resource => {
-      const resourceFullUrl = `${serverUrl}/${resourceType}/${resource.id}`;
-      debug(`Received ${resourceType}/${resource.id} from subscription ${resourceFullUrl}`);
-      const collection = `${resourceType.toLowerCase()}s`;
-      db.upsert(
-        collection,
-        { fullUrl: resourceFullUrl, ...resource },
-        r => r.fullUrl === resourceFullUrl
-      );
-      startReportingWorkflow(planDef, serverUrl, resource);
-    });
-
-    res.sendStatus(StatusCodes.OK);
   }
 }
 
@@ -135,6 +83,118 @@ function getPlanDef(fullUrl) {
   const resultList = db.select(PLANDEFINITIONS, s => s.fullUrl === fullUrl);
   if (resultList[0]) return resultList[0];
   else return null;
+}
+
+/**
+ * Handle start reporting workflow when the notification bundle has payload type full-resource
+ *
+ * @param {PlanDefinition} planDef - the plan definition associated with the notification
+ * @param {*} resources - list of triggering resources from the notification bundle
+ * @param {string} resourceType - the type of all the resources
+ * @param {string} kaBaseUrl - the base url of the ka server
+ * @param {*} res - the express response object
+ */
+function reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBaseUrl, res) {
+  // For each triggering resource save to the db and begin reporting workflow
+  resources.forEach(resource => {
+    const resourceFullUrl = `${getEHRServer().endpoint}/${resourceType}/${resource.id}`;
+    debug(`Received ${resourceType}/${resource.id} from subscription ${resourceFullUrl}`);
+    const collection = `${resourceType.toLowerCase()}s`;
+    db.upsert(
+      collection,
+      { fullUrl: resourceFullUrl, ...resource },
+      r => r.fullUrl === resourceFullUrl
+    );
+    startReportingWorkflow(planDef, kaBaseUrl, resource);
+  });
+  res.sendStatus(StatusCodes.OK);
+}
+
+/**
+ * Handle start reporting workflow when the notification bundle has payload type id-only
+ *
+ * @param {Bundle} bundle - notification bundle
+ * @param {*} res - the express response object
+ */
+function reportTriggerIdOnlyHandler(bundle, res) {
+  // TODO: MEDMORPH-50 will implement this for payload type "id-only"
+  error(`Unsupported notification payload type 'id-only' from Bundle/${bundle.id}`);
+  res.sendStatus(StatusCodes.BAD_REQUEST);
+}
+
+/**
+ * Handle start reporting workflow when the notification bundle has payload type empty
+ *
+ * @param {Bundle} bundle - notification bundle
+ * @param {*} res - the express response object
+ */
+function reportTriggerEmptyHandler(bundle, res) {
+  // TODO: MEDMORPH-50 will implement this for payload type "empty"
+  error(`Unsupported notification payload type 'empty' from Bundle/${bundle.id}`);
+  res.sendStatus(StatusCodes.BAD_REQUEST);
+}
+
+/**
+ *
+ * @param {PlanDefinition[]} planDefinitions - list of all plan defs in the notification bundle
+ * @param {string} serverUrl - the base url of the KA server
+ * @param {*} res - the express response object
+ */
+function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
+  planDefinitions.forEach(async planDefinition => {
+    const endpointId = getEndpointId(planDefinition);
+    const planDefinitionFullUrl = `${serverUrl}/PlanDefinition/${planDefinition.id}`;
+    db.upsert(
+      PLANDEFINITIONS,
+      { fullUrl: planDefinitionFullUrl, ...planDefinition },
+      r => r.fullUrl === planDefinitionFullUrl
+    );
+    debug(`Fetched ${serverUrl}/PlanDefinition/${planDefinition.id}`);
+
+    const token = await getAccessToken(serverUrl);
+    const headers = { Authorization: `Bearer ${token}` };
+    axios.get(`${serverUrl}/Endpoint/${endpointId}`, { headers: headers }).then(response => {
+      if (response.data) {
+        const endpoint = response.data;
+        const endpointFullUrl = `${endpoint}/Endpoint/${endpoint.id}`;
+        db.upsert(
+          ENDPOINTS,
+          { fullUrl: endpointFullUrl, ...endpoint },
+          r => r.fullUrl === endpointFullUrl
+        );
+        debug(`Fetched ${endpointFullUrl}`);
+      }
+    });
+
+    const subscriptions = subscriptionsFromPlanDef(planDefinition, serverUrl);
+    postSubscriptionsToEHR(subscriptions);
+  });
+
+  res.sendStatus(StatusCodes.OK);
+}
+
+/**
+ * Handle fetch ka when the notification bundle has payload type id-only
+ *
+ * @param {Bundle} bundle - notification bundle
+ * @param {*} res - the express response object
+ */
+function knowledgeArtifactIdOnlyHandler(bundle, res) {
+  // TODO: MEDMORPH-50 will implement this for payload type "id-only"
+  error(`Unsupported notification payload type 'id-only' from Bundle/${bundle.id}`);
+  res.sendStatus(StatusCodes.BAD_REQUEST);
+}
+
+/**
+ * Handle fetch ka when the notification bundle has payload type empty
+ *
+ * @param {Bundle} bundle - notification bundle
+ * @param {*} res - the express response object
+ */
+function knowledgeArtifactEmptyHandler(bundle, res) {
+  // TODO: MEDMORPH-50 will implement this for payload type "empty"
+  error(`Unsupported notification payload type 'empty' from Bundle/${bundle.id}`);
+  res.sendStatus(StatusCodes.BAD_REQUEST);
 }
 
 module.exports = { knowledgeArtifact, reportTrigger };
