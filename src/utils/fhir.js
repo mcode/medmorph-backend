@@ -350,11 +350,14 @@ async function getReferencedResource(url, reference) {
     const [resourceType, id] = reference.split('/');
     const token = await getAccessToken(url);
     const headers = { Authorization: `Bearer ${token}` };
-    const resource = await axios.get(`${url}/${resourceType}/${id}`, { headers: headers });
-    debug(
-      `Retrieved reference resource ${resource.data.resourceType}/${resource.data.id} from ${url}`
-    );
-    return resource.data;
+    const resource = await axios
+      .get(`${url}/${resourceType}/${id}`, { headers: headers })
+      .then(response => response.data)
+      .catch(err => error(err));
+    if (resource) {
+      debug(`Retrieved reference resource ${resource.resourceType}/${resource.id} from ${url}`);
+      return resource.data;
+    } else return null;
   }
 
   // TODO: update to work with other reference types
