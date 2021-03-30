@@ -47,8 +47,8 @@ export default makeStyles(
     cornerText: {
       fontSize: '20px',
       fontFamily: 'Verdana',
-      color: theme.palette.text.primary,
-      textAlign: 'center'
+      textAlign: 'center',
+      color: theme.palette.common.white
     },
 
     drawer: {
@@ -65,7 +65,8 @@ export default makeStyles(
       textAlign: 'left',
       paddingLeft: '35px',
       display: 'flex',
-      height: '70px'
+      height: '70px',
+      color: 'white'
     },
     drawerItemText: {
       fontFamily: 'Verdana',
