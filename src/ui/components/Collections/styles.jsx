@@ -53,6 +53,10 @@ export default makeStyles(
     headerCell: {
       color: 'black'
     },
+    noData: {
+      height: '60px',
+      lineHeight: '60px'
+    },
     tableRow: {
       '&:nth-of-type(odd)': {
         backgroundColor: '#eaeaeb'

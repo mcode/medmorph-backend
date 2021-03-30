@@ -155,48 +155,60 @@ const Collections = props => {
       });
   };
 
+  const renderToolbar = () => {
+    return (
+      <>
+        <div className={classes.topBar}>
+          <span className={classes.topBarText}>{selectedCollection.toUpperCase()}</span>
+          {infoBundle.addButton && (
+            <Button
+              variant="contained"
+              classes={{ root: classes.addButton }}
+              color="secondary"
+              disableElevation
+              startIcon={<AddIcon />}
+            >
+              Add new
+            </Button>
+          )}
+        </div>
+        <div className={classes.break}></div>
+      </>
+    );
+  };
+
   return (
     <div className={classes.collection}>
       {selectedCollection !== '' && infoBundle.data && (
         <>
-          <div className={classes.topBar}>
-            <span className={classes.topBarText}>{selectedCollection.toUpperCase()}</span>
-            {infoBundle.addButton && (
-              <Button
-                variant="contained"
-                classes={{ root: classes.addButton }}
-                color="secondary"
-                disableElevation
-                startIcon={<AddIcon />}
-              >
-                Add new
-              </Button>
-            )}
-          </div>
-          <div className={classes.break}></div>
-          <TableContainer>
-            <Table size="small">
-              <SortedTableHead
-                classes={classes}
-                order={order}
-                orderBy={orderBy}
-                onRequestSort={handleRequestSort}
-                headers={infoBundle.headers}
+          {renderToolbar()}
+          {infoBundle.data.length > 0 ? (
+            <TableContainer>
+              <Table size="small">
+                <SortedTableHead
+                  classes={classes}
+                  order={order}
+                  orderBy={orderBy}
+                  onRequestSort={handleRequestSort}
+                  headers={infoBundle.headers}
+                />
+                <TableBody>{formatRows()}</TableBody>
+              </Table>
+              <TablePagination
+                component="div"
+                count={infoBundle.data.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onChangePage={handleChangePage}
+                backIconButtonProps={{
+                  classes: classes.backButton
+                }}
+                onChangeRowsPerPage={handleChangeRowsPerPage}
               />
-              <TableBody>{formatRows()}</TableBody>
-            </Table>
-            <TablePagination
-              component="div"
-              count={infoBundle.data.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onChangePage={handleChangePage}
-              backIconButtonProps={{
-                classes: classes.backButton
-              }}
-              onChangeRowsPerPage={handleChangeRowsPerPage}
-            />
-          </TableContainer>
+            </TableContainer>
+          ) : (
+            <div className={classes.noData}>No Data Found</div>
+          )}
         </>
       )}
     </div>
