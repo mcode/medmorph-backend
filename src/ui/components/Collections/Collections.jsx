@@ -142,7 +142,7 @@ const Collections = props => {
               return (
                 <TableCell key={cellKey} style={{ whiteSpace: 'nowrap' }}>
                   {' '}
-                  {header === 'RESOURCE' ? (
+                  {header === 'resource' ? (
                     <ReactJson src={d} collapsed={true} enableClipboard={false} />
                   ) : (
                     d[header.value || header.toLowerCase()]
