@@ -283,7 +283,32 @@ function postSubscriptionsToEHR(subscriptions) {
  * @returns the Subscription.criteria string or null if Subscription is not applicable
  */
 function namedEventToCriteria(code) {
-  const parts = code.split('-');
+  const resourceType = namedEventToResourceType(code);
+
+  if (resourceType === 'Observation') return 'Observation?category=laboratory';
+  else return resourceType;
+}
+
+/**
+ * Take a topic url and return the resource type the topic will subscribe to.
+ *
+ * @param {string} topicUrl - the canonical url for the topic
+ * @returns the resource type which will trigger a notification for the named event
+ */
+function topicToResourceType(topicUrl) {
+  const namedEvent = topicUrl.split('/').slice(-1)[0];
+  return namedEventToResourceType(namedEvent);
+}
+
+/**
+ * Take a named event code and return the resource type the named event will subscribe to.
+ * This is not quite the Subscription.criteria string but will be used to construct that.
+ *
+ * @param {string} namedEvent - the named event code
+ * @returns the resource type which will trigger a notification for the named event
+ */
+function namedEventToResourceType(namedEvent) {
+  const parts = namedEvent.split('-');
 
   let resource;
   if (parts[0] === 'new' || parts[0] === 'modified') resource = parts[1];
@@ -299,7 +324,7 @@ function namedEventToCriteria(code) {
     case 'medication':
       return 'Medication';
     case 'labresult':
-      return 'Observation?category=laboratory';
+      return 'Observation';
     case 'order':
       return 'ServiceRequest';
     case 'procedure':
@@ -325,11 +350,14 @@ async function getReferencedResource(url, reference) {
     const [resourceType, id] = reference.split('/');
     const token = await getAccessToken(url);
     const headers = { Authorization: `Bearer ${token}` };
-    const resource = await axios.get(`${url}/${resourceType}/${id}`, { headers: headers });
-    debug(
-      `Retrieved reference resource ${resource.data.resourceType}/${resource.data.id} from ${url}`
-    );
-    return resource.data;
+    const resource = await axios
+      .get(`${url}/${resourceType}/${id}`, { headers: headers })
+      .then(response => response.data)
+      .catch(err => error(err));
+    if (resource) {
+      debug(`Retrieved reference resource ${resource.resourceType}/${resource.id} from ${url}`);
+      return resource.data;
+    } else return null;
   }
 
   // TODO: update to work with other reference types
@@ -383,6 +411,7 @@ module.exports = {
   forwardMessageResponse,
   subscribeToKnowledgeArtifacts,
   postSubscriptionsToEHR,
+  topicToResourceType,
   getEndpointId,
   getBaseUrlFromFullUrl
 };
