@@ -18,7 +18,8 @@ const colors = {
   grayVeryDark: '#3a3a3a',
   green: '#2fa874',
   purple: '#8b72d6',
-  turqoise: '#37c0ae'
+  turqoise: '#37c0ae',
+  grayHighlight: '#eaeaeb'
 };
 
 const paletteBase = {
@@ -71,7 +72,7 @@ const materialUiOverridesBase = {
     root: {
       width: '70vw',
       margin: '0 20px 0 20px',
-      height: '450px',
+      overflowX: 'visible',
       backgroundColor: 'white'
     }
   },

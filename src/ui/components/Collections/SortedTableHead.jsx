@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { TableCell, TableHead, TableRow, TableSortLabel } from '@material-ui/core';
 import PropTypes from 'prop-types';
 
 function SortedTableHead(props) {
   const { classes, order, orderBy, onRequestSort, headers } = props;
-  const createSortHandler = property => event => {
+  const createSortHandler = useCallback(property => event => {
     onRequestSort(event, property);
-  };
+  });
 
   const labels = headers.map(header => {
     if (header.value !== undefined) {
@@ -31,7 +31,7 @@ function SortedTableHead(props) {
               direction={orderBy === headCell.value ? order : 'asc'}
               onClick={createSortHandler(headCell.value)}
             >
-              {headCell.label}
+              {headCell.label.toUpperCase()}
               {orderBy === headCell.value ? (
                 <span className={classes.visuallyHidden}>
                   {order === 'desc' ? 'sorted descending' : 'sorted ascending'}

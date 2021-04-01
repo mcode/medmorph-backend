@@ -10,7 +10,8 @@ export default makeStyles(
     break: {
       width: '100%',
       height: '0',
-      borderTop: '1px solid #eaeaeb'
+      borderTop: '1px solid',
+      borderColor: theme.palette.common.grayHighlight
     },
     collection: {
       margin: '60px auto',
@@ -59,7 +60,7 @@ export default makeStyles(
     },
     tableRow: {
       '&:nth-of-type(odd)': {
-        backgroundColor: '#eaeaeb'
+        backgroundColor: theme.palette.common.grayHighlight
       }
     },
     topBar: {

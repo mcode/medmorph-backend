@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useQuery } from 'react-query';
 import {
@@ -26,9 +26,13 @@ const Collections = props => {
   const [order, setOrder] = useState('asc');
   const [orderBy, setOrderBy] = useState('');
 
-  const handleChangePage = (event, newPage) => {
+  useEffect(() => {
+    setPage(0);
+  }, selectedCollection);
+
+  const handleChangePage = useCallback((event, newPage) => {
     setPage(newPage);
-  };
+  });
 
   function descendingComparator(a, b, orderBy) {
     if (b[orderBy] < a[orderBy]) {
@@ -46,8 +50,8 @@ const Collections = props => {
 
   function getComparator(order, orderBy) {
     return order === 'desc'
-      ? (a, b) => descendingComparator(a, b, orderBy.toLowerCase())
-      : (a, b) => -descendingComparator(a, b, orderBy.toLowerCase());
+      ? (a, b) => descendingComparator(a, b, orderBy)
+      : (a, b) => -descendingComparator(a, b, orderBy);
   }
 
   function stableSort(array, comparator) {
@@ -61,19 +65,19 @@ const Collections = props => {
     return stabilizedThis.map(el => el[0]);
   }
 
-  const handleRequestSort = (event, property) => {
+  const handleRequestSort = useCallback((event, property) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
-  };
+  });
 
-  const handleChangeRowsPerPage = event => {
+  const handleChangeRowsPerPage = useCallback(event => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
-  };
+  });
 
   const { data } = useQuery(['collections', { selectedCollection }], () =>
-    axios.get(`http://localhost:3000/collection/${selectedCollection}`)
+    axios.get(`/collection/${selectedCollection}`)
   );
 
   const getInfo = () => {
@@ -82,7 +86,7 @@ const Collections = props => {
       case '':
         return [];
       case 'servers':
-        headers = [{ value: 'icon', label: '' }, 'NAME', 'ID', 'ENDPOINT', 'TYPE'];
+        headers = [{ value: 'icon', label: '' }, 'name', 'id', 'endpoint', 'type'];
         return {
           headers,
           data: data.data.map(element => {
@@ -94,28 +98,28 @@ const Collections = props => {
         };
       case 'endpoints':
       case 'plandefinitions':
-        headers = ['ID', { value: 'fullUrl', label: 'FULLURL' }, 'NAME', 'RESOURCE'];
+        headers = ['id', 'fullUrl', 'name', 'resource'];
         return {
           headers,
           data: data.data,
           addButton: true
         };
       case 'subscriptions':
-        headers = ['ID', { value: 'fullUrl', label: 'FULLURL' }, 'CRITERIA', 'RESOURCE'];
+        headers = ['id', 'fullUrl', 'criteria', 'resource'];
         return {
           headers,
           data: data.data,
           addButton: true
         };
       case 'logs':
-        headers = ['ID', 'TIMESTAMP', 'MESSAGE', 'LOCATION'];
+        headers = ['id', 'timestamp', 'message', 'location'];
         return {
           headers,
           data: data.data,
           addButton: false
         };
       default:
-        headers = ['ID', 'RESOURCE'];
+        headers = ['id', 'resource'];
         return {
           headers,
           data: data.data,
