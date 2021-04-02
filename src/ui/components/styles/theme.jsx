@@ -72,7 +72,8 @@ const materialUiOverridesBase = {
     root: {
       width: '70vw',
       margin: '0 20px 0 20px',
-      overflowX: 'visible',
+      overflowY: 'visible',
+      overflowX: 'scroll',
       backgroundColor: 'white'
     }
   },
