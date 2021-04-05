@@ -41,6 +41,7 @@ Certain configuration properties MUST be set via enviornment variables. The easi
 | DEBUG | No | Set to `medmorph-backend:*` to enable debug loggers for the app. |
 | DATA_TRUST_SERVICE | Yes | The base url for the data/trust service server. |
 | BASE_URL | Yes | The base url for this server. |
+| ADMIN_TOKEN | No | The value of the admin token to bypass authorization. If unset no admin token can be used. |
 
 ```env
 # Port number for the server, defaults to 3000 if not provided
