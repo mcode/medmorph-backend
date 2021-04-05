@@ -18,7 +18,8 @@ const colors = {
   grayVeryDark: '#3a3a3a',
   green: '#2fa874',
   purple: '#8b72d6',
-  turqoise: '#37c0ae'
+  turqoise: '#37c0ae',
+  grayHighlight: '#eaeaeb'
 };
 
 const paletteBase = {
@@ -37,8 +38,8 @@ const paletteBase = {
     primary: colors.grayLight
   },
   text: {
-    primary: colors.white,
-    secondary: colors.white,
+    primary: colors.black,
+    secondary: colors.black,
     gray: colors.grayLighter
   },
   grey: {
@@ -52,10 +53,36 @@ const paletteBase = {
 const materialUiOverridesBase = {
   MuiTableCell: {
     body: {
-      color: 'black'
+      color: '#575b62'
     },
     head: {
-      color: 'black'
+      color: '#575b62',
+      fontWeight: '600',
+      fontSize: '12px'
+    },
+    sizeSmall: {
+      padding: '5px 24px 5px 16px',
+      '&:last-child': {
+        paddingRight: '0px',
+        width: '80px'
+      }
+    }
+  },
+  MuiTableContainer: {
+    root: {
+      width: '70vw',
+      margin: '0 20px 0 20px',
+      overflowY: 'visible',
+      overflowX: 'scroll',
+      backgroundColor: 'white'
+    }
+  },
+  MuiTableSortLabel: {
+    root: {
+      color: 'black',
+      '&$active': {
+        color: 'black'
+      }
     }
   }
 };
