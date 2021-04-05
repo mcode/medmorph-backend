@@ -34,7 +34,8 @@ function generateToken(id) {
 function backendAuthorization(req, res, next) {
   // Check for admin token, otherwise proceed with keycloak authentication
   const token = getToken(req);
-  if (token === 'admin') return next();
+  const adminToken = process.env.ADMIN_TOKEN;
+  if (adminToken && token === adminToken) return next();
   else return passport.authenticate('keycloak', { session: false })(req, res, next);
 }
 
@@ -43,7 +44,8 @@ function backendAuthorization(req, res, next) {
  */
 function subscriptionAuthorization(req, res, next) {
   const token = getToken(req);
-  if (token === 'admin') return next();
+  const adminToken = process.env.ADMIN_TOKEN;
+  if (adminToken && token === adminToken) return next();
   else if (token) {
     const subscriptionId = token.split(':')[0];
     if (subscriptionId) {
