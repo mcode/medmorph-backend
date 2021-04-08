@@ -112,6 +112,32 @@ export default makeStyles(
     spacer: {
       minHeight: `${toolbarHeight}px`,
       lineHeight: `${toolbarHeight}px`
+    },
+    dashboardContainer: {
+      padding: '15px 35px'
+    },
+    dashboardCard: {
+      padding: 10
+    },
+    fullWidth: {
+      display: 'inline-block',
+      width: '100%'
+    },
+    input: {
+      display: 'none'
+    },
+    chooseFileInput: {
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      margin: 10
+    },
+    inputButton: {
+      whiteSpace: 'nowrap',
+      marginRight: '1em'
+    },
+    fileName: {
+      fontStyle: 'italic'
     }
   }),
 

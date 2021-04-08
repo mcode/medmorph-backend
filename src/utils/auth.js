@@ -70,9 +70,23 @@ function userAuthorization(req, res, next) {
   else res.sendStatus(StatusCodes.UNAUTHORIZED);
 }
 
+/**
+ * Middleware for verifying either SMART Backend Authorization token or
+ * the session for a user on the Admin UI. Allows protected endpoints to
+ * be accessible via both authentication schemes.
+ */
+function userOrBackendAuthorization(req, res, next) {
+  const token = getToken(req);
+  const adminToken = process.env.ADMIN_TOKEN;
+  if (req.isAuthenticated()) return next();
+  else if (adminToken && token === adminToken) return next();
+  else return passport.authenticate('keycloak', { session: false })(req, res, next);
+}
+
 module.exports = {
   generateToken,
   backendAuthorization,
   subscriptionAuthorization,
-  userAuthorization
+  userAuthorization,
+  userOrBackendAuthorization
 };

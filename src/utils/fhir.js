@@ -6,7 +6,7 @@ const error = require('../storage/logs').error('medmorph-backend:fhir');
 const db = require('../storage/DataAccess');
 const { getEHRServer } = require('../storage/servers');
 const { generateToken } = require('./auth');
-const { SUBSCRIPTIONS, SERVERS } = require('../storage/collections');
+const { SUBSCRIPTIONS, SERVERS, PLANDEFINITIONS, ENDPOINTS } = require('../storage/collections');
 const base64url = require('base64url');
 
 const NAMED_EVENT_EXTENSION =
@@ -74,6 +74,32 @@ async function getResources(server, resourceType) {
     });
 
     return data;
+  });
+}
+
+/**
+ * Helper method to GET resource by id from a FHIR server and
+ * save it to the database.
+ *
+ * @param {string} server - the sourse server base url
+ * @param {string} resourceType - the type of the resource
+ * @param {string} id -  the resource id
+ * @returns axios promise of FHIR response
+ */
+async function getResourceById(server, resourceType, id) {
+  const url = `${server}/${resourceType}/${id}`;
+  const token = await getAccessToken(server, db);
+  const headers = { Authorization: `Bearer ${token}` };
+  const axiosResponse = axios
+    .get(url, { headers: headers })
+    .then(response => response.data)
+    .catch(err => error(err));
+  return axiosResponse.then(resource => {
+    if (!resource) return;
+    debug(`Fetched ${server}/${resource.resourceType}/${resource.id}`);
+    const collection = `${resource.resourceType.toLowerCase()}s`;
+    const fullUrl = `${server}/${resource.resourceType}/${resource.id}`;
+    db.upsert(collection, { fullUrl, ...resource }, r => r.fullUrl === fullUrl);
   });
 }
 
@@ -163,10 +189,30 @@ function refreshAllKnowledgeArtifacts() {
  */
 function refreshKnowledgeArtifact(server) {
   getResources(server.endpoint, 'PlanDefinition').then(bundle => {
-    // Create/Update subscriptions from PlanDefinitions
-    if (bundle) subscriptionsFromBundle(bundle, server.endpoint);
+    if (bundle) {
+      // Create/Update subscriptions from PlanDefinitions
+      subscriptionsFromBundle(bundle, server.endpoint);
+
+      // Save the endpoints to the DB
+      const endpoints = bundle.entry.filter(e => e.resource?.resourceType === 'Endpoint');
+      const endpointIds = endpoints.map(e => e.id);
+      endpoints.forEach(endpoint => {
+        debug(`Extracted Endpoint/${endpoint.id} from bundle`);
+        const fullUrl = `${server.endpoint}/Endpoint/${endpoint.id}`;
+        db.upsert(ENDPOINTS, { fullUrl, ...endpoint }, r => r.fullUrl === fullUrl);
+      });
+
+      // Retrieve the endpoint if not included in Bundle
+      bundle.entry.forEach(entry => {
+        const resource = entry.resource;
+        if (resource?.resourceType === 'PlanDefinition') {
+          const endpointId = getEndpointId(resource);
+          if (!endpointIds.includes(endpointId))
+            getResourceById(server.endpoint, 'Endpoint', endpointId);
+        }
+      });
+    }
   });
-  getResources(server.endpoint, 'Endpoint');
 }
 
 /**
@@ -401,6 +447,18 @@ function getBaseUrlFromFullUrl(fullUrl) {
   return temp.substring(0, temp.lastIndexOf('/'));
 }
 
+/**
+ * Retrieves the PlanDefinition with the given id from the db
+ *
+ * @param {string} fullUrl - the fullUrl of the PlanDefinition
+ * @returns the PlanDefinition with the given id or null if not found
+ */
+function getPlanDef(fullUrl) {
+  const resultList = db.select(PLANDEFINITIONS, s => s.fullUrl === fullUrl);
+  if (resultList[0]) return resultList[0];
+  else return null;
+}
+
 module.exports = {
   generateOperationOutcome,
   refreshAllKnowledgeArtifacts,
@@ -413,5 +471,6 @@ module.exports = {
   postSubscriptionsToEHR,
   topicToResourceType,
   getEndpointId,
-  getBaseUrlFromFullUrl
+  getBaseUrlFromFullUrl,
+  getPlanDef
 };
