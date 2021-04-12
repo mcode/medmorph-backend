@@ -38,6 +38,14 @@ function Dashboard() {
   const handleTrigger = useCallback(
     event => {
       event.preventDefault();
+      if (!planDefFullUrl) {
+        setAlert('Unable to trigger report: PlanDefinition required.', 'error');
+        return;
+      } else if (!fileName) {
+        setAlert('Unable to trigger report: Patient or Encounter Resource required.', 'error');
+        return;
+      }
+
       setIsLoading(true);
       const files = importFileRef.current.files;
       const reader = new global.FileReader();
@@ -55,11 +63,12 @@ function Dashboard() {
           .catch(err => {
             console.error(err);
             setAlert('Error Triggering Report Manually. Please Try Again.', 'error');
+            setIsLoading(false);
           });
       };
       reader.readAsText(files[0]);
     },
-    [planDefFullUrl, setFileName, setIsLoading, setPlanDefFullUrl]
+    [fileName, planDefFullUrl, setFileName, setIsLoading, setPlanDefFullUrl]
   );
 
   const handleCloseAlert = useCallback(() => {
