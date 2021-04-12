@@ -6,8 +6,9 @@ const logger = require('morgan');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const passport = require('passport');
-const KeycloakBearerStrategy = require('passport-keycloak-bearer');
 const LocalStrategy = require('passport-local').Strategy;
+const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
+const jwksRsa = require('jwks-rsa');
 
 const authRouter = require('./routes/auth');
 const fhirRouter = require('./routes/fhir');
@@ -43,12 +44,18 @@ app.use(function(req, res, next) {
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Setup passport to use keycloak
+// setup passport to handle JWTs. see example at:
+// https://github.com/auth0/node-jwks-rsa/tree/master/examples/passport-demo
 passport.use(
-  new KeycloakBearerStrategy(
+  new JwtStrategy(
     {
-      realm: process.env.REALM,
-      url: process.env.AUTH
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKeyProvider: jwksRsa.passportJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: process.env.AUTH_CERTS_URL
+      })
     },
     (jwtPayload, done) => {
       return done(null, jwtPayload);

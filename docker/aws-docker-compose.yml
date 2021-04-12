@@ -8,7 +8,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - AUTH=http://ec2-3-211-58-180.compute-1.amazonaws.com:8090/auth
-      - REALM=backend_app
+      - AUTH_CERTS_URL=http://ec2-3-211-58-180.compute-1.amazonaws.com:8090/auth/realms/backend_app/protocol/openid-connect/certs
+      - AUTH_TOKEN_URL=http://ec2-3-211-58-180.compute-1.amazonaws.com:8090/auth/realms/backend_app/protocol/openid-connect/token
       - BASE_URL=http://ec2-3-211-58-180.compute-1.amazonaws.com:3000
       - DATA_TRUST_SERVICE=http://ec2-3-211-58-180.compute-1.amazonaws.com:3001

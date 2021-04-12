@@ -59,7 +59,7 @@ function userOrBackendAuthorization(req, res, next) {
   const adminToken = process.env.ADMIN_TOKEN;
   if (req.isAuthenticated()) return next();
   else if (adminToken && token === adminToken) return next();
-  else return passport.authenticate('keycloak', { session: false })(req, res, next);
+  else return passport.authenticate('jwt', { session: false })(req, res, next);
 }
 
 module.exports = {
