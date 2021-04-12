@@ -63,6 +63,9 @@ export default makeStyles(
         backgroundColor: theme.palette.common.grayHighlight
       }
     },
+    tableRowEdit: {
+      backgroundColor: '#e6f7f5'
+    },
     topBar: {
       height: '70px',
       lineHeight: '70px'

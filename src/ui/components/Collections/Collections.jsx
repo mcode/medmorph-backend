@@ -1,38 +1,34 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useQuery } from 'react-query';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
-  TablePagination
-} from '@material-ui/core';
-import ReactJson from 'react-json-view';
+import { Table, TableBody, TableContainer, TablePagination } from '@material-ui/core';
 import PropTypes from 'prop-types';
 import useStyles from './styles';
 import SortedTableHead from './SortedTableHead';
-import DeleteIcon from '@material-ui/icons/Delete';
-import CreateIcon from '@material-ui/icons/Create';
 import Button from '@material-ui/core/Button';
 import AddIcon from '@material-ui/icons/Add';
+import CollectionRow from './CollectionRow';
+import { v4 } from 'uuid';
 
 const Collections = props => {
   const classes = useStyles();
+
   const { selectedCollection } = props;
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [order, setOrder] = useState('asc');
   const [orderBy, setOrderBy] = useState('');
-
+  const [addNew, setAddNew] = useState(false);
   useEffect(() => {
     setPage(0);
-  }, selectedCollection);
+  }, [selectedCollection]);
 
-  const handleChangePage = useCallback((event, newPage) => {
-    setPage(newPage);
-  });
+  const handleChangePage = useCallback(
+    (event, newPage) => {
+      setPage(newPage);
+    },
+    [setPage]
+  );
 
   function descendingComparator(a, b, orderBy) {
     if (b[orderBy] < a[orderBy]) {
@@ -76,6 +72,14 @@ const Collections = props => {
     setPage(0);
   });
 
+  const createNew = () => {
+    setAddNew(true);
+  };
+
+  const endNew = () => {
+    setAddNew(false);
+  };
+
   const { data } = useQuery(['collections', { selectedCollection }], () =>
     axios.get(`/collection/${selectedCollection}`)
   );
@@ -86,7 +90,13 @@ const Collections = props => {
       case '':
         return [];
       case 'servers':
-        headers = [{ value: 'icon', label: '' }, 'name', 'id', 'endpoint', 'type'];
+        headers = [
+          { value: 'icon', label: '', edit: false, viewOnly: true },
+          { value: 'name', label: 'name', edit: true },
+          { value: 'id', label: 'id', edit: false },
+          { value: 'endpoint', label: 'endpoint', edit: true },
+          { value: 'type', label: 'type', edit: false }
+        ];
         return {
           headers,
           data: data.data.map(element => {
@@ -94,36 +104,59 @@ const Collections = props => {
             element.icon = <a className={icon}></a>;
             return element;
           }),
-          addButton: true
+          addButton: true,
+          editable: true
         };
       case 'endpoints':
       case 'plandefinitions':
-        headers = ['id', 'fullUrl', 'name', 'resource'];
+        headers = [
+          { value: 'id', label: 'id', edit: false },
+          { value: 'fullUrl', label: 'fullUrl', edit: true },
+          { value: 'name', label: 'name', edit: true },
+          { value: 'resource', label: 'resource', edit: false }
+        ];
         return {
           headers,
           data: data.data,
-          addButton: true
+          addButton: true,
+          editable: true
         };
       case 'subscriptions':
-        headers = ['id', 'fullUrl', 'criteria', 'resource'];
+        headers = [
+          { value: 'id', label: 'id', edit: false },
+          { value: 'fullUrl', label: 'fullUrl', edit: true },
+          { value: 'criteria', label: 'criteria', edit: true },
+          { value: 'resource', label: 'resource', edit: false }
+        ];
         return {
           headers,
           data: data.data,
-          addButton: true
+          addButton: true,
+          editable: true
         };
       case 'logs':
-        headers = ['id', 'timestamp', 'message', 'location'];
+        headers = [
+          { value: 'id', label: 'id', edit: false },
+          { value: 'timestamp', label: 'timestamp', edit: false },
+          { value: 'message', label: 'message', edit: false },
+          { value: 'location', label: 'location', edit: false }
+        ];
         return {
           headers,
           data: data.data,
-          addButton: false
+          addButton: false,
+          editable: false
         };
       default:
-        headers = ['id', 'resource'];
+        headers = [
+          { value: 'id', label: 'id', edit: false },
+          { value: 'resource', label: 'resource', edit: false }
+        ];
         return {
           headers,
           data: data.data,
-          addButton: false
+          addButton: false,
+          editable: false
         };
     }
   };
@@ -136,25 +169,13 @@ const Collections = props => {
       .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
       .map((d, i) => {
         return (
-          <TableRow key={`${selectedCollection}-${i}`} classes={{ root: classes.tableRow }}>
-            {infoBundle.headers.map((header, j) => {
-              const cellKey = `${i}-${j}`;
-              return (
-                <TableCell key={cellKey} style={{ whiteSpace: 'nowrap' }}>
-                  {' '}
-                  {header === 'resource' ? (
-                    <ReactJson src={d} collapsed={true} enableClipboard={false} />
-                  ) : (
-                    d[header.value || header.toLowerCase()]
-                  )}{' '}
-                </TableCell>
-              );
-            })}
-            <TableCell>
-              <CreateIcon fontSize={'small'} color="secondary" classes={{ root: classes.icon }} />
-              <DeleteIcon fontSize={'small'} color="error" classes={{ root: classes.icon }} />
-            </TableCell>
-          </TableRow>
+          <CollectionRow
+            key={`${d.id}-${i}`}
+            headers={infoBundle.headers}
+            data={d}
+            selectedCollection={selectedCollection}
+            editable={infoBundle.editable}
+          />
         );
       });
   };
@@ -171,6 +192,7 @@ const Collections = props => {
               color="secondary"
               disableElevation
               startIcon={<AddIcon />}
+              onClick={createNew}
             >
               Add new
             </Button>
@@ -186,7 +208,7 @@ const Collections = props => {
       {selectedCollection !== '' && infoBundle.data && (
         <>
           {renderToolbar()}
-          {infoBundle.data.length > 0 ? (
+          {infoBundle.data.length > 0 || addNew ? (
             <TableContainer>
               <Table size="small">
                 <SortedTableHead
@@ -196,7 +218,19 @@ const Collections = props => {
                   onRequestSort={handleRequestSort}
                   headers={infoBundle.headers}
                 />
-                <TableBody>{formatRows()}</TableBody>
+                <TableBody>
+                  {addNew && (
+                    <CollectionRow
+                      headers={infoBundle.headers}
+                      data={{ id: v4() }}
+                      selectedCollection={selectedCollection}
+                      editable={infoBundle.editable}
+                      addNew={true}
+                      callback={endNew}
+                    />
+                  )}
+                  {formatRows()}
+                </TableBody>
               </Table>
               <TablePagination
                 component="div"
