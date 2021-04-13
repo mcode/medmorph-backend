@@ -9,6 +9,8 @@ import CancelIcon from '@material-ui/icons/Cancel';
 import axios from 'axios';
 import { useQueryClient } from 'react-query';
 import AlertDialog from './AlertDialog';
+import JSONInput from 'react-json-editor-ajrm';
+import locale from 'react-json-editor-ajrm/locale/en';
 
 function CollectionRow(props) {
   const classes = useStyles();
@@ -36,6 +38,14 @@ function CollectionRow(props) {
         callback();
       }
     });
+  };
+
+  const handleJson = event => {
+    // the event is a custom object returned from
+    // JSONInput, not a regular event
+    if (event.jsObject) {
+      dispatch({ header: 'resource', value: event.jsObject });
+    }
   };
 
   const cancelSave = () => {
@@ -101,11 +111,12 @@ function CollectionRow(props) {
               {' '}
               {header.value === 'resource' ? (
                 header.edit ? (
-                  <textarea
-                    value={JSON.stringify(state[header.value])}
-                    onChange={e => {
-                      dispatch({ header: header.value, value: JSON.parse(e.target.value) });
-                    }}
+                  <JSONInput
+                    id={'json' + j}
+                    placeholder={state[header.value]}
+                    locale={locale}
+                    height="550px"
+                    onChange={handleJson}
                   />
                 ) : (
                   <ReactJson src={data[header.value]} collapsed={true} enableClipboard={false} />
