@@ -35,7 +35,7 @@ Certain configuration properties MUST be set via enviornment variables. The easi
 
 | ENV | Required | Description |
 | --- | -------- | ----------- |
-| AUTH_CERTS_URL | Yes | Endpoint hosting the public JWK Set  |
+| AUTH_CERTS_URL | Yes | Endpoint hosting the public JWK Set of the Auth server  |
 | AUTH_TOKEN_URL | Yes | Endpoint for requesting an access token through the use of an OAuth 2.0 client credentials flow |
 | PORT | No | The port number for the server. Defaults to 3000 if not provided. |
 | DEBUG | No | Set to `medmorph-backend:*` to enable debug loggers for the app. |
