@@ -30,24 +30,24 @@ function CollectionRow(props) {
     });
 
     axios.put(`/collection/${selectedCollection}?id=${bundle.id}`, bundle).then(() => {
-        queryClient.invalidateQueries(['collections', {selectedCollection}]);
-        setEdit(false);
-        if(callback) {
-            callback();
-        }
+      queryClient.invalidateQueries(['collections', { selectedCollection }]);
+      setEdit(false);
+      if (callback) {
+        callback();
+      }
     });
   };
 
   const cancelSave = () => {
     setEdit(false);
-    if(callback) {
-        callback();
+    if (callback) {
+      callback();
     }
   };
 
   const deleteData = () => {
     axios.delete(`/collection/${selectedCollection}?id=${state.id}`).then(() => {
-      queryClient.invalidateQueries(['collections', {selectedCollection}]);
+      queryClient.invalidateQueries(['collections', { selectedCollection }]);
       setEdit(false);
     });
   };
@@ -99,16 +99,17 @@ function CollectionRow(props) {
           return (
             <TableCell key={`${data.id}-${cellKey}`} style={{ whiteSpace: 'nowrap' }}>
               {' '}
-              {header.value === 'resource' ? header.edit ? (
-                          <textarea
-                          value={JSON.stringify(state[header.value])}
-                          onChange={e => {
-                            dispatch({ header: header.value, value: JSON.parse(e.target.value) });
-                          }}
-                      />
-              )
-              :(
-                <ReactJson src={data[header.value]} collapsed={true} enableClipboard={false} />
+              {header.value === 'resource' ? (
+                header.edit ? (
+                  <textarea
+                    value={JSON.stringify(state[header.value])}
+                    onChange={e => {
+                      dispatch({ header: header.value, value: JSON.parse(e.target.value) });
+                    }}
+                  />
+                ) : (
+                  <ReactJson src={data[header.value]} collapsed={true} enableClipboard={false} />
+                )
               ) : header.edit ? (
                 <input
                   value={state[header.value]}
