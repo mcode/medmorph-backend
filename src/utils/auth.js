@@ -27,19 +27,6 @@ function generateToken(id) {
 }
 
 /**
- * Middleware for handling the default SMART Backend Authorization
- * Will first check to see if the token is "admin" and otherwise proceed
- * with keycloak verification
- */
-function backendAuthorization(req, res, next) {
-  // Check for admin token, otherwise proceed with keycloak authentication
-  const token = getToken(req);
-  const adminToken = process.env.ADMIN_TOKEN;
-  if (adminToken && token === adminToken) return next();
-  else return passport.authenticate('keycloak', { session: false })(req, res, next);
-}
-
-/**
  * Middleware for verifying the access token on a Subscription notification
  */
 function subscriptionAuthorization(req, res, next) {
@@ -63,16 +50,20 @@ function subscriptionAuthorization(req, res, next) {
 }
 
 /**
- * Middleware for verifying the session for a user on the Admin UI
+ * Middleware for verifying either SMART Backend Authorization token or
+ * the session for a user on the Admin UI. Allows protected endpoints to
+ * be accessible via both authentication schemes.
  */
-function userAuthorization(req, res, next) {
+function userOrBackendAuthorization(req, res, next) {
+  const token = getToken(req);
+  const adminToken = process.env.ADMIN_TOKEN;
   if (req.isAuthenticated()) return next();
-  else res.sendStatus(StatusCodes.UNAUTHORIZED);
+  else if (adminToken && token === adminToken) return next();
+  else return passport.authenticate('keycloak', { session: false })(req, res, next);
 }
 
 module.exports = {
   generateToken,
-  backendAuthorization,
   subscriptionAuthorization,
-  userAuthorization
+  userOrBackendAuthorization
 };

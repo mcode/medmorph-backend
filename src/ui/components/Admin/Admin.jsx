@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import useAuthorizedUser from '../../hooks/useAuthorizedUser';
 import { Login } from '../Auth';
-import Dashboard from '../Dashboard';
+import DashboardLayout from '../Dashboard';
 import { ThemeProvider } from '@material-ui/core/styles';
 import theme from '../styles/theme';
 const Admin = () => {
@@ -14,7 +14,7 @@ const Admin = () => {
       {isAuthorized && (
         <div>
           <ThemeProvider theme={theme}>
-            <Dashboard />
+            <DashboardLayout />
           </ThemeProvider>
         </div>
       )}

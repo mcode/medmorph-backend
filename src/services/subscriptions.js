@@ -9,7 +9,8 @@ const {
   subscriptionsFromPlanDef,
   postSubscriptionsToEHR,
   getBaseUrlFromFullUrl,
-  topicToResourceType
+  topicToResourceType,
+  getPlanDef
 } = require('../utils/fhir');
 const { getAccessToken } = require('../utils/client');
 const { PLANDEFINITIONS, ENDPOINTS } = require('../storage/collections');
@@ -71,18 +72,6 @@ function reportTrigger(req, res) {
       reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBaseUrl, res);
     }
   }
-}
-
-/**
- * Retrieves the PlanDefinition with the given id from the db
- *
- * @param {string} fullUrl - the fullUrl of the PlanDefinition
- * @returns the PlanDefinition with the given id or null if not found
- */
-function getPlanDef(fullUrl) {
-  const resultList = db.select(PLANDEFINITIONS, s => s.fullUrl === fullUrl);
-  if (resultList[0]) return resultList[0];
-  else return null;
 }
 
 /**

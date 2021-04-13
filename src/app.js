@@ -17,11 +17,7 @@ const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
 const { storeRequest } = require('./storage/logs');
 
-const {
-  backendAuthorization,
-  subscriptionAuthorization,
-  userAuthorization
-} = require('./utils/auth');
+const { subscriptionAuthorization, userOrBackendAuthorization } = require('./utils/auth');
 const { refreshAllKnowledgeArtifacts, subscribeToKnowledgeArtifacts } = require('./utils/fhir');
 const { runWhenDBReady } = require('./storage/postinit');
 const { genericController } = require('./handlers/crudHandler');
@@ -83,15 +79,19 @@ app.use('/auth', authRouter);
 
 // Routes for collections
 Object.values(collections).forEach(collectionName => {
-  app.use(`/collection/${collectionName}`, userAuthorization, genericController(collectionName));
+  app.use(
+    `/collection/${collectionName}`,
+    userOrBackendAuthorization,
+    genericController(collectionName)
+  );
 });
 
 // frontend
 app.get('/', (req, res) => res.sendFile('index.html', { root: __dirname + '/../public' }));
 
 // Protected Routes
-app.use('/index', backendAuthorization, indexRouter);
-app.use('/fhir', backendAuthorization, fhirRouter);
+app.use('/index', userOrBackendAuthorization, indexRouter);
+app.use('/fhir', userOrBackendAuthorization, fhirRouter);
 app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
 
 runWhenDBReady(refreshAllKnowledgeArtifacts);
