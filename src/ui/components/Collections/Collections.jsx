@@ -21,6 +21,7 @@ const Collections = props => {
   const [addNew, setAddNew] = useState(false);
   useEffect(() => {
     setPage(0);
+    setAddNew(false);
   }, [selectedCollection]);
 
   const handleChangePage = useCallback(
@@ -113,7 +114,7 @@ const Collections = props => {
           { value: 'id', label: 'id', edit: false },
           { value: 'fullUrl', label: 'fullUrl', edit: true },
           { value: 'name', label: 'name', edit: true },
-          { value: 'resource', label: 'resource', edit: false }
+          { value: 'resource', label: 'resource', edit: true }
         ];
         return {
           headers,

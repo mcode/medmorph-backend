@@ -77,7 +77,13 @@ export default makeStyles(
     backButton: {
       color: 'red',
       backgroundColor: 'red'
-    }
+    },
+    editInput:{
+        width: '100%', 
+        border: '1px solid #e8e8ec', 
+        padding:'2px',
+        color: 'inherit'
+    },
   }),
 
   { name: 'Collection', index: 1 }
