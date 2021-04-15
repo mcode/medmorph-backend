@@ -20,5 +20,5 @@ jobs:
     - run: npm test
       env:
         CI: true
-        REALM: test
-        AUTH: http://example.org
+        AUTH_CERTS_URL: http://example.org/jwks
+        AUTH_TOKEN_URL: http://example.org/token

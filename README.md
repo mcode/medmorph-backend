@@ -35,8 +35,8 @@ Certain configuration properties MUST be set via enviornment variables. The easi
 
 | ENV | Required | Description |
 | --- | -------- | ----------- |
-| REALM | Yes | The Keycloak realm name. This is the url name which may be different than the text name. |
-| AUTH | Yes | The Keycloak auth url. Will look something like `http://keycloak.example.com/auth`/ |
+| AUTH_CERTS_URL | Yes | Endpoint hosting the public JWK Set of the Auth server  |
+| AUTH_TOKEN_URL | Yes | Endpoint for requesting an access token through the use of an OAuth 2.0 client credentials flow |
 | PORT | No | The port number for the server. Defaults to 3000 if not provided. |
 | DEBUG | No | Set to `medmorph-backend:*` to enable debug loggers for the app. |
 | DATA_TRUST_SERVICE | Yes | The base url for the data/trust service server. |
@@ -47,11 +47,11 @@ Certain configuration properties MUST be set via enviornment variables. The easi
 # Port number for the server, defaults to 3000 if not provided
 PORT=3001
 
-# Keycloak realm (required)
-REALM=backend_app
+# Authorization "Token" URL (required)
+AUTH_TOKEN_URL=http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/token
 
-# Keycloak auth url (required)
-AUTH=http://moonshot-dev.mitre.org:8090/auth
+# Authorization "Certs"/JWKS URL (required)
+AUTH_CERTS_URL=http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/certs
 
 # Data turst service url (required)
 DATA_TRUST_SERVICE=http://localhost:3005
@@ -72,7 +72,7 @@ DEBUG=medmorph-backend:*
 The app expects at the minimum a single EHR server. There should also be at least one KA server and one PHA server for anything meaningful to happen. More details and examples can be found on the [Collections Wiki](https://github.com/mcode/medmorph-backend/wiki/Collections)
 
 # License
-Copyright 2020 The MITRE Corporation
+Copyright 2020-2021 The MITRE Corporation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
