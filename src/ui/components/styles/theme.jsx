@@ -19,6 +19,7 @@ const colors = {
   green: '#2fa874',
   purple: '#8b72d6',
   turqoise: '#37c0ae',
+  turqoiseLight: '#e6f7f5',
   grayHighlight: '#eaeaeb'
 };
 

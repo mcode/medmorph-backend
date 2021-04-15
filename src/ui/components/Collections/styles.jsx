@@ -63,6 +63,9 @@ export default makeStyles(
         backgroundColor: theme.palette.common.grayHighlight
       }
     },
+    tableRowEdit: {
+      backgroundColor: theme.palette.common.turqoiseLight
+    },
     topBar: {
       height: '70px',
       lineHeight: '70px'
@@ -74,6 +77,13 @@ export default makeStyles(
     backButton: {
       color: 'red',
       backgroundColor: 'red'
+    },
+    editInput: {
+      width: '100%',
+      border: '1px solid',
+      borderColor: theme.palette.common.grayHighlight,
+      padding: '2px',
+      color: 'inherit'
     }
   }),
 

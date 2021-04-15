@@ -39,7 +39,7 @@ function updateHandler(collectionName, req, res) {
     return;
   }
 
-  res.send(StatusCodes.OK);
+  res.sendStatus(StatusCodes.OK);
 }
 
 function deleteHandler(collectionName, req, res) {
