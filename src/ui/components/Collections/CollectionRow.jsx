@@ -71,7 +71,7 @@ function CollectionRow(props) {
             <TableCell key={cellKey} style={{ whiteSpace: 'nowrap' }}>
               {' '}
               {header.value === 'resource' ? (
-                <ReactJson src={data[header.value]} collapsed={true} enableClipboard={false} />
+                <ReactJson src={data} collapsed={true} enableClipboard={false} />
               ) : (
                 data[header.value || header.toLowerCase()]
               )}{' '}
@@ -113,7 +113,7 @@ function CollectionRow(props) {
                 header.edit ? (
                   <JSONInput
                     id={'json' + j}
-                    placeholder={state[header.value]}
+                    placeholder={state}
                     locale={locale}
                     height="550px"
                     onChange={handleJson}
@@ -121,7 +121,7 @@ function CollectionRow(props) {
                 ) : (
                   <ReactJson src={data[header.value]} collapsed={true} enableClipboard={false} />
                 )
-              ) : header.edit ? (
+              ) : header.edit || (addNew && !header.viewOnly) ? (
                 <input
                   value={state[header.value]}
                   className={classes.editInput}

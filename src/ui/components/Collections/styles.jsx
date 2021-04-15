@@ -64,7 +64,7 @@ export default makeStyles(
       }
     },
     tableRowEdit: {
-      backgroundColor: '#e6f7f5'
+      backgroundColor: theme.palette.common.turqoiseLight
     },
     topBar: {
       height: '70px',
@@ -80,7 +80,8 @@ export default makeStyles(
     },
     editInput: {
       width: '100%',
-      border: '1px solid #e8e8ec',
+      border: '1px solid',
+      borderColor: theme.palette.common.grayHighlight,
       padding: '2px',
       color: 'inherit'
     }
