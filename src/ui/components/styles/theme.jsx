@@ -22,7 +22,7 @@ const colors = {
   maroon: '#a83048',
   purple: '#8b72d6',
   turqoise: '#37c0ae',
-  turqoiseLight: '#e6f7f5',
+  turqoiseLight: '#e6f7f5'
 };
 
 const paletteBase = {

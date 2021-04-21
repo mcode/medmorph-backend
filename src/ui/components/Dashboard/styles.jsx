@@ -18,16 +18,16 @@ export default makeStyles(
       margin: '0 15px 0 15px'
     },
     badge: {
-        backgroundColor: theme.palette.common.maroon,
-        top: '35%',
-        right: '35%',
-        border: '2px solid white',
-        borderRadius: '15px',
-        height: '13px',
-        width: '13px',
+      backgroundColor: theme.palette.common.maroon,
+      top: '35%',
+      right: '35%',
+      border: '2px solid white',
+      borderRadius: '15px',
+      height: '13px',
+      width: '13px'
     },
     badgeRoot: {
-        cursor: 'pointer',
+      cursor: 'pointer'
     },
     breakLine: {
       flexGrow: 1,

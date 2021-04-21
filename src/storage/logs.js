@@ -30,11 +30,11 @@ function error(location) {
     db.insert(ERRORS, log);
 
     const notification = {
-        id: uuidv4(),
-        timestamp: Date.now(),
-        notif: notif ? notif : error,
-        viewed: false,
-        type: 'error',
+      id: uuidv4(),
+      timestamp: Date.now(),
+      notif: notif ? notif : error,
+      viewed: false,
+      type: 'error'
     };
     db.insert(NOTIFICATIONS, notification);
   };

@@ -9,17 +9,17 @@ import NotificationsNoneIcon from '@material-ui/icons/NotificationsNone';
 import Avatar from '@material-ui/core/Avatar';
 import MenuOpenIcon from '@material-ui/icons/MenuOpen';
 import Badge from '@material-ui/core/Badge';
-
+import PropTypes from 'prop-types';
 import Menu from './Menu';
 function NavBar(props) {
   const [open, setOpen] = useState(false);
   const { newNotifs, callback } = props;
   const classes = useStyles();
 
-  const setNotif = useCallback(()=>{
-      callback('notifications');
+  const setNotif = useCallback(() => {
+    callback('notifications');
   });
-  
+
   return (
     <div>
       <AppBar position="fixed" className={classes.appBar}>
@@ -37,7 +37,13 @@ function NavBar(props) {
             placeholder="Type a keyword..."
             fullWidth
           ></TextField>
-          <Badge classes={{badge: classes.badge, root: classes.badgeRoot}} onClick={setNotif} variant='dot' overlap="circle" invisible={!newNotifs}>
+          <Badge
+            classes={{ badge: classes.badge, root: classes.badgeRoot }}
+            onClick={setNotif}
+            variant="dot"
+            overlap="circle"
+            invisible={!newNotifs}
+          >
             <NotificationsNoneIcon className={classes.icon} fontSize={'large'} />
           </Badge>
           <Avatar className={classes.avatar}>NB</Avatar>
@@ -52,5 +58,10 @@ function NavBar(props) {
     </div>
   );
 }
+
+NavBar.propTypes = {
+  newNotifs: PropTypes.bool,
+  callback: PropTypes.func
+};
 
 export default memo(NavBar);

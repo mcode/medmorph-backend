@@ -12,57 +12,63 @@ function DashboardLayout() {
   const classes = useStyles();
   const [contentKey, setContentKey] = useState('dashboard');
 
-  const { data } = useQuery(['notifications'], () =>
-    axios.get(`/collection/notifications`)
-  );
+  const { data } = useQuery(['notifications'], () => axios.get(`/collection/notifications`));
 
-  const unviewedNotifs = useMemo(()=>{
-    if(data) {
-        return data.data.filter((notif)=>{
-            return !notif.viewed
-        })
+  const unviewedNotifs = useMemo(() => {
+    if (data) {
+      return data.data.filter(notif => {
+        return !notif.viewed;
+      });
     } else {
-        return [];
+      return [];
     }
   }, [data]);
 
   const newNotifs = unviewedNotifs.length > 0;
   // can do useMemo to update labels like notifications
-  const tabs = useMemo(()=>{ 
+  const tabs = useMemo(() => {
     return [
-        { key: 'overview', label: 'Overview', component: null },
-        { key: 'dashboard', label: 'Dashboard', component: <Dashboard /> },
-        { key: 'notifications', label: `Notifications ${newNotifs ? `(${unviewedNotifs.length})` : ''}`, component: <Notifications notifs={unviewedNotifs}/> },
-        { key: 'collections', label: 'Collections', component: null },
-        { key: 'servers', label: 'Servers', component: <Collections selectedCollection="servers" /> },
-        {
+      { key: 'overview', label: 'Overview', component: null },
+      { key: 'dashboard', label: 'Dashboard', component: <Dashboard /> },
+      {
+        key: 'notifications',
+        label: `Notifications ${newNotifs ? `(${unviewedNotifs.length})` : ''}`,
+        component: <Notifications notifs={unviewedNotifs} />
+      },
+      { key: 'collections', label: 'Collections', component: null },
+      { key: 'servers', label: 'Servers', component: <Collections selectedCollection="servers" /> },
+      {
         key: 'endpoints',
         label: 'Endpoints',
         component: <Collections selectedCollection="endpoints" />
-        },
-        {
+      },
+      {
         key: 'subscriptions',
         label: 'Subscriptions',
         component: <Collections selectedCollection="subscriptions" />
-        },
-        {
+      },
+      {
         key: 'plandefinitions',
         label: 'Plan Definitions',
         component: <Collections selectedCollection="plandefinitions" />
-        },
-        { key: 'logs', label: 'Logs', component: <Collections selectedCollection="logs" /> },
-        {
+      },
+      { key: 'logs', label: 'Logs', component: <Collections selectedCollection="logs" /> },
+      {
         key: 'completedreports',
         label: 'Completed Reports',
         component: <Collections selectedCollection="completedreports" />
-        },
-        {
+      },
+      {
         key: 'reporting',
         label: 'Reporting',
         component: <Collections selectedCollection="reporting" />
-        },
-        { key: 'errors', label: 'Errors', component: <Collections selectedCollection="errors" /> },
-        { key: 'requests', label: 'Requests', component: <Collections selectedCollection="requests" /> }
+      },
+      { key: 'errors', label: 'Errors', component: <Collections selectedCollection="errors" /> },
+      {
+        key: 'requests',
+        label: 'Requests',
+        component: <Collections selectedCollection="requests" />
+      }
     ];
   });
 
@@ -74,7 +80,7 @@ function DashboardLayout() {
 
   return (
     <div className={classes.container}>
-      <NavBar newNotifs={newNotifs} callback={setContentKey}/>
+      <NavBar newNotifs={newNotifs} callback={setContentKey} />
       <Sidebar tabs={tabs} callback={setContentKey} selected={contentKey} />
       <main className={classes.content}>
         <div className={classes.spacer} />
