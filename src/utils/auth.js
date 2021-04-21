@@ -59,7 +59,18 @@ function userOrBackendAuthorization(req, res, next) {
   const adminToken = process.env.ADMIN_TOKEN;
   if (req.isAuthenticated()) return next();
   else if (adminToken && token === adminToken) return next();
-  else return passport.authenticate('jwt', { session: false })(req, res, next);
+  else
+    return passport.authenticate('jwt', { session: false }, (_err, jwtPayload) => {
+      if (!jwtPayload) res.sendStatus(StatusCodes.UNAUTHORIZED);
+      else {
+        // Check jwtPayload for scope
+        const { scope } = jwtPayload;
+
+        if (scope.includes('system/*.read')) return next();
+        // TODO: Add additional logic to parse route and decide what scopes are allowed
+        else res.status(401).send('Insufficient scope');
+      }
+    })(req, res, next);
 }
 
 module.exports = {
