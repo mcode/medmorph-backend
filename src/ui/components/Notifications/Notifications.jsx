@@ -83,7 +83,7 @@ const Notifications = props => {
               <ErrorOutlineIcon fontSize="large" className={classes.errorIcon} />
               <div className={classes.notificationSection}>Error Recieved:</div>
               <div className={`${classes.notificationSection} ${classes.notificationContent}`}>
-                <div className={classes.content}>{notif.notif}</div>
+                <div className={classes.content}>{notif.notif.message || notif.notif}</div>
               </div>
               <HistoryIcon fontSize="large" className={classes.historyIcon} />
               <div className={classes.timestamp}>{getElapsed(notif.timestamp)}</div>
