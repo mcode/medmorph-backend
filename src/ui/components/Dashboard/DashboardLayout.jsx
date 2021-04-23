@@ -16,12 +16,9 @@ function DashboardLayout() {
 
   const unviewedNotifs = useMemo(() => {
     if (data) {
-      return data.data.filter(notif => {
-        return !notif.viewed;
-      });
-    } else {
-      return [];
+      return data.data.filter(notif => (!notif.viewed))
     }
+    return [];
   }, [data]);
 
   const newNotifs = unviewedNotifs.length > 0;
@@ -80,7 +77,7 @@ function DashboardLayout() {
 
   return (
     <div className={classes.container}>
-      <NavBar newNotifs={newNotifs} callback={setContentKey} />
+      <NavBar newNotifs={newNotifs} setContentKey={setContentKey} />
       <Sidebar tabs={tabs} callback={setContentKey} selected={contentKey} />
       <main className={classes.content}>
         <div className={classes.spacer} />

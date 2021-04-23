@@ -30,7 +30,7 @@ export default makeStyles(
       padding: '5px'
     },
     timestamp: {
-      fontSize: '17px',
+      fontSize: '16px',
       flexGrow: '.15',
       width: 0,
       textAlign: 'left',

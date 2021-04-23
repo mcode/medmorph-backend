@@ -13,11 +13,11 @@ import PropTypes from 'prop-types';
 import Menu from './Menu';
 function NavBar(props) {
   const [open, setOpen] = useState(false);
-  const { newNotifs, callback } = props;
+  const { newNotifs, setContentKey } = props;
   const classes = useStyles();
 
   const setNotif = useCallback(() => {
-    callback('notifications');
+    setContentKey('notifications');
   });
 
   return (
@@ -61,7 +61,7 @@ function NavBar(props) {
 
 NavBar.propTypes = {
   newNotifs: PropTypes.bool,
-  callback: PropTypes.func
+  setContentKey: PropTypes.func
 };
 
 export default memo(NavBar);

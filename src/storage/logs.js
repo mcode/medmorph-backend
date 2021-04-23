@@ -32,7 +32,7 @@ function error(location) {
     const notification = {
       id: uuidv4(),
       timestamp: Date.now(),
-      notif: notif ? notif : error,
+      notif: notif || error,
       viewed: false,
       type: 'error'
     };

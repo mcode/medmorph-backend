@@ -21,7 +21,8 @@ export default makeStyles(
       backgroundColor: theme.palette.common.maroon,
       top: '35%',
       right: '35%',
-      border: '2px solid white',
+      border: '2px solid',
+      borderColor: theme.palette.common.white,
       borderRadius: '15px',
       height: '13px',
       width: '13px'

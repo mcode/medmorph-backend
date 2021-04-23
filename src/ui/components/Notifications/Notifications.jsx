@@ -8,6 +8,7 @@ import HistoryIcon from '@material-ui/icons/History';
 import DoneIcon from '@material-ui/icons/Done';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import useStyles from './styles';
+import moment from 'moment';
 
 const Notifications = props => {
   const classes = useStyles();
@@ -23,57 +24,6 @@ const Notifications = props => {
     };
   });
 
-  const getElapsed = time => {
-    const now = Date.now();
-    const diff = now - time;
-    const diffInSeconds = diff / 1000;
-    if (diffInSeconds >= 60) {
-      const diffInMinutes = diffInSeconds / 60;
-      if (diffInMinutes >= 60) {
-        const diffInHours = diffInMinutes / 60;
-        if (diffInHours >= 24) {
-          const diffInDays = diffInHours / 24;
-          if (diffInDays >= 365) {
-            const diffInYears = Math.floor(diffInDays / 365);
-            if (diffInYears === 1) {
-              return `${diffInYears} year ago`;
-            } else {
-              return `${diffInYears} years ago`;
-            }
-          } else {
-            const realDiff = Math.floor(diffInDays);
-            if (realDiff === 1) {
-              return `${realDiff} day ago`;
-            } else {
-              return `${realDiff} days ago`;
-            }
-          }
-        } else {
-          const realDiff = Math.floor(diffInHours);
-          if (realDiff === 1) {
-            return `${realDiff} hr ago`;
-          } else {
-            return `${realDiff} hrs ago`;
-          }
-        }
-      } else {
-        const realDiff = Math.floor(diffInMinutes);
-        if (realDiff === 1) {
-          return `${realDiff} min ago`;
-        } else {
-          return `${realDiff} mins ago`;
-        }
-      }
-    } else {
-      const realDiff = Math.floor(diffInSeconds);
-      if (realDiff === 1) {
-        return `${realDiff} second ago`;
-      } else {
-        return `${realDiff} seconds ago`;
-      }
-    }
-  };
-
   return (
     <div className={classes.collection}>
       {notifs.length > 0 ? (
@@ -86,7 +36,7 @@ const Notifications = props => {
                 <div className={classes.content}>{notif.notif.message || notif.notif}</div>
               </div>
               <HistoryIcon fontSize="large" className={classes.historyIcon} />
-              <div className={classes.timestamp}>{getElapsed(notif.timestamp)}</div>
+              <div className={classes.timestamp}>{moment(notif.timestamp).fromNow()}</div>
               <DoneIcon
                 className={classes.doneIcon}
                 fontSize="large"
