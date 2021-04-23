@@ -16,7 +16,7 @@ function DashboardLayout() {
 
   const unviewedNotifs = useMemo(() => {
     if (data) {
-      return data.data.filter(notif => (!notif.viewed))
+      return data.data.filter(notif => !notif.viewed);
     }
     return [];
   }, [data]);
