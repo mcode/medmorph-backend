@@ -459,18 +459,30 @@ function getPlanDef(fullUrl) {
   else return null;
 }
 
+/**
+ * Deletes the resource
+ *
+ * @param {string} fullUrl - the fullUrl of the resource
+ */
+async function deleteResource(fullUrl) {
+  const token = await getAccessToken(getBaseUrlFromFullUrl(fullUrl), db);
+  const headers = { Authorization: `Bearer ${token}` };
+  axios.delete(fullUrl, { headers });
+}
+
 module.exports = {
+  deleteResource,
+  forwardMessageResponse,
   generateOperationOutcome,
+  getBaseUrlFromFullUrl,
+  getEndpointId,
+  getPlanDef,
+  getReferencedResource,
+  postSubscriptionsToEHR,
   refreshAllKnowledgeArtifacts,
   refreshKnowledgeArtifact,
   subscriptionsFromBundle,
   subscriptionsFromPlanDef,
-  getReferencedResource,
-  forwardMessageResponse,
   subscribeToKnowledgeArtifacts,
-  postSubscriptionsToEHR,
-  topicToResourceType,
-  getEndpointId,
-  getBaseUrlFromFullUrl,
-  getPlanDef
+  topicToResourceType
 };

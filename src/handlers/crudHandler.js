@@ -1,7 +1,9 @@
-const db = require('../storage/DataAccess');
 const express = require('express');
 const { StatusCodes } = require('http-status-codes');
+const db = require('../storage/DataAccess');
+const debug = require('../storage/logs').debug('medmorph-backend:fhir');
 const { default: base64url } = require('base64url');
+const { deleteResource } = require('../utils/fhir');
 
 function createHandler(collectionName, req, res) {
   const newItem = req.body;
@@ -43,13 +45,26 @@ function updateHandler(collectionName, req, res) {
 }
 
 function deleteHandler(collectionName, req, res) {
-  if (req.query.id) db.delete(collectionName, r => r.id === req.query.id);
-  else if (req.query.fullUrl) {
+  let resource;
+  if (req.query.id) {
+    resource = db.select(collectionName, r => r.id === req.query.id)[0];
+    db.delete(collectionName, r => r.id === req.query.id);
+  } else if (req.query.fullUrl) {
     const fullUrl = base64url.decode(req.query.fullUrl);
+    resource = db.select(collectionName, r => r.fullUrl === fullUrl)[0];
     db.delete(collectionName, r => r.fullUrl === fullUrl);
   } else {
     res.send('Must include id or fullUrl').status(StatusCodes.BAD_REQUEST);
     return;
+  }
+
+  // Also delete subscription from server
+  if (collectionName === 'subscriptions') {
+    const { fullUrl } = resource;
+    if (fullUrl) {
+      deleteResource(fullUrl);
+      debug(`Delete resource from ${fullUrl}`);
+    }
   }
 
   res.sendStatus(StatusCodes.OK);
