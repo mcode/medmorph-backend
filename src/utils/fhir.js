@@ -290,6 +290,22 @@ function subscriptionsFromPlanDef(planDef, serverUrl) {
 }
 
 /**
+ * Returns subscriptions in local DB associated with plandef
+ *
+ * @param {PlanDefinition} planDef - PlanDefinition resource
+ * @returns list of Subscription resources
+ */
+function getSubscriptionsFromPlanDef(planDef) {
+  return db.select(SUBSCRIPTIONS, s => {
+    const { fullUrl } = planDef;
+    const endpoint = s?.channel?.endpoint;
+
+    if (!endpoint) return false;
+    return fullUrl === base64url.decode(getLastPartOfPathFromUrl(endpoint));
+  });
+}
+
+/**
  * Helper function to save subscriptions and post them to the EHR
  *
  * @param {Subscription[]} subscriptions - list of subscription resources
@@ -448,6 +464,17 @@ function getBaseUrlFromFullUrl(fullUrl) {
 }
 
 /**
+ * Returns the last part of path from url
+ *  Will return id from url in the form of {baseUrl}/{resourceType}/{id}
+ *
+ * @param {string} url
+ * @returns {string} last part of path from url
+ */
+function getLastPartOfPathFromUrl(url) {
+  return url.substring(url.lastIndexOf('/') + 1, url.length);
+}
+
+/**
  * Retrieves the PlanDefinition with the given id from the db
  *
  * @param {string} fullUrl - the fullUrl of the PlanDefinition
@@ -462,12 +489,16 @@ function getPlanDef(fullUrl) {
 /**
  * Deletes the resource
  *
- * @param {string} fullUrl - the fullUrl of the resource
+ * @param {Resource} resource
  */
-async function deleteResource(fullUrl) {
-  const token = await getAccessToken(getBaseUrlFromFullUrl(fullUrl), db);
-  const headers = { Authorization: `Bearer ${token}` };
-  axios.delete(fullUrl, { headers });
+async function deleteResource(resource) {
+  const { fullUrl } = resource;
+  if (fullUrl) {
+    const token = await getAccessToken(getBaseUrlFromFullUrl(fullUrl), db);
+    const headers = { Authorization: `Bearer ${token}` };
+    axios.delete(fullUrl, { headers });
+    debug(`Deleted resource from ${fullUrl}`);
+  }
 }
 
 module.exports = {
@@ -478,6 +509,7 @@ module.exports = {
   getEndpointId,
   getPlanDef,
   getReferencedResource,
+  getSubscriptionsFromPlanDef,
   postSubscriptionsToEHR,
   refreshAllKnowledgeArtifacts,
   refreshKnowledgeArtifact,

@@ -1,9 +1,9 @@
 const express = require('express');
 const { StatusCodes } = require('http-status-codes');
 const db = require('../storage/DataAccess');
-const debug = require('../storage/logs').debug('medmorph-backend:fhir');
 const { default: base64url } = require('base64url');
-const { deleteResource } = require('../utils/fhir');
+const { deleteResource, getSubscriptionsFromPlanDef } = require('../utils/fhir');
+const { PLANDEFINITIONS, SUBSCRIPTIONS } = require('../storage/collections');
 
 function createHandler(collectionName, req, res) {
   const newItem = req.body;
@@ -59,12 +59,16 @@ function deleteHandler(collectionName, req, res) {
   }
 
   // Also delete subscription from server
-  if (collectionName === 'subscriptions') {
-    const { fullUrl } = resource;
-    if (fullUrl) {
-      deleteResource(fullUrl);
-      debug(`Delete resource from ${fullUrl}`);
-    }
+  if (collectionName === SUBSCRIPTIONS) {
+    deleteResource(resource);
+  } else if (collectionName === PLANDEFINITIONS) {
+    const subscriptions = getSubscriptionsFromPlanDef(resource);
+
+    // Delete all subscriptions associated with plan definition
+    subscriptions.forEach(subscription => {
+      db.delete(SUBSCRIPTIONS, s => s.id === subscription.id);
+      deleteResource(subscription);
+    });
   }
 
   res.sendStatus(StatusCodes.OK);
