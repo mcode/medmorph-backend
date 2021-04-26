@@ -62,7 +62,7 @@ function deleteHandler(collectionName, req, res) {
   if (collectionName === SUBSCRIPTIONS) {
     deleteResource(resource);
   } else if (collectionName === PLANDEFINITIONS) {
-    const subscriptions = getSubscriptionsFromPlanDef(resource);
+    const subscriptions = getSubscriptionsFromPlanDef(resource.fullUrl);
 
     // Delete all subscriptions associated with plan definition
     subscriptions.forEach(subscription => {

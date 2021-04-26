@@ -292,12 +292,13 @@ function subscriptionsFromPlanDef(planDef, serverUrl) {
 /**
  * Returns subscriptions in local DB associated with plandef
  *
- * @param {PlanDefinition} planDef - PlanDefinition resource
+ * @param {String} fullUrl - fullUrl of PlanDefinition resource
  * @returns list of Subscription resources
  */
-function getSubscriptionsFromPlanDef(planDef) {
+function getSubscriptionsFromPlanDef(fullUrl) {
+  if (!fullUrl) return [];
+
   return db.select(SUBSCRIPTIONS, s => {
-    const { fullUrl } = planDef;
     const endpoint = s?.channel?.endpoint;
 
     if (!endpoint) return false;
