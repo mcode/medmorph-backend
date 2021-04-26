@@ -488,22 +488,27 @@ function getPlanDef(fullUrl) {
 }
 
 /**
- * Deletes the resource from external server
+ * Deletes the subscription resource from EHR
  *
- * @param {Resource} resource
+ * @param {Subscription} subscription - Subscription resource to delete
  */
-async function deleteResource(resource) {
-  const { fullUrl } = resource;
-  if (fullUrl) {
-    const token = await getAccessToken(getBaseUrlFromFullUrl(fullUrl), db);
-    const headers = { Authorization: `Bearer ${token}` };
-    axios.delete(fullUrl, { headers });
-    debug(`Deleted resource from ${fullUrl}`);
+async function deleteSubscriptionFromEHR(subscription) {
+  const { fullUrl, resourceType } = subscription;
+
+  if (resourceType === 'Subscription' && fullUrl) {
+    const ehrServer = getEHRServer();
+
+    if (ehrServer.endpoint === getBaseUrlFromFullUrl(fullUrl)) {
+      const token = await getAccessToken(getBaseUrlFromFullUrl(fullUrl), db);
+      const headers = { Authorization: `Bearer ${token}` };
+      axios.delete(fullUrl, { headers });
+      debug(`Deleted resource from ${fullUrl}`);
+    }
   }
 }
 
 module.exports = {
-  deleteResource,
+  deleteSubscriptionFromEHR,
   forwardMessageResponse,
   generateOperationOutcome,
   getBaseUrlFromFullUrl,

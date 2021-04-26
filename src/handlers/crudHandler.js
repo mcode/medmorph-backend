@@ -2,7 +2,7 @@ const express = require('express');
 const { StatusCodes } = require('http-status-codes');
 const db = require('../storage/DataAccess');
 const { default: base64url } = require('base64url');
-const { deleteResource, getSubscriptionsFromPlanDef } = require('../utils/fhir');
+const { deleteSubscriptionFromEHR, getSubscriptionsFromPlanDef } = require('../utils/fhir');
 const { PLANDEFINITIONS, SUBSCRIPTIONS } = require('../storage/collections');
 
 function createHandler(collectionName, req, res) {
@@ -58,16 +58,16 @@ function deleteHandler(collectionName, req, res) {
     return;
   }
 
-  // Also delete subscription from server
+  // Also delete subscription from EHR
   if (collectionName === SUBSCRIPTIONS) {
-    deleteResource(resource);
+    deleteSubscriptionFromEHR(resource);
   } else if (collectionName === PLANDEFINITIONS) {
     const subscriptions = getSubscriptionsFromPlanDef(resource.fullUrl);
 
     // Delete all subscriptions associated with plan definition
     subscriptions.forEach(subscription => {
       db.delete(SUBSCRIPTIONS, s => s.id === subscription.id);
-      deleteResource(subscription);
+      deleteSubscriptionFromEHR(subscription);
     });
   }
 
