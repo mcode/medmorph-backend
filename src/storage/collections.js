@@ -8,5 +8,6 @@ module.exports = {
   LOGS: 'logs',
   ERRORS: 'errors',
   MESSAGES: 'messages',
-  REQUESTS: 'requests'
+  REQUESTS: 'requests',
+  NOTIFICATIONS: 'notifications'
 };

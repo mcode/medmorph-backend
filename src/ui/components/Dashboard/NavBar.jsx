@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import useStyles from './styles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -8,11 +8,18 @@ import TextField from '@material-ui/core/TextField';
 import NotificationsNoneIcon from '@material-ui/icons/NotificationsNone';
 import Avatar from '@material-ui/core/Avatar';
 import MenuOpenIcon from '@material-ui/icons/MenuOpen';
+import Badge from '@material-ui/core/Badge';
+import PropTypes from 'prop-types';
 import Menu from './Menu';
-function NavBar() {
+function NavBar(props) {
   const [open, setOpen] = useState(false);
-
+  const { newNotifs, setContentKey } = props;
   const classes = useStyles();
+
+  const setNotif = useCallback(() => {
+    setContentKey('notifications');
+  });
+
   return (
     <div>
       <AppBar position="fixed" className={classes.appBar}>
@@ -30,7 +37,15 @@ function NavBar() {
             placeholder="Type a keyword..."
             fullWidth
           ></TextField>
-          <NotificationsNoneIcon className={classes.icon} fontSize={'large'} />
+          <Badge
+            classes={{ badge: classes.badge, root: classes.badgeRoot }}
+            onClick={setNotif}
+            variant="dot"
+            overlap="circle"
+            invisible={!newNotifs}
+          >
+            <NotificationsNoneIcon className={classes.icon} fontSize={'large'} />
+          </Badge>
           <Avatar className={classes.avatar}>NB</Avatar>
           <MenuOpenIcon
             className={classes.icon}
@@ -43,5 +58,10 @@ function NavBar() {
     </div>
   );
 }
+
+NavBar.propTypes = {
+  newNotifs: PropTypes.bool,
+  setContentKey: PropTypes.func
+};
 
 export default memo(NavBar);

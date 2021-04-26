@@ -1,5 +1,5 @@
 const db = require('./DataAccess');
-const { LOGS, ERRORS, REQUESTS } = require('./collections');
+const { LOGS, ERRORS, REQUESTS, NOTIFICATIONS } = require('./collections');
 const debugConsole = require('debug');
 const { v4: uuidv4 } = require('uuid');
 
@@ -18,7 +18,7 @@ function debug(location) {
 }
 
 function error(location) {
-  return error => {
+  return (error, notif) => {
     const logger = debugConsole(location);
     logger(error);
     const log = {
@@ -28,6 +28,15 @@ function error(location) {
       location: location
     };
     db.insert(ERRORS, log);
+
+    const notification = {
+      id: uuidv4(),
+      timestamp: Date.now(),
+      notif: notif || error,
+      viewed: false,
+      type: 'error'
+    };
+    db.insert(NOTIFICATIONS, notification);
   };
 }
 
