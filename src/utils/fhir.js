@@ -465,7 +465,7 @@ function getBaseUrlFromFullUrl(fullUrl) {
 
 /**
  * Returns the last part of path from url
- *  Will return id from url in the form of {baseUrl}/{resourceType}/{id}
+ * For notification endpoints this will be the base64 encoded fullUrl of the PlanDefinition
  *
  * @param {string} url
  * @returns {string} last part of path from url
@@ -487,7 +487,7 @@ function getPlanDef(fullUrl) {
 }
 
 /**
- * Deletes the resource
+ * Deletes the resource from external server
  *
  * @param {Resource} resource
  */
