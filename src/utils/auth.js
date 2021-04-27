@@ -50,6 +50,33 @@ function subscriptionAuthorization(req, res, next) {
 }
 
 /**
+ * Check scopes before authorizing request
+ */
+function checkScopes(req, res, next, jwtPayload) {
+  if (!jwtPayload) res.sendStatus(StatusCodes.UNAUTHORIZED);
+  else {
+    // Check jwtPayload for scope
+    const { scope } = jwtPayload;
+    const { method } = req;
+
+    /**
+     * Allow any request if scope includes "system/*.*"
+     * Allow GET request if scope includes "system/*.read"
+     * Allow POST, PUT, DELETE requests if scope includes "system/*.write"
+     */
+    if (
+      scope.includes('system/*.*') ||
+      (method === 'GET' && scope.includes('system/*.read')) ||
+      ((method === 'POST' || method === 'PUT' || method === 'DELETE') &&
+        scope.includes('system/*.write'))
+    )
+      return next();
+
+    res.status(401).send('Insufficient scope');
+  }
+}
+
+/**
  * Middleware for verifying either SMART Backend Authorization token or
  * the session for a user on the Admin UI. Allows protected endpoints to
  * be accessible via both authentication schemes.
@@ -59,7 +86,10 @@ function userOrBackendAuthorization(req, res, next) {
   const adminToken = process.env.ADMIN_TOKEN;
   if (req.isAuthenticated()) return next();
   else if (adminToken && token === adminToken) return next();
-  else return passport.authenticate('jwt', { session: false })(req, res, next);
+  else
+    return passport.authenticate('jwt', { session: false }, (_err, jwtPayload) =>
+      checkScopes(req, res, next, jwtPayload)
+    )(req, res, next);
 }
 
 module.exports = {
