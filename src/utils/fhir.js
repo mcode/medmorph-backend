@@ -290,6 +290,23 @@ function subscriptionsFromPlanDef(planDef, serverUrl) {
 }
 
 /**
+ * Returns subscriptions in local DB associated with plandef
+ *
+ * @param {String} fullUrl - fullUrl of PlanDefinition resource
+ * @returns list of Subscription resources
+ */
+function getSubscriptionsFromPlanDef(fullUrl) {
+  if (!fullUrl) return [];
+
+  return db.select(SUBSCRIPTIONS, s => {
+    const endpoint = s?.channel?.endpoint;
+
+    if (!endpoint) return false;
+    return fullUrl === base64url.decode(getLastPartOfPathFromUrl(endpoint));
+  });
+}
+
+/**
  * Helper function to save subscriptions and post them to the EHR
  *
  * @param {Subscription[]} subscriptions - list of subscription resources
@@ -448,6 +465,17 @@ function getBaseUrlFromFullUrl(fullUrl) {
 }
 
 /**
+ * Returns the last part of path from url
+ * For notification endpoints this will be the base64 encoded fullUrl of the PlanDefinition
+ *
+ * @param {string} url
+ * @returns {string} last part of path from url
+ */
+function getLastPartOfPathFromUrl(url) {
+  return url.substring(url.lastIndexOf('/') + 1, url.length);
+}
+
+/**
  * Retrieves the PlanDefinition with the given id from the db
  *
  * @param {string} fullUrl - the fullUrl of the PlanDefinition
@@ -459,18 +487,40 @@ function getPlanDef(fullUrl) {
   else return null;
 }
 
+/**
+ * Deletes the subscription resource from EHR
+ *
+ * @param {Subscription} subscription - Subscription resource to delete
+ */
+async function deleteSubscriptionFromEHR(subscription) {
+  const { fullUrl, resourceType } = subscription;
+
+  if (resourceType === 'Subscription' && fullUrl) {
+    const ehrServer = getEHRServer();
+
+    if (ehrServer.endpoint === getBaseUrlFromFullUrl(fullUrl)) {
+      const token = await getAccessToken(getBaseUrlFromFullUrl(fullUrl), db);
+      const headers = { Authorization: `Bearer ${token}` };
+      axios.delete(fullUrl, { headers });
+      debug(`Deleted resource from ${fullUrl}`);
+    }
+  }
+}
+
 module.exports = {
+  deleteSubscriptionFromEHR,
+  forwardMessageResponse,
   generateOperationOutcome,
+  getBaseUrlFromFullUrl,
+  getEndpointId,
+  getPlanDef,
+  getReferencedResource,
+  getSubscriptionsFromPlanDef,
+  postSubscriptionsToEHR,
   refreshAllKnowledgeArtifacts,
   refreshKnowledgeArtifact,
   subscriptionsFromBundle,
   subscriptionsFromPlanDef,
-  getReferencedResource,
-  forwardMessageResponse,
   subscribeToKnowledgeArtifacts,
-  postSubscriptionsToEHR,
-  topicToResourceType,
-  getEndpointId,
-  getBaseUrlFromFullUrl,
-  getPlanDef
+  topicToResourceType
 };
