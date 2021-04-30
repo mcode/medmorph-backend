@@ -39,7 +39,7 @@ async function connectToServer(url) {
   const data = await axios
     .post(tokenEndpoint, queryString.stringify(props), headers)
     .then(response => response.data)
-    .catch(err => error(err));
+    .catch(err => error(`Error obtaining access token from ${tokenEndpoint}\n${err.message}`));
   return data;
 }
 
@@ -60,7 +60,7 @@ async function getAccessToken(url) {
       return token.access_token;
     } catch (e) {
       servers.clearAccessToken(server);
-      error(e);
+      error(`Exception obtaining an access token from ${server.endpoint}\n${e.message}`);
       throw e;
     }
   } else {
