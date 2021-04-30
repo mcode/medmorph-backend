@@ -18,6 +18,7 @@ const colors = {
   grayLightest: '#eaeef2',
   grayDark: '#444',
   grayVeryDark: '#3a3a3a',
+  grayLightText: '#87878e',
   green: '#2fa874',
   maroon: '#a83048',
   purple: '#8b72d6',
