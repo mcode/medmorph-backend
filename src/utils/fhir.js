@@ -326,9 +326,12 @@ function postSubscriptionsToEHR(subscriptions) {
       const ehrToken = await getAccessToken(ehrServer.endpoint);
       const headers = { Authorization: `Bearer ${ehrToken}` };
       axios
-        .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
+        .put(fullUrl, subscription, { headers })
         .then(() =>
           debug(`Subscription with id ${subscriptionId} created/updated on ${ehrServer.endpoint}`)
+        )
+        .catch(err =>
+          error(`Error posting Subscription/${subscriptionId} to EHR.\n${err.message}`)
         );
     }
   });

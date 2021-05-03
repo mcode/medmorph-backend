@@ -20,7 +20,7 @@ async function connectToServer(url) {
   const jwt = await generateJWT(clientId, tokenEndpoint);
 
   const props = {
-    scope: 'system/*.read',
+    scope: 'system/*.*',
     grant_type: 'client_credentials',
     client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
     client_assertion: jwt
