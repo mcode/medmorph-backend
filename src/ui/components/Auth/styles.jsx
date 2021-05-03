@@ -20,7 +20,7 @@ export default makeStyles(
       height: '100vh'
     },
     formFont: {
-        fontFamily: '"Gill Sans", sans-serif',
+      fontFamily: '"Gill Sans", sans-serif'
     },
     loginButton: {
       width: '460px',
