@@ -16,11 +16,12 @@ const error = require('../storage/logs').error('medmorph-backend:client');
 async function connectToServer(url) {
   // Generate the client_assertion jwt
   const tokenEndpoint = await getTokenEndpoint(url);
-  const clientId = servers.getServerByUrl(url).clientId;
+
+  const { clientId, secret, customScopes } = servers.getServerByUrl(url);
   const jwt = await generateJWT(clientId, tokenEndpoint);
 
   const props = {
-    scope: 'system/*.*',
+    scope: customScopes || 'system/*.*',
     grant_type: 'client_credentials',
     client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
     client_assertion: jwt
@@ -34,6 +35,16 @@ async function connectToServer(url) {
       Accept: '*/*'
     }
   };
+
+  if (secret) {
+    delete props.client_assertion_type;
+    delete props.client_assertion;
+
+    const rawCredential = `${clientId}:${secret}`;
+    const base64 = Buffer.from(rawCredential, 'binary').toString('base64');
+
+    headers.headers['Authorization'] = `Basic ${base64}`;
+  }
 
   // Get access token from auth server
   const data = await axios
