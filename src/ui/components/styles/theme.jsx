@@ -1,6 +1,7 @@
 import { createMuiTheme } from '@material-ui/core/styles';
 const colors = {
   white: '#fff',
+  offWhite: '#f5f5fa',
   black: '#222',
   red: '#d95d77',
   redDark: '#bb3551',
@@ -18,6 +19,7 @@ const colors = {
   grayLightest: '#eaeef2',
   grayDark: '#444',
   grayVeryDark: '#3a3a3a',
+  grayLightText: '#87878e',
   green: '#2fa874',
   maroon: '#a83048',
   purple: '#8b72d6',

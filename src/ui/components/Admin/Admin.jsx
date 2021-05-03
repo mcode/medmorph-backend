@@ -10,14 +10,14 @@ const Admin = () => {
 
   return (
     <>
-      {!isAuthorized && <Login />}
-      {isAuthorized && (
-        <div>
-          <ThemeProvider theme={theme}>
+      <ThemeProvider theme={theme}>
+        {!isAuthorized && <Login />}
+        {isAuthorized && (
+          <div>
             <DashboardLayout />
-          </ThemeProvider>
-        </div>
-      )}
+          </div>
+        )}
+      </ThemeProvider>
     </>
   );
 };
