@@ -9,8 +9,8 @@ const Login = () => {
   const queryClient = useQueryClient();
   const classes = useStyles();
   const [message, setMessage] = useState(null);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, _setUsername] = useState('');
+  const [password, _setPassword] = useState('');
   const handleClose = useCallback(() => setMessage(null));
 
   useEffect(() => {
@@ -26,13 +26,13 @@ const Login = () => {
     };
   }, [username, password]);
 
-  const _setUsername = event => {
-    setUsername(event.target.value);
-  };
+  const setUsername = useCallback(event => {
+    _setUsername(event.target.value);
+  });
 
-  const _setPassword = event => {
-    setPassword(event.target.value);
-  };
+  const setPassword = useCallback(event => {
+    _setPassword(event.target.value);
+  });
 
   const onSubmit = useCallback(() => {
     if (username && password) {
@@ -72,10 +72,10 @@ const Login = () => {
           <strong>MedMorph</strong> Admin Console
         </span>
       </div>
-      <div className={classes.loginContent}>
+      <div className={`${classes.loginContent} ${classes.formFont}`}>
         <div className={classes.loginHeader}>Log in.</div>
         <div className={classes.loginSubheader}>Log in to view your admin console.</div>
-        <form noValidate autoComplete="off">
+        <form noValidate autoComplete="off" className={classes.formFont}>
           <TextField
             classes={{
               root: classes.loginInput
@@ -91,7 +91,7 @@ const Login = () => {
               }
             }}
             value={username}
-            onChange={_setUsername}
+            onChange={setUsername}
             label="Username"
           />
           <TextField
@@ -111,9 +111,9 @@ const Login = () => {
             type="password"
             label="Password"
             value={password}
-            onChange={_setPassword}
+            onChange={setPassword}
           />
-          <div className={classes.loginPersistance}>
+          <div className={`${classes.loginPersistance} ${classes.formFont}`}>
             <input type="checkbox" className={classes.loginCheckbox} />
             <span className={classes.loginCheckboxText}>Keep me logged in</span>
           </div>
@@ -121,7 +121,7 @@ const Login = () => {
             variant="contained"
             color="secondary"
             disableElevation
-            classes={{ root: classes.loginButton }}
+            classes={{ root: classes.loginButton, label: classes.formFont }}
             onClick={onSubmit}
           >
             Log In

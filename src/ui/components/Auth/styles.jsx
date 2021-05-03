@@ -3,7 +3,7 @@ export default makeStyles(
   theme => ({
     adminBar: {
       height: '95px',
-      backgroundColor: '#8b72d6',
+      backgroundColor: theme.palette.common.purple,
       width: '100%',
       textAlign: 'center',
       lineHeight: '95px'
@@ -16,8 +16,11 @@ export default makeStyles(
       marginLeft: '20px'
     },
     background: {
-      backgroundColor: '#f3f3f9',
+      backgroundColor: theme.palette.common.offWhite,
       height: '100vh'
+    },
+    formFont: {
+        fontFamily: '"Gill Sans", sans-serif',
     },
     loginButton: {
       width: '460px',
@@ -25,7 +28,7 @@ export default makeStyles(
       color: theme.palette.common.white,
       fontSize: '32px',
       textTransform: 'none',
-      fontFamily: '"Gill Sans", sans-serif',
+      fontFamily: 'inherit',
       fontWeight: 200
     },
     loginContent: {
@@ -36,7 +39,6 @@ export default makeStyles(
       margin: '40px auto',
       paddingLeft: '75px',
       paddingTop: '90px',
-      fontFamily: '"Gill Sans", sans-serif',
       textAlign: 'left'
     },
     loginHeader: {
@@ -60,7 +62,7 @@ export default makeStyles(
       margin: '60px 0px 15px 0px'
     },
     loginCheckboxText: {
-      fontWeight: 200,
+      fontWeight: 100,
       fontSize: '24px',
       marginLeft: '20px',
       color: theme.palette.common.grayLightText,
