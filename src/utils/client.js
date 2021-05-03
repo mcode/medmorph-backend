@@ -86,8 +86,29 @@ async function getAccessToken(url) {
  * @returns token_endpoint
  */
 async function getTokenEndpoint(url) {
-  const response = await axios.get(`${url}/.well-known/smart-configuration`);
-  return response.data.token_endpoint;
+  try {
+    const response = await axios.get(`${url}/.well-known/smart-configuration`);
+    return response.data.token_endpoint;
+  } catch (e) {
+    try {
+      // sometimes the smart-config is in a non-standard place,
+      // so let's try the server capability statement
+      const response = await axios.get(`${url}/metadata`);
+
+      const rest = response.data.rest;
+      const serverRest = rest.find(r => r.mode === 'server');
+      const extensions = serverRest.security.extension;
+      const oauth = extensions.find(
+        e => e.url === 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris'
+      );
+      return oauth.extension.find(e => e.url === 'token').valueUri;
+    } catch (e2) {
+      // not sure what to do if both fail?
+      error(e);
+      error(e2);
+      throw e2;
+    }
+  }
 }
 
 /**

@@ -324,7 +324,7 @@ function postSubscriptionsToEHR(subscriptions) {
 
       // Create/Update Subscriptions on EHR server
       const ehrToken = await getAccessToken(ehrServer.endpoint);
-      const headers = { 
+      const headers = {
         Authorization: `Bearer ${ehrToken}`,
         'Content-Type': 'application/fhir+json'
       };
