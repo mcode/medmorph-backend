@@ -89,7 +89,7 @@ async function getTokenEndpoint(url) {
   try {
     const response = await axios.get(`${url}/.well-known/smart-configuration`);
     return response.data.token_endpoint;
-  } catch (e) {
+  } catch (ex) {
     try {
       // sometimes the smart-config is in a non-standard place,
       // so let's try the server capability statement
@@ -102,11 +102,11 @@ async function getTokenEndpoint(url) {
         e => e.url === 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris'
       );
       return oauth.extension.find(e => e.url === 'token').valueUri;
-    } catch (e2) {
+    } catch (ex2) {
       // not sure what to do if both fail?
-      error(e);
-      error(e2);
-      throw e2;
+      error(ex);
+      error(ex2);
+      throw ex2;
     }
   }
 }
