@@ -65,7 +65,7 @@ async function connectToServer(url) {
  * @param {string} url - the base url of the server to connect to
  */
 async function getAccessToken(url) {
-  if (!process.env.REQUIRE_AUTH_FOR_OUTGOING || process.env.REQUIRE_AUTH_FOR_OUTGOING === 'false')
+  if (process.env.REQUIRE_AUTH_FOR_OUTGOING && process.env.REQUIRE_AUTH_FOR_OUTGOING === 'false')
     return '';
 
   const server = servers.getServerByUrl(url);
