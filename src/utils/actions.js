@@ -102,9 +102,8 @@ const baseIgActions = {
         }
       )
       .catch(err => {
-        error(
-          `Error submitting Bundle/${context.reportingBundle.id} to ${context.client.dest}\n${err.message}`
-        );
+        const bundleId = context.reportingBundle.id;
+        error(`Error submitting Bundle/${bundleId} to ${context.client.dest}\n${err.message}`);
         context.flags['submitted'] = false;
       });
   },
