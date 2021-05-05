@@ -14,3 +14,5 @@ services:
       - AUTH_TOKEN_URL=http://ec2-3-211-58-180.compute-1.amazonaws.com:8090/auth/realms/backend_app/protocol/openid-connect/token
       - BASE_URL=http://ec2-3-211-58-180.compute-1.amazonaws.com:3000
       - DATA_TRUST_SERVICE=http://ec2-3-211-58-180.compute-1.amazonaws.com:3001
+      - REQUIRE_AUTH=true
+      - REQUIRE_AUTH_FOR_OUTGOING=true
