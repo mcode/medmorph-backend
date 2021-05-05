@@ -96,7 +96,8 @@ const Collections = props => {
           { value: 'name', label: 'name', edit: true },
           { value: 'id', label: 'id', edit: false },
           { value: 'endpoint', label: 'endpoint', edit: true },
-          { value: 'type', label: 'type', edit: false }
+          { value: 'type', label: 'type', edit: false },
+          { value: 'clientId', label: 'clientId', edit: true }
         ];
         return {
           headers,

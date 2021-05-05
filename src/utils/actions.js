@@ -102,7 +102,8 @@ const baseIgActions = {
         }
       )
       .catch(err => {
-        error(err);
+        const bundleId = context.reportingBundle.id;
+        error(`Error submitting Bundle/${bundleId} to ${context.client.dest}\n${err.message}`);
         context.flags['submitted'] = false;
       });
   },
@@ -118,7 +119,7 @@ const baseIgActions = {
         }
       )
       .catch(err => {
-        error(err);
+        error(`Error deidentifying Bundle/${context.reportingBundle.id}\n${err.message}`);
         context.flags['deidentified'] = false;
       });
   },
@@ -134,7 +135,7 @@ const baseIgActions = {
         }
       )
       .catch(err => {
-        error(err);
+        error(`Error anonymizing Bundle/${context.reportingBundle.id}\n${err.message}`);
         context.flags['anonymized'] = false;
       });
   },
@@ -150,7 +151,7 @@ const baseIgActions = {
         }
       )
       .catch(err => {
-        error(err);
+        error(`Error pseudonymizing Bundle/${context.reportingBundle.id}\n${err.message}`);
         context.flags['pseudonymized'] = false;
       });
   },

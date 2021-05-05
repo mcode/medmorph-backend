@@ -61,7 +61,7 @@ async function getResources(server, resourceType) {
   const axiosResponse = axios
     .get(url, { headers: headers })
     .then(response => response.data)
-    .catch(err => error(err));
+    .catch(err => error(`Error getting ${url}\n${err.message}`));
   return axiosResponse.then(data => {
     debug(`Fetched ${server}/${data.resourceType}/${data.id}`);
     if (!data.entry) return;
@@ -93,7 +93,7 @@ async function getResourceById(server, resourceType, id) {
   const axiosResponse = axios
     .get(url, { headers: headers })
     .then(response => response.data)
-    .catch(err => error(err));
+    .catch(err => error(`Error getting ${url}\n${err.message}`));
   return axiosResponse.then(resource => {
     if (!resource) return;
     debug(`Fetched ${server}/${resource.resourceType}/${resource.id}`);
@@ -326,9 +326,12 @@ function postSubscriptionsToEHR(subscriptions) {
       const ehrToken = await getAccessToken(ehrServer.endpoint);
       const headers = { Authorization: `Bearer ${ehrToken}` };
       axios
-        .put(`${ehrServer.endpoint}/Subscription/${subscriptionId}`, subscription, { headers })
+        .put(fullUrl, subscription, { headers })
         .then(() =>
           debug(`Subscription with id ${subscriptionId} created/updated on ${ehrServer.endpoint}`)
+        )
+        .catch(err =>
+          error(`Error posting Subscription/${subscriptionId} to EHR.\n${err.message}`)
         );
     }
   });
@@ -413,10 +416,11 @@ async function getReferencedResource(url, reference) {
     const [resourceType, id] = reference.split('/');
     const token = await getAccessToken(url);
     const headers = { Authorization: `Bearer ${token}` };
+    const requestUrl = `${url}/${resourceType}/${id}`;
     const resource = await axios
-      .get(`${url}/${resourceType}/${id}`, { headers: headers })
+      .get(requestUrl, { headers: headers })
       .then(response => response.data)
-      .catch(err => error(err));
+      .catch(err => error(`Error getting referenced resource ${requestUrl}\n${err.message}`));
     if (resource) {
       debug(`Retrieved reference resource ${resource.resourceType}/${resource.id} from ${url}`);
       return resource.data;
