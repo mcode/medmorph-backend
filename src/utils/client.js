@@ -36,6 +36,10 @@ async function connectToServer(url) {
     }
   };
 
+  // NOTE: client_secret_basic authorization is not part of the backend auth spec
+  // (which requires the use of the signed authentication JWT)
+  // but it is included here to enable connecting to the Cerner sandbox,
+  // which currently only supports the client_secret_basic auth type
   if (secret) {
     delete props.client_assertion_type;
     delete props.client_assertion;
@@ -45,6 +49,7 @@ async function connectToServer(url) {
 
     headers.headers['Authorization'] = `Basic ${base64}`;
   }
+  // end client_secret_basic logic
 
   // Get access token from auth server
   const data = await axios
