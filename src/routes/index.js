@@ -16,7 +16,7 @@ const { startReportingWorkflow } = require('../utils/reporting_workflow');
 router.get('/', testService);
 
 router.post('/fetch-ka', (_req, res) => {
-  refreshAllKnowledgeArtifacts(db);
+  refreshAllKnowledgeArtifacts();
   res.sendStatus(StatusCodes.OK);
 });
 

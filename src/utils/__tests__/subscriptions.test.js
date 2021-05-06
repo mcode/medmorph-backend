@@ -1,4 +1,4 @@
-const { subscriptionsFromPlanDef, subscriptionsFromBundle } = require('../fhir');
+const { subscriptionsFromPlanDef, subscriptionsFromBundle } = require('../subscriptions');
 
 describe('Test creating Subscriptions', () => {
   const planDef = {

@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
-const { getReferencedResource, getEndpointId } = require('../utils/fhir');
+const { getReferencedResource, getReceiverAddress } = require('../utils/fhir');
 const { getEHRServer } = require('../storage/servers');
 const { baseIgActions } = require('./actions');
 const { REPORTING, ENDPOINTS } = require('../storage/collections');
@@ -75,9 +75,7 @@ async function startReportingWorkflow(planDef, serverUrl, resource = null) {
   else if (resource.resourceType === 'Encounter') encounter = resource;
 
   // Get the endpoint to submit the report to from the PlanDefinition
-  const endpointId = getEndpointId(planDef);
-  const endpointFullUrl = `${serverUrl}/Endpoint/${endpointId}`;
-  const endpoint = db.select(ENDPOINTS, e => e.fullUrl === endpointFullUrl);
+  const endpoint = db.select(ENDPOINTS, e => e.fullUrl === getReceiverAddress(planDef));
   const destEndpoint = endpoint[0].address;
 
   // QUESTION: Should encounter and patient be saved to the database?

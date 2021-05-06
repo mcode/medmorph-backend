@@ -1,19 +1,16 @@
 const { StatusCodes } = require('http-status-codes');
 
-const axios = require('axios');
 const db = require('../storage/DataAccess');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
 const { getServerById, getEHRServer } = require('../storage/servers');
 const {
-  getEndpointId,
-  subscriptionsFromPlanDef,
   postSubscriptionsToEHR,
   getBaseUrlFromFullUrl,
-  topicToResourceType,
-  getPlanDef
+  getPlanDef,
+  fetchEndpoint
 } = require('../utils/fhir');
-const { getAccessToken } = require('../utils/client');
-const { PLANDEFINITIONS, ENDPOINTS } = require('../storage/collections');
+const { subscriptionsFromPlanDef, topicToResourceType } = require('../utils/subscriptions');
+const { PLANDEFINITIONS } = require('../storage/collections');
 const { default: base64url } = require('base64url');
 const debug = require('../storage/logs').debug('medmorph-backend:subscriptions');
 const error = require('../storage/logs').error('medmorph-backend:subscriptions');
@@ -131,7 +128,6 @@ function reportTriggerEmptyHandler(bundle, res) {
  */
 function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
   planDefinitions.forEach(async planDefinition => {
-    const endpointId = getEndpointId(planDefinition);
     const planDefinitionFullUrl = `${serverUrl}/PlanDefinition/${planDefinition.id}`;
     db.upsert(
       PLANDEFINITIONS,
@@ -142,20 +138,7 @@ function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
       `KA full-resource notification contained ${serverUrl}/PlanDefinition/${planDefinition.id}`
     );
 
-    const token = await getAccessToken(serverUrl);
-    const headers = { Authorization: `Bearer ${token}` };
-    axios.get(`${serverUrl}/Endpoint/${endpointId}`, { headers: headers }).then(response => {
-      if (response.data) {
-        const endpoint = response.data;
-        const endpointFullUrl = `${serverUrl}/Endpoint/${endpoint.id}`;
-        db.upsert(
-          ENDPOINTS,
-          { fullUrl: endpointFullUrl, ...endpoint },
-          r => r.fullUrl === endpointFullUrl
-        );
-        debug(`Fetched ${endpointFullUrl}`);
-      }
-    });
+    fetchEndpoint(serverUrl, planDefinition);
 
     const subscriptions = subscriptionsFromPlanDef(planDefinition, serverUrl);
     postSubscriptionsToEHR(subscriptions);
