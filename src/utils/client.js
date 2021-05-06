@@ -16,11 +16,12 @@ const error = require('../storage/logs').error('medmorph-backend:client');
 async function connectToServer(url) {
   // Generate the client_assertion jwt
   const tokenEndpoint = await getTokenEndpoint(url);
-  const clientId = servers.getServerByUrl(url).clientId;
+
+  const { clientId, secret, customScopes } = servers.getServerByUrl(url);
   const jwt = await generateJWT(clientId, tokenEndpoint);
 
   const props = {
-    scope: 'system/*.*',
+    scope: customScopes || 'system/*.*',
     grant_type: 'client_credentials',
     client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
     client_assertion: jwt
@@ -34,6 +35,21 @@ async function connectToServer(url) {
       Accept: '*/*'
     }
   };
+
+  // NOTE: client_secret_basic authorization is not part of the backend auth spec
+  // (which requires the use of the signed authentication JWT)
+  // but it is included here to enable connecting to the Cerner sandbox,
+  // which currently only supports the client_secret_basic auth type
+  if (secret) {
+    delete props.client_assertion_type;
+    delete props.client_assertion;
+
+    const rawCredential = `${clientId}:${secret}`;
+    const base64 = Buffer.from(rawCredential, 'binary').toString('base64');
+
+    headers.headers['Authorization'] = `Basic ${base64}`;
+  }
+  // end client_secret_basic logic
 
   // Get access token from auth server
   const data = await axios
@@ -75,8 +91,29 @@ async function getAccessToken(url) {
  * @returns token_endpoint
  */
 async function getTokenEndpoint(url) {
-  const response = await axios.get(`${url}/.well-known/smart-configuration`);
-  return response.data.token_endpoint;
+  try {
+    const response = await axios.get(`${url}/.well-known/smart-configuration`);
+    return response.data.token_endpoint;
+  } catch (ex) {
+    try {
+      // sometimes the smart-config is in a non-standard place,
+      // so let's try the server capability statement
+      const response = await axios.get(`${url}/metadata`);
+
+      const rest = response.data.rest;
+      const serverRest = rest.find(r => r.mode === 'server');
+      const extensions = serverRest.security.extension;
+      const oauth = extensions.find(
+        e => e.url === 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris'
+      );
+      return oauth.extension.find(e => e.url === 'token').valueUri;
+    } catch (ex2) {
+      // not sure what to do if both fail?
+      error(ex);
+      error(ex2);
+      throw ex2;
+    }
+  }
 }
 
 /**

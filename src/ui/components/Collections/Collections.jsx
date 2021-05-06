@@ -97,7 +97,12 @@ const Collections = props => {
           { value: 'id', label: 'id', edit: false },
           { value: 'endpoint', label: 'endpoint', edit: true },
           { value: 'type', label: 'type', edit: false },
-          { value: 'clientId', label: 'clientId', edit: true }
+          { value: 'clientId', label: 'clientId', edit: true },
+          { value: 'secret', label: 'secret', edit: true },
+          // NOTE: secret is only used for client_secret_basic auth.
+          // see src/utils/client.js : connectToServer for more info
+          { value: 'customScopes', label: 'customScopes', edit: true },
+          { value: 'type', label: 'type', edit: false }
         ];
         return {
           headers,
