@@ -19,7 +19,8 @@ const subscriptionsRouter = require('./routes/subscriptions');
 const { storeRequest } = require('./storage/logs');
 
 const { subscriptionAuthorization, userOrBackendAuthorization } = require('./utils/auth');
-const { refreshAllKnowledgeArtifacts, subscribeToKnowledgeArtifacts } = require('./utils/fhir');
+const { subscribeToKnowledgeArtifacts } = require('./utils/subscriptions');
+const { refreshAllKnowledgeArtifacts } = require('./utils/knowledgeartifacts');
 const { runWhenDBReady } = require('./storage/postinit');
 const { genericController } = require('./handlers/crudHandler');
 const collections = require('./storage/collections');

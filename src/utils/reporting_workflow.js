@@ -1,7 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
 const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
-const { getReferencedResource, getReceiverAddress } = require('../utils/fhir');
+const { getReferencedResource } = require('../utils/fhir');
+const { getReceiverAddress } = require('../utils/knowledgeartifacts');
 const { getEHRServer } = require('../storage/servers');
 const { baseIgActions } = require('./actions');
 const { REPORTING, ENDPOINTS } = require('../storage/collections');
