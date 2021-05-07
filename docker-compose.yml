@@ -14,3 +14,5 @@ services:
       - AUTH_TOKEN_URL=http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/token
       - BASE_URL=http://localhost:3000
       - DATA_TRUST_SERVICE=http://localhost:3005
+      - REQUIRE_AUTH=true
+      - REQUIRE_AUTH_FOR_OUTGOING=true

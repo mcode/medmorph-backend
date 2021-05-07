@@ -42,6 +42,8 @@ Certain configuration properties MUST be set via enviornment variables. The easi
 | DATA_TRUST_SERVICE | Yes | The base url for the data/trust service server. |
 | BASE_URL | Yes | The base url for this server. |
 | ADMIN_TOKEN | No | The value of the admin token to bypass authorization. If unset no admin token can be used. |
+| AUTH | No | If false, an access token will not be required to make requests. Defaults to true if unset. |
+| AUTH_REQUIRED_FOR_OUTGOING | No | If false, the backend app will not acquire an access token before sending requests to other servers. Defaults to true if unset. |
 
 ```env
 # Port number for the server, defaults to 3000 if not provided

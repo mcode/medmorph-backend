@@ -30,6 +30,8 @@ function generateToken(id) {
  * Middleware for verifying the access token on a Subscription notification
  */
 function subscriptionAuthorization(req, res, next) {
+  if (process.env.REQUIRE_AUTH && process.env.REQUIRE_AUTH === 'false') return next();
+
   const token = getToken(req);
   const adminToken = process.env.ADMIN_TOKEN;
   if (adminToken && token === adminToken) return next();
@@ -82,6 +84,8 @@ function checkScopes(req, res, next, jwtPayload) {
  * be accessible via both authentication schemes.
  */
 function userOrBackendAuthorization(req, res, next) {
+  if (process.env.REQUIRE_AUTH && process.env.REQUIRE_AUTH === 'false') return next();
+
   const token = getToken(req);
   const adminToken = process.env.ADMIN_TOKEN;
   if (req.isAuthenticated()) return next();
