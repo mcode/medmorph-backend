@@ -17,6 +17,7 @@ const publicRouter = require('./routes/public');
 const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
 const { storeRequest } = require('./storage/logs');
+const config = require('./storage/config');
 
 const { subscriptionAuthorization, userOrBackendAuthorization } = require('./utils/auth');
 const { subscribeToKnowledgeArtifacts } = require('./utils/subscriptions');
@@ -45,45 +46,49 @@ app.use(function(req, res, next) {
 app.use(passport.initialize());
 app.use(passport.session());
 
-// setup passport to handle JWTs. see example at:
-// https://github.com/auth0/node-jwks-rsa/tree/master/examples/passport-demo
-passport.use(
-  new JwtStrategy(
-    {
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKeyProvider: jwksRsa.passportJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: process.env.AUTH_CERTS_URL
-      })
-    },
-    (jwtPayload, done) => {
-      return done(null, jwtPayload);
-    }
-  )
-);
-
-// Set up passport to use local config
-passport.use(new LocalStrategy({ usernameField: 'email' }, localConfig));
-passport.serializeUser((user, done) => {
-  done(null, user.uid);
-});
-passport.deserializeUser((uid, done) => {
-  // In the future, we might store user info (name, roles, etc) via the passport.authenticate
-  // cb. If we did that, this is where we would reconstitute the user.
-  done(null, { uid });
-});
 async function localConfig(email, password, done) {
   // TODO: MEDMORPH-67 will update this
   if (email === 'admin' && password === 'password') return done(null, { uid: 'admin' });
   else return done(null, false, { message: 'Invalid login' });
 }
 
-// Open Routes
-app.use('/.well-known', wellKnownRouter);
-app.use('/public', publicRouter);
-app.use('/auth', authRouter);
+function setupAfterDb() {
+  const authCertsUrl = config.getAuthCertsUrl();
+  // setup passport to handle JWTs. see example at:
+  // https://github.com/auth0/node-jwks-rsa/tree/master/examples/passport-demo
+  passport.use(
+    new JwtStrategy(
+      {
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        secretOrKeyProvider: jwksRsa.passportJwtSecret({
+          cache: true,
+          rateLimit: true,
+          jwksRequestsPerMinute: 5,
+          jwksUri: authCertsUrl
+        })
+      },
+      (jwtPayload, done) => {
+        return done(null, jwtPayload);
+      }
+    )
+  );
+
+  // Set up passport to use local config
+  passport.use(new LocalStrategy({ usernameField: 'email' }, localConfig));
+  passport.serializeUser((user, done) => {
+    done(null, user.uid);
+  });
+  passport.deserializeUser((uid, done) => {
+    // In the future, we might store user info (name, roles, etc) via the passport.authenticate
+    // cb. If we did that, this is where we would reconstitute the user.
+    done(null, { uid });
+  });
+
+  // Open Routes
+  app.use('/.well-known', wellKnownRouter);
+  app.use('/public', publicRouter);
+  app.use('/auth', authRouter);
+}
 
 // Routes for collections
 Object.values(collections).forEach(collectionName => {
@@ -102,6 +107,7 @@ app.use('/index', userOrBackendAuthorization, indexRouter);
 app.use('/fhir', userOrBackendAuthorization, fhirRouter);
 app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
 
+runWhenDBReady(setupAfterDb);
 runWhenDBReady(refreshAllKnowledgeArtifacts);
 runWhenDBReady(subscribeToKnowledgeArtifacts);
 

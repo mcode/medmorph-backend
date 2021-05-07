@@ -3,7 +3,7 @@ const { StatusCodes } = require('http-status-codes');
 const passport = require('passport');
 const { SUBSCRIPTIONS } = require('../storage/collections');
 const db = require('../storage/DataAccess');
-
+const config = require('../storage/config');
 /**
  * Helper function to obtain the token from the authorization header
  * Note: auth header must be in form "Bearer {token}"
@@ -33,7 +33,7 @@ function subscriptionAuthorization(req, res, next) {
   if (process.env.REQUIRE_AUTH && process.env.REQUIRE_AUTH === 'false') return next();
 
   const token = getToken(req);
-  const adminToken = process.env.ADMIN_TOKEN;
+  const adminToken = config.getAdminToken();
   if (adminToken && token === adminToken) return next();
   else if (token) {
     const subscriptionId = token.split(':')[0];
@@ -87,7 +87,7 @@ function userOrBackendAuthorization(req, res, next) {
   if (process.env.REQUIRE_AUTH && process.env.REQUIRE_AUTH === 'false') return next();
 
   const token = getToken(req);
-  const adminToken = process.env.ADMIN_TOKEN;
+  const adminToken = config.getAdminToken();
   if (req.isAuthenticated()) return next();
   else if (adminToken && token === adminToken) return next();
   else

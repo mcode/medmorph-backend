@@ -31,6 +31,7 @@ const { StatusCodes } = require('http-status-codes');
 const { getEHRServer } = require('../storage/servers');
 const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
+const config = require('../storage/config');
 const { forwardMessageResponse } = require('./fhir');
 const { COMPLETED_REPORTS } = require('../storage/collections');
 const debug = require('../storage/logs').debug('medmorph-backend:actions');
@@ -395,7 +396,7 @@ async function submitBundle(bundle, url) {
  * @returns axios promise with data
  */
 function dataTrustOperation(operation, bundle) {
-  return axios.post(`${process.env.DATA_TRUST_SERVICE}/Bundle/$${operation}`, bundle);
+  return axios.post(`${config.getDataTrustService()}/Bundle/$${operation}`, bundle);
 }
 
 module.exports = { baseIgActions };
