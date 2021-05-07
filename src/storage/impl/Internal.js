@@ -13,7 +13,7 @@
 const loki = require('lokijs');
 
 const { markDBReady, runWhenDBReady } = require('../postinit');
-const config = require('../../../config.json');
+const { configInit } = require('../configVars');
 const { CONFIG } = require('../collections');
 const isTest = process.env.NODE_ENV === 'test';
 
@@ -35,7 +35,7 @@ class Internal {
       if (!this.db.getCollection(CONFIG)) {
         // default to config template
         const configCollection = this.db.addCollection(CONFIG, { disableMeta: true });
-        configCollection.insert(config);
+        configCollection.insert(configInit);
       }
     });
   }
@@ -50,8 +50,6 @@ class Internal {
     }
     return collection;
   }
-
-  _initConfig() {}
 
   insert(collectionName, value) {
     const collection = this._getCollection(collectionName);
