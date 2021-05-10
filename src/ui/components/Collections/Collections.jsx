@@ -114,6 +114,18 @@ const Collections = props => {
           addButton: true,
           editable: true
         };
+      case 'config':
+          headers = [
+              { value: 'id', label: 'id', edit: false },
+              { value: 'value', label: 'Value', edit: true}
+          ]
+
+          return {
+              headers,
+              data: data.data,
+              addButton: false,
+              editable: true
+          }
       case 'endpoints':
       case 'plandefinitions':
         headers = [
