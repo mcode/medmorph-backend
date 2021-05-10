@@ -102,7 +102,7 @@ const Collections = props => {
           // NOTE: secret is only used for client_secret_basic auth.
           // see src/utils/client.js : connectToServer for more info
           { value: 'customScopes', label: 'customScopes', edit: true },
-          { value: 'type', label: 'type', edit: false }
+        //   { value: 'type', label: 'type', edit: false }
         ];
         return {
           headers,
@@ -119,12 +119,12 @@ const Collections = props => {
               { value: 'id', label: 'id', edit: false },
               { value: 'value', label: 'Value', edit: true}
           ]
-
           return {
               headers,
               data: data.data,
               addButton: false,
-              editable: true
+              editable: true,
+              noDelete: true,
           }
       case 'endpoints':
       case 'plandefinitions':
@@ -194,6 +194,7 @@ const Collections = props => {
             data={d}
             selectedCollection={selectedCollection}
             editable={infoBundle.editable}
+            noDelete={infoBundle.noDelete}
           />
         );
       });
