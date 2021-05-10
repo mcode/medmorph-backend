@@ -40,7 +40,7 @@ function refreshKnowledgeArtifact(server) {
  */
 function fetchEndpoint(url, planDefinition) {
   const endpointReference = getReceiverAddress(planDefinition);
-  getReferencedResource(url, endpointReference, true).then(endpoint => {
+  getReferencedResource(url, endpointReference, planDefinition, true).then(endpoint => {
     if (endpoint) {
       db.upsert(ENDPOINTS, endpoint, r => r.fullUrl === endpoint.fullUrl);
       debug(`Endpoint/${endpoint.id} saved to db`);

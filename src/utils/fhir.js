@@ -84,10 +84,11 @@ async function getResources(server, resourceType) {
  *
  * @param {string} url - base fhir url
  * @param {string} reference - the reference string
+ * @param {Resource} parentResource - the parent resource where a contained reference would live
  * @param {boolean} returnFullUrl - will append the fullUrl to the returned resource. Default false.
  * @returns the referenced resource
  */
-async function getReferencedResource(url, reference, returnFullUrl = false) {
+async function getReferencedResource(url, reference, parentResource, returnFullUrl = false) {
   const headers = {};
   let requestUrl = reference;
   if (reference.split('/').length === 2) {
@@ -96,11 +97,12 @@ async function getReferencedResource(url, reference, returnFullUrl = false) {
     const token = await getAccessToken(url);
     requestUrl = `${url}/${resourceType}/${id}`;
     headers.Authorization = `Bearer ${token}`;
+  } else if (reference[0] === '#') {
+    return parentResource.contained.find(r => r.id === reference.split('#')[1]);
   } else {
     // Absolute reference - if we are registered with the server obtain an access token
     // Assumes the url is of the form {baseUrl}/{resourceType}/{id}
-    const temp = reference.substring(0, reference.lastIndexOf('/'));
-    const externalServerUrl = temp.substring(0, temp.lastIndexOf('/'));
+    const externalServerUrl = getBaseUrlFromFullUrl(reference);
     const found = db.select(SERVERS, s => s === externalServerUrl);
     if (found.length) {
       const token = await getAccessToken(externalServerUrl);

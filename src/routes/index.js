@@ -40,7 +40,7 @@ router.post('/trigger', (req, res) => {
     r => r.fullUrl === resourceFullUrl
   );
 
-  startReportingWorkflow(planDef, kaBaseUrl, resource);
+  startReportingWorkflow(planDef, resource);
   res.sendStatus(StatusCodes.OK);
 });
 

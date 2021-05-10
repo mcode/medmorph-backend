@@ -54,25 +54,25 @@ const IG_REGISTRY = {
  * initializes the context and begins the executeWorkflow
  *
  * @param {PlanDefinition} planDef - the PlanDefinition resource
- * @param {string} serverUrl - the server base url the PlanDefinition came from
  * @param {*} resource - the resource which triggered the notification
  */
-async function startReportingWorkflow(planDef, serverUrl, resource = null) {
+async function startReportingWorkflow(planDef, resource = null) {
   // TODO: MEDMORPH-49 to make sure the resource is always included
   if (!resource) return;
 
   const ehrUrl = getEHRServer().endpoint;
   let patient = null;
-  if (resource.patient) patient = await getReferencedResource(ehrUrl, resource.patient.reference);
+  if (resource.patient)
+    patient = await getReferencedResource(ehrUrl, resource.patient.reference, resource);
   else if (resource.subject)
-    patient = await getReferencedResource(ehrUrl, resource.subject.reference);
+    patient = await getReferencedResource(ehrUrl, resource.subject.reference, resource);
   else if (resource.resourceType === 'Patient') patient = resource;
 
   let encounter = null;
   if (resource.encounter)
-    encounter = await getReferencedResource(ehrUrl, resource.encounter.reference);
+    encounter = await getReferencedResource(ehrUrl, resource.encounter.reference, resource);
   else if (resource.context)
-    encounter = await getReferencedResource(ehrUrl, resource.context.reference);
+    encounter = await getReferencedResource(ehrUrl, resource.context.reference, resource);
   else if (resource.resourceType === 'Encounter') encounter = resource;
 
   // Get the endpoint to submit the report to from the PlanDefinition
