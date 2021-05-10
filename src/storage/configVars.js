@@ -8,29 +8,29 @@ const configVars = {
 };
 const configInit = [
   {
-    key: configVars.ADMIN_TOKEN,
+    id: configVars.ADMIN_TOKEN,
     value: 'admin'
   },
   {
-    key: configVars.AUTH,
+    id: configVars.AUTH,
     value: 'http://moonshot-dev.mitre.org:8090/auth'
   },
   {
-    key: configVars.AUTH_CERTS_URL,
+    id: configVars.AUTH_CERTS_URL,
     value:
       'http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/certs'
   },
   {
-    key: configVars.AUTH_TOKEN_URL,
+    id: configVars.AUTH_TOKEN_URL,
     value:
       'http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/token'
   },
   {
-    key: configVars.DATA_TRUST_SERVICE,
+    id: configVars.DATA_TRUST_SERVICE,
     value: 'http://localhost:3005'
   },
   {
-    key: configVars.REALM,
+    id: configVars.REALM,
     value: 'backend_app'
   }
 ];
