@@ -135,7 +135,7 @@
                 "actionId": "check-trigger-codes",
                 "relationship": "before-start",
                 "offsetDuration": {
-                  "value": 30,
+                  "value": 5,
                   "system": "http://unitsofmeasure.org",
                   "code": "s"
                 }
@@ -146,45 +146,41 @@
             "id": "check-trigger-codes",
             "description": "This action represents the execution of the checking trigger codes in the  workflow.",
             "textEquivalent": "Check Trigger Codes",
-            "action": [
+            "code": [
               {
-                "code": [
+                "coding": [
                   {
-                    "coding": [
-                      {
-                        "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
-                        "code": "check-trigger-codes"
-                      }
-                    ]
-                  }
-                ],
-                "condition": [
-                  {
-                    "kind": "applicability",
-                    "expression": {
-                      "language": "text/fhirpath",
-                      "expression": "%conditions.exists()"
-                    }
-                  }
-                ],
-                "input": [
-                  {
-                    "id": "conditions",
-                    "type": "Condition",
-                    "codeFilter": [
-                      {
-                        "path": "code",
-                        "valueSet": "http://hl7.org/fhir/us/medmorph/ValueSet/valueset-cancer-trigger-codes-example"
-                      }
-                    ]
-                  }
-                ],
-                "relatedAction": [
-                  {
-                    "actionId": "create-report",
-                    "relationship": "before-start"
+                    "system": "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions",
+                    "code": "check-trigger-codes"
                   }
                 ]
+              }
+            ],
+            "condition": [
+              {
+                "kind": "applicability",
+                "expression": {
+                  "language": "text/fhirpath",
+                  "expression": "%conditions.exists()"
+                }
+              }
+            ],
+            "input": [
+              {
+                "id": "conditions",
+                "type": "Condition",
+                "codeFilter": [
+                  {
+                    "path": "code",
+                    "valueSet": "http://hl7.org/fhir/us/medmorph/ValueSet/valueset-cancer-trigger-codes-example"
+                  }
+                ]
+              }
+            ],
+            "relatedAction": [
+              {
+                "actionId": "create-report",
+                "relationship": "before-start"
               }
             ]
           },
@@ -204,38 +200,50 @@
             ],
             "input": [
               {
-                    "type": "Patient",
-                    "profile": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+                "type": "Patient",
+                "profile": [
+                  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"
+                ]
               },
               {
-                    "type": "Condition",
-                    "profile": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition"
+                "type": "Condition",
+                "profile": [
+                  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition"
+                ]
               },
               {
-                    "type": "Encounter",
-                    "profile": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+                "type": "Encounter",
+                "profile": [
+                  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+                ]
               },
               {
-                    "type": "MedicationRequest",
-                    "profile": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest"
+                "type": "MedicationRequest",
+                "profile": [
+                  "http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest"
+                ]
               },
               {
-                    "type": "Observation",
-                    "profile": "http://hl7.org/fhir/StructureDefinition/vitalsigns"
+                "type": "Observation",
+                "profile": [
+                  "http://hl7.org/fhir/StructureDefinition/vitalsigns"
+                ]
               }
             ],
             "output": [
               {
-                    "type": "Bundle",
-                    "profile": "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+                "type": "Bundle",
+                "profile": [
+                  "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+                ]
               }
             ],
             "relatedAction": [
-                  {
-                    "actionId": "validate-report",
-                    "relationship": "before-start"
-                  }
-                ]
+              {
+                "actionId": "validate-report",
+                "relationship": "before-start"
+              }
+            ]
           },
           {
             "id": "validate-report",
@@ -253,22 +261,26 @@
             ],
             "input": [
               {
-                    "type": "Bundle",
-                    "profile": "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+                "type": "Bundle",
+                "profile": [
+                  "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+                ]
               }
             ],
             "output": [
               {
-                    "type": "Bundle",
-                    "profile": "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+                "type": "Bundle",
+                "profile": [
+                  "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+                ]
               }
             ],
             "relatedAction": [
-                  {
-                    "actionId": "submit-report",
-                    "relationship": "before-start"
-                  }
-                ]
+              {
+                "actionId": "submit-report",
+                "relationship": "before-start"
+              }
+            ]
           },
           {
             "id": "submit-report",
@@ -286,8 +298,10 @@
             ],
             "input": [
               {
-                    "type": "Bundle",
-                    "profile": "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+                "type": "Bundle",
+                "profile": [
+                  "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-reporting-bundle"
+                ]
               }
             ]
           }

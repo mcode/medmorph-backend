@@ -1,0 +1,29 @@
+{
+    "resourceType": "MedicationRequest",
+    "id": "med01",
+    "meta": {
+        "profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-medicationrequest"]
+    },
+    "status": "active",
+    "intent": "order",
+    "medicationCodeableConcept": {
+        "coding": [
+            {
+                "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "code": "309311",
+                "display": "CISplatin 50 MG per 50 ML Injectable Solution"
+            }
+        ],
+        "text": "Cisplatin 1 MG/ML Injectable Solution"
+    },
+    "subject": {
+        "reference": "Patient/pat02"
+    },
+    "encounter": {
+        "reference": "Encounter/enc01"
+    },
+    "authoredOn": "2021-05-01",
+    "requester": {
+        "reference": "Practitioner/prac01"
+    }
+}

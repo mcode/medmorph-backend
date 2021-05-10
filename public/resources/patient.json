@@ -1,0 +1,81 @@
+{
+    "resourceType": "Patient",
+    "id": "pat02",
+    "identifier": [
+        {
+            "system": "http://example.org",
+            "value": "1234"
+        }
+    ],
+    "meta": {
+        "profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-patient"]
+    },
+    "extension": [
+        {
+            "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race",
+            "extension": [
+                {
+                    "url": "ombCategory",
+                    "valueCoding": {
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "code": "2054-5",
+                        "display": "Black or African American"
+                    }
+                },
+                {
+                    "url": "text",
+                    "valueString": "Black or African American"
+                }
+            ]
+        },
+        {
+            "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity",
+            "extension": [
+                {
+                    "url": "ombCategory",
+                    "valueCoding": {
+                        "system": "urn:oid:2.16.840.1.113883.6.238",
+                        "code": "2186-5",
+                        "display": "Not Hispanic or Latino"
+                    }
+                },
+                {
+                    "url": "text",
+                    "valueString": "Not Hispanic or Latino"
+                }
+            ]
+        }
+    ],
+    "name": [
+        {
+            "family": "Shepherd",
+            "given": [
+                "Meredith",
+                "Lynn"
+            ]
+        }
+    ],
+    "gender": "female",
+    "telecom": [
+        {
+            "system": "phone",
+            "value": "(206)555-1313",
+            "use": "home"
+        }
+    ],
+    "birthDate": "1960-02-20",
+    "deceasedBoolean": false,
+    "address": [
+        {
+            "use": "home",
+            "type": "both",
+            "line": [
+                "111 Main Street"
+            ],
+            "city": "Seattle",
+            "state": "WA",
+            "postalCode": "98101",
+            "country": "US"
+        }
+    ]
+}

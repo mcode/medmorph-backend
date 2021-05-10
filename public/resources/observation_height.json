@@ -1,0 +1,37 @@
+{
+    "resourceType": "Observation",
+    "id": "obs01",
+    "status": "final",
+    "category": [
+        {
+            "coding": [
+                {
+                    "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                    "code": "vital-signs",
+                    "display": "Vital Signs"
+                }
+            ]
+        }
+    ],
+    "code": {
+        "coding": [
+            {
+                "system": "http://loinc.org",
+                "code": "8302-2",
+                "display": "Body Height"
+            }
+        ]
+    },
+    "subject": {
+        "reference": "Patient/pat02"
+    },
+    "encounter": {
+        "reference": "Encounter/enc01"
+    },
+    "effectiveDateTime": "2021-05-01T08:00:00-04:00",
+    "valueQuantity": {
+        "value": 162.5,
+        "unit": "cm",
+        "system": "http://unitsofmeasure.org"
+    }
+}

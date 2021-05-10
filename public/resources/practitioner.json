@@ -1,0 +1,36 @@
+{
+    "resourceType": "Practitioner",
+    "id": "prac01",
+    "identifier": [
+        {
+            "system": "http://hl7.org/fhir/sid/us-npi",
+            "value": "1234567893"
+        }
+    ],
+    "meta": {
+        "profile": ["http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitioner"]
+    },
+    "name": [
+        {
+            "family": "Karev",
+            "given": ["Alex"]
+        }
+    ],
+    "telecom": [
+        {
+            "system": "phone",
+            "value": "(206)555-3921"
+        }
+    ],
+    "address": [
+        {
+            "line": [
+                "999 Ellis Way"
+            ],
+            "city": "Seattle",
+            "state": "WA",
+            "postalCode": "98101",
+            "country": "US"
+        }
+    ]
+}
