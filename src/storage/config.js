@@ -16,7 +16,7 @@ const { configVars } = require('./configVars');
  */
 
 function getAdminToken() {
-  const selection = db.select(CONFIG, c => c.key === configVars.ADMIN_TOKEN)[0];
+  const selection = db.select(CONFIG, c => c.id === configVars.ADMIN_TOKEN)[0];
   if (selection) {
     return selection.value;
   }
@@ -24,42 +24,42 @@ function getAdminToken() {
 
 function setAdminToken(value) {
   const entry = {
-    key: configVars.ADMIN_TOKEN,
+    id: configVars.ADMIN_TOKEN,
     value: value
   };
-  db.upsert(CONFIG, entry, c => c.key === entry.key);
+  db.upsert(CONFIG, entry, c => c.id === entry.id);
 }
 
 function getAuth() {
-  const selection = db.select(CONFIG, c => c.key === configVars.AUTH)[0];
+  const selection = db.select(CONFIG, c => c.id === configVars.AUTH)[0];
   if (selection) {
     return selection.value;
   }
 }
 
 function getAuthCertsUrl() {
-  const selection = db.select(CONFIG, c => c.key === configVars.AUTH_CERTS_URL)[0];
+  const selection = db.select(CONFIG, c => c.id === configVars.AUTH_CERTS_URL)[0];
   if (selection) {
     return selection.value;
   }
 }
 
 function getAuthTokenUrl() {
-  const selection = db.select(CONFIG, c => c.key === configVars.AUTH_TOKEN_URL)[0];
+  const selection = db.select(CONFIG, c => c.id === configVars.AUTH_TOKEN_URL)[0];
   if (selection) {
     return selection.value;
   }
 }
 
 function getDataTrustService() {
-  const selection = db.select(CONFIG, c => c.key === configVars.DATA_TRUST_SERVICE)[0];
+  const selection = db.select(CONFIG, c => c.id === configVars.DATA_TRUST_SERVICE)[0];
   if (selection) {
     return selection.value;
   }
 }
 
 function getRealm() {
-  const selection = db.select(CONFIG, c => c.key === configVars.REALM)[0];
+  const selection = db.select(CONFIG, c => c.id === configVars.REALM)[0];
   if (selection) {
     return selection.value;
   }
