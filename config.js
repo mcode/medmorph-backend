@@ -29,11 +29,11 @@ const configVars = {
     },
     {
       id: configVars.REQUIRE_AUTH,
-      value: true
+      value: "true"
     },
     {
       id: configVars.REQUIRE_AUTH_FOR_OUTGOING,
-      value: true
+      value: "true"
     }
   ];
   
