@@ -103,10 +103,13 @@ async function getReferencedResource(url, reference, parentResource, returnFullU
     // Absolute reference - if we are registered with the server obtain an access token
     // Assumes the url is of the form {baseUrl}/{resourceType}/{id}
     const externalServerUrl = getBaseUrlFromFullUrl(reference);
-    const found = db.select(SERVERS, s => s === externalServerUrl);
+    const found = db.select(SERVERS, s => s.endpoint === externalServerUrl);
     if (found.length) {
       const token = await getAccessToken(externalServerUrl);
       headers.Authorization = `Bearer ${token}`;
+    } else {
+      debug(`Unable to find server with endpoint ${externalServerUrl} in the database.`);
+      debug('Attempting to get referenced resource without using authorization');
     }
   }
 
