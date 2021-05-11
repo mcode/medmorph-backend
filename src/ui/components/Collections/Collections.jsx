@@ -101,8 +101,8 @@ const Collections = props => {
           { value: 'secret', label: 'secret', edit: true },
           // NOTE: secret is only used for client_secret_basic auth.
           // see src/utils/client.js : connectToServer for more info
-          { value: 'customScopes', label: 'customScopes', edit: true },
-        //   { value: 'type', label: 'type', edit: false }
+          { value: 'customScopes', label: 'customScopes', edit: true }
+          //   { value: 'type', label: 'type', edit: false }
         ];
         return {
           headers,
@@ -115,17 +115,17 @@ const Collections = props => {
           editable: true
         };
       case 'config':
-          headers = [
-              { value: 'id', label: 'id', edit: false },
-              { value: 'value', label: 'Value', edit: true}
-          ]
-          return {
-              headers,
-              data: data.data,
-              addButton: false,
-              editable: true,
-              noDelete: true,
-          }
+        headers = [
+          { value: 'id', label: 'id', edit: false },
+          { value: 'value', label: 'Value', edit: true }
+        ];
+        return {
+          headers,
+          data: data.data,
+          addButton: false,
+          editable: true,
+          noDelete: true
+        };
       case 'endpoints':
       case 'plandefinitions':
         headers = [

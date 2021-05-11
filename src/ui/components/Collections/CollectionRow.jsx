@@ -91,12 +91,11 @@ function CollectionRow(props) {
               />
               {!noDelete && (
                 <AlertDialog
-                title={`Are you sure?`}
-                content={`Delete entry ${data['id']} from ${selectedCollection}?`}
-                callback={deleteData}
+                  title={`Are you sure?`}
+                  content={`Delete entry ${data['id']} from ${selectedCollection}?`}
+                  callback={deleteData}
                 />
               )}
-
             </>
           )}
         </TableCell>
