@@ -59,48 +59,44 @@ function initConfig() {
   if (configUtil.getConfig().length === 0) {
     // default to config template
     db.insert(CONFIG, configInit);
-    return configInit.filter(e => e.id === configVars.AUTH_CERTS_URL)[0].value;
   }
 }
 
-function setupAfterDb() {
-  const authCertsUrlInit = initConfig();
-  const authCertsUrl = configUtil.getAuthCertsUrl() || authCertsUrlInit;
-  // setup passport to handle JWTs. see example at:
-  // https://github.com/auth0/node-jwks-rsa/tree/master/examples/passport-demo
-  passport.use(
-    new JwtStrategy(
-      {
-        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-        secretOrKeyProvider: jwksRsa.passportJwtSecret({
-          cache: true,
-          rateLimit: true,
-          jwksRequestsPerMinute: 5,
-          jwksUri: authCertsUrl
-        })
-      },
-      (jwtPayload, done) => {
-        return done(null, jwtPayload);
-      }
-    )
-  );
+// setup passport to handle JWTs. see example at:
+// https://github.com/auth0/node-jwks-rsa/tree/master/examples/passport-demo
+passport.use(
+new JwtStrategy(
+    {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKeyProvider: jwksRsa.passportJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: process.env.AUTH_CERTS_URL
+    })
+    },
+    (jwtPayload, done) => {
+    return done(null, jwtPayload);
+    }
+)
+);
 
-  // Set up passport to use local config
-  passport.use(new LocalStrategy({ usernameField: 'email' }, localConfig));
-  passport.serializeUser((user, done) => {
-    done(null, user.uid);
-  });
-  passport.deserializeUser((uid, done) => {
-    // In the future, we might store user info (name, roles, etc) via the passport.authenticate
-    // cb. If we did that, this is where we would reconstitute the user.
-    done(null, { uid });
-  });
+// Set up passport to use local config
+passport.use(new LocalStrategy({ usernameField: 'email' }, localConfig));
+passport.serializeUser((user, done) => {
+done(null, user.uid);
+});
+passport.deserializeUser((uid, done) => {
+// In the future, we might store user info (name, roles, etc) via the passport.authenticate
+// cb. If we did that, this is where we would reconstitute the user.
+done(null, { uid });
+});
 
-  // Protected Routes
-  app.use('/index', userOrBackendAuthorization, indexRouter);
-  app.use('/fhir', userOrBackendAuthorization, fhirRouter);
-  app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
-}
+// Protected Routes
+app.use('/index', userOrBackendAuthorization, indexRouter);
+app.use('/fhir', userOrBackendAuthorization, fhirRouter);
+app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
+
 
 // Open Routes
 app.use('/.well-known', wellKnownRouter);
@@ -118,7 +114,7 @@ Object.values(collections).forEach(collectionName => {
 // frontend
 app.get('/', (req, res) => res.sendFile('index.html', { root: __dirname + '/../public' }));
 
-runWhenDBReady(setupAfterDb);
+runWhenDBReady(initConfig);
 runWhenDBReady(refreshAllKnowledgeArtifacts);
 runWhenDBReady(subscribeToKnowledgeArtifacts);
 

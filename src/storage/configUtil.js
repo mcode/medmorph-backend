@@ -35,35 +35,6 @@ function setAdminToken(value) {
   db.upsert(CONFIG, entry, c => c.id === entry.id);
 }
 
-function getAuthCertsUrl() {
-  const selection = db.select(CONFIG, c => c.id === configVars.AUTH_CERTS_URL)[0];
-  if (selection) {
-    return selection.value;
-  }
-}
-function setAuthCertsUrl(value) {
-  const entry = {
-    id: configVars.AUTH_CERTS_URL,
-    value: value
-  };
-  db.upsert(CONFIG, entry, c => c.id === entry.id);
-}
-
-function getAuthTokenUrl() {
-  const selection = db.select(CONFIG, c => c.id === configVars.AUTH_TOKEN_URL)[0];
-  if (selection) {
-    return selection.value;
-  }
-}
-
-function setAuthTokenUrl(value) {
-  const entry = {
-    id: configVars.AUTH_TOKEN_URL,
-    value: value
-  };
-  db.upsert(CONFIG, entry, c => c.id === entry.id);
-}
-
 function getDataTrustService() {
   const selection = db.select(CONFIG, c => c.id === configVars.DATA_TRUST_SERVICE)[0];
   if (selection) {
@@ -112,14 +83,10 @@ function setRequireAuthForOutgoing(value) {
 module.exports = {
   getConfig,
   getAdminToken,
-  getAuthCertsUrl,
-  getAuthTokenUrl,
   getDataTrustService,
   getRequireAuth,
   getRequireAuthForOutgoing,
   setAdminToken,
-  setAuthCertsUrl,
-  setAuthTokenUrl,
   setDataTrustService,
   setRequireAuth,
   setRequireAuthForOutgoing
