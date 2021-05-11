@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const configUtil = require('../storage/configUtil');
 router.get('/smart-configuration', (req, res) => {
   const smartConfiguration = {
     token_endpoint: process.env.AUTH_TOKEN_URL,
