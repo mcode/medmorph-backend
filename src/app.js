@@ -17,7 +17,10 @@ const publicRouter = require('./routes/public');
 const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
 const { storeRequest } = require('./storage/logs');
-const config = require('./storage/config');
+const configUtil = require('./storage/configUtil');
+const { configInit, configVars } = require('../config');
+const { CONFIG } = require('./storage/collections');
+const db = require('./storage/DataAccess');
 
 const { subscriptionAuthorization, userOrBackendAuthorization } = require('./utils/auth');
 const { subscribeToKnowledgeArtifacts } = require('./utils/subscriptions');
@@ -52,8 +55,17 @@ async function localConfig(email, password, done) {
   else return done(null, false, { message: 'Invalid login' });
 }
 
+function initConfig() {
+  if (configUtil.getConfig().length === 0) {
+    // default to config template
+    db.insert(CONFIG, configInit);
+    return configInit.filter(e => e.id === configVars.AUTH_CERTS_URL)[0].value;
+  }
+}
+
 function setupAfterDb() {
-  const authCertsUrl = config.getAuthCertsUrl();
+  const authCertsUrlInit = initConfig();
+  const authCertsUrl = configUtil.getAuthCertsUrl() || authCertsUrlInit;
   // setup passport to handle JWTs. see example at:
   // https://github.com/auth0/node-jwks-rsa/tree/master/examples/passport-demo
   passport.use(
@@ -83,13 +95,12 @@ function setupAfterDb() {
     // cb. If we did that, this is where we would reconstitute the user.
     done(null, { uid });
   });
-
-  // Open Routes
-  app.use('/.well-known', wellKnownRouter);
-  app.use('/public', publicRouter);
-  app.use('/auth', authRouter);
 }
 
+// Open Routes
+app.use('/.well-known', wellKnownRouter);
+app.use('/public', publicRouter);
+app.use('/auth', authRouter);
 // Routes for collections
 Object.values(collections).forEach(collectionName => {
   app.use(

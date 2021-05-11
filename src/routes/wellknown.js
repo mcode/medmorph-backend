@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const config = require('../storage/config');
+const configUtil = require('../storage/configUtil');
 router.get('/smart-configuration', (req, res) => {
   const smartConfiguration = {
-    token_endpoint: config.getAuthTokenUrl(),
+    token_endpoint: configUtil.getAuthTokenUrl(),
     response_types_supported: ['token'],
     scopes_supported: ['offline_access', 'system/*.*', 'system/*.read', 'system/*.write']
   };
