@@ -3,7 +3,7 @@ const { StatusCodes } = require('http-status-codes');
 const passport = require('passport');
 const { SUBSCRIPTIONS } = require('../storage/collections');
 const db = require('../storage/DataAccess');
-const config = require('../storage/config');
+const configUtil = require('../storage/configUtil');
 /**
  * Helper function to obtain the token from the authorization header
  * Note: auth header must be in form "Bearer {token}"
@@ -30,10 +30,10 @@ function generateToken(id) {
  * Middleware for verifying the access token on a Subscription notification
  */
 function subscriptionAuthorization(req, res, next) {
-  if (process.env.REQUIRE_AUTH && process.env.REQUIRE_AUTH === 'false') return next();
+  if (configUtil.getRequireAuth() && configUtil.getRequireAuth() === 'false') return next();
 
   const token = getToken(req);
-  const adminToken = config.getAdminToken();
+  const adminToken = configUtil.getAdminToken();
   if (adminToken && token === adminToken) return next();
   else if (token) {
     const subscriptionId = token.split(':')[0];
@@ -84,10 +84,10 @@ function checkScopes(req, res, next, jwtPayload) {
  * be accessible via both authentication schemes.
  */
 function userOrBackendAuthorization(req, res, next) {
-  if (process.env.REQUIRE_AUTH && process.env.REQUIRE_AUTH === 'false') return next();
+  if (configUtil.getRequireAuth() && configUtil.getRequireAuth() === 'false') return next();
 
   const token = getToken(req);
-  const adminToken = config.getAdminToken();
+  const adminToken = configUtil.getAdminToken();
   if (req.isAuthenticated()) return next();
   else if (adminToken && token === adminToken) return next();
   else

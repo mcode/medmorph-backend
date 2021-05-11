@@ -12,9 +12,7 @@
 
 const loki = require('lokijs');
 
-const { markDBReady, runWhenDBReady } = require('../postinit');
-const { configInit } = require('../configVars');
-const { CONFIG } = require('../collections');
+const { markDBReady } = require('../postinit');
 const isTest = process.env.NODE_ENV === 'test';
 
 class Internal {
@@ -31,13 +29,6 @@ class Internal {
     } else {
       this.db = new loki('medmorph.db');
     }
-    runWhenDBReady(() => {
-      if (!this.db.getCollection(CONFIG)) {
-        // default to config template
-        const configCollection = this.db.addCollection(CONFIG, { disableMeta: true });
-        configCollection.insert(configInit);
-      }
-    });
   }
 
   _getCollection(c) {
