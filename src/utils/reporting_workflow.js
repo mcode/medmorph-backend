@@ -1,7 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
 const graphlib = require('graphlib');
 const db = require('../storage/DataAccess');
-const { getReferencedResource, getEndpointId } = require('../utils/fhir');
+const { getReferencedResource } = require('../utils/fhir');
+const { getReceiverAddress } = require('../utils/knowledgeartifacts');
 const { getEHRServer } = require('../storage/servers');
 const { baseIgActions } = require('./actions');
 const { REPORTING, ENDPOINTS } = require('../storage/collections');
@@ -53,31 +54,29 @@ const IG_REGISTRY = {
  * initializes the context and begins the executeWorkflow
  *
  * @param {PlanDefinition} planDef - the PlanDefinition resource
- * @param {string} serverUrl - the server base url the PlanDefinition came from
  * @param {*} resource - the resource which triggered the notification
  */
-async function startReportingWorkflow(planDef, serverUrl, resource = null) {
+async function startReportingWorkflow(planDef, resource = null) {
   // TODO: MEDMORPH-49 to make sure the resource is always included
   if (!resource) return;
 
   const ehrUrl = getEHRServer().endpoint;
   let patient = null;
-  if (resource.patient) patient = await getReferencedResource(ehrUrl, resource.patient.reference);
+  if (resource.patient)
+    patient = await getReferencedResource(ehrUrl, resource.patient.reference, resource);
   else if (resource.subject)
-    patient = await getReferencedResource(ehrUrl, resource.subject.reference);
+    patient = await getReferencedResource(ehrUrl, resource.subject.reference, resource);
   else if (resource.resourceType === 'Patient') patient = resource;
 
   let encounter = null;
   if (resource.encounter)
-    encounter = await getReferencedResource(ehrUrl, resource.encounter.reference);
+    encounter = await getReferencedResource(ehrUrl, resource.encounter.reference, resource);
   else if (resource.context)
-    encounter = await getReferencedResource(ehrUrl, resource.context.reference);
+    encounter = await getReferencedResource(ehrUrl, resource.context.reference, resource);
   else if (resource.resourceType === 'Encounter') encounter = resource;
 
   // Get the endpoint to submit the report to from the PlanDefinition
-  const endpointId = getEndpointId(planDef);
-  const endpointFullUrl = `${serverUrl}/Endpoint/${endpointId}`;
-  const endpoint = db.select(ENDPOINTS, e => e.fullUrl === endpointFullUrl);
+  const endpoint = db.select(ENDPOINTS, e => e.fullUrl === getReceiverAddress(planDef));
   const destEndpoint = endpoint[0].address;
 
   // QUESTION: Should encounter and patient be saved to the database?

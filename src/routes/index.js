@@ -6,24 +6,19 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../storage/DataAccess');
 const testService = require('../services/test_service');
 const publicKey = require('../keys/publicKey.json');
-const {
-  refreshAllKnowledgeArtifacts,
-  getPlanDef,
-  getBaseUrlFromFullUrl
-} = require('../utils/fhir');
+const { refreshAllKnowledgeArtifacts, getPlanDef } = require('../utils/fhir');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
 
 router.get('/', testService);
 
 router.post('/fetch-ka', (_req, res) => {
-  refreshAllKnowledgeArtifacts(db);
+  refreshAllKnowledgeArtifacts();
   res.sendStatus(StatusCodes.OK);
 });
 
 router.post('/trigger', (req, res) => {
   const { resource, planDefFullUrl } = req.body;
   const planDef = getPlanDef(planDefFullUrl);
-  const kaBaseUrl = getBaseUrlFromFullUrl(planDefFullUrl);
 
   if (!planDef) {
     res.sendStatus(StatusCodes.NOT_FOUND);
@@ -40,7 +35,7 @@ router.post('/trigger', (req, res) => {
     r => r.fullUrl === resourceFullUrl
   );
 
-  startReportingWorkflow(planDef, kaBaseUrl, resource);
+  startReportingWorkflow(planDef, resource);
   res.sendStatus(StatusCodes.OK);
 });
 
