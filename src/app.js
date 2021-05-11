@@ -95,6 +95,11 @@ function setupAfterDb() {
     // cb. If we did that, this is where we would reconstitute the user.
     done(null, { uid });
   });
+
+  // Protected Routes
+  app.use('/index', userOrBackendAuthorization, indexRouter);
+  app.use('/fhir', userOrBackendAuthorization, fhirRouter);
+  app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
 }
 
 // Open Routes
@@ -112,11 +117,6 @@ Object.values(collections).forEach(collectionName => {
 
 // frontend
 app.get('/', (req, res) => res.sendFile('index.html', { root: __dirname + '/../public' }));
-
-// Protected Routes
-app.use('/index', userOrBackendAuthorization, indexRouter);
-app.use('/fhir', userOrBackendAuthorization, fhirRouter);
-app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
 
 runWhenDBReady(setupAfterDb);
 runWhenDBReady(refreshAllKnowledgeArtifacts);
