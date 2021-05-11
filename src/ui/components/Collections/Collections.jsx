@@ -102,7 +102,7 @@ const Collections = props => {
           // NOTE: secret is only used for client_secret_basic auth.
           // see src/utils/client.js : connectToServer for more info
           { value: 'customScopes', label: 'customScopes', edit: true }
-]        ];
+        ];
         return {
           headers,
           data: data.data.map(element => {
