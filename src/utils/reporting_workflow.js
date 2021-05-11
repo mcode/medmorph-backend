@@ -279,6 +279,11 @@ async function executeWorkflow(context) {
     const action = planDef.action.find(a => a.id === currentActionId);
     context.action = action;
 
+    if (action.action) {
+      // connectathon hack - merge everything from the nested action into this one
+      Object.assign(action, action.action[0]);
+    }
+
     const actionCode = context.action.code[0].coding[0].code;
     debug(`Executing ${actionCode} for PlanDefinition/${planDef.id}`);
 

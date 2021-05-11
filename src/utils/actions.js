@@ -67,8 +67,83 @@ const baseIgActions = {
     // Through the source client?
     return context;
   },
-  'create-report': context => {
+  'create-report': async context => {
     // the output might define a profile
+    const action = context.action;
+
+    if (action.input) {
+      // input field defines which resource types to include
+
+      for (const input of action.input) {
+        const resourceType = input.type;
+        // ASSUMPTION: only types that are linked to a patient will be included here
+        // so for example Substance resources, which represent a Thing rather than an activity
+        // should not be here
+        const params = [];
+
+        // worth making this a switch instead of if?
+        if (resourceType === 'Patient') {
+          if (context.patient) {
+            // we already added the patient resource directly
+            // (see reporting_workflow:initializeContext)
+            continue;
+          } else {
+            // assume we have context.encounter
+            const patientId = context.encounter.subject.reference;
+            const patient = (await readFromEHR(patientId)).data;
+            context.records.push(patient);
+            // skip the rest of the logic below
+            continue;
+          }
+        } else if (resourceType === 'Encounter') {
+          if (context.encounter) {
+            // we already added the encounter resource directly
+            // (see reporting_workflow:initializeContext)
+            // ASSUMPTION: if given an encounter context,
+            //   we only care about that one, not all encounters
+            continue;
+          } else {
+            // assume we have context.patient
+            params.push(`subject=Patient/${context.patient.id}`);
+          }
+        } else {
+          // TODO: logic to check which resources actually have these fields?
+          // will be necessary if we get away from the simple US core types
+          if (context.encounter) {
+            params.push(`encounter=Encounter/${context.encounter.id}`);
+          }
+
+          if (context.patient) {
+            params.push(`subject=Patient/${context.patient.id}`);
+          }
+        }
+
+        // intentionally disabling the profile check for now
+        // as a profile search isn't aware of profiles that logically extend one another
+        // unless every profile in the hierarchy is explicitly listed
+        // (for instance, mCODE profile generally extend US Core,
+        // but unless an mCODE resource also specifies US core
+        // it won't be returned in a search by US core profile)
+        // if (input.profile) {
+        //   // TODO: what if there's more than 1 profile listed? is that AND or OR?
+        //   // TODO: what if the server doesn't include profiles or support the search filter?
+        //   params.push(`_profile=${input.profile[0]}`);
+        //   // note also specifying profile may not be ideal
+
+        // eslint-disable-next-line max-len
+        //   // see: https://chat.fhir.org/#narrow/stream/179252-IG-creation/topic/Requiring.20meta.2Eprofile.20be.20populated
+        // }
+
+        const query = resourceType + '?' + params.join('&');
+        const bundle = (await readFromEHR(query)).data;
+
+        if (bundle.entry) {
+          const resources = bundle.entry.map(e => e.resource);
+          context.records.push(...resources);
+        }
+      }
+    }
+
     let contentBundle = createBundle(context.records, 'content');
     if (context.action.output) {
       const output = context.action.output[0];
