@@ -26,7 +26,8 @@
 // anyway.
 const axios = require('axios');
 const { v4: uuid } = require('uuid');
-const { Fhir, FhirPath } = require('fhir');
+const { Fhir } = require('fhir');
+const fhirpath = require('fhirpath');
 const { StatusCodes } = require('http-status-codes');
 const { getEHRServer } = require('../storage/servers');
 const { getAccessToken } = require('./client');
@@ -47,10 +48,13 @@ const baseIgActions = {
       if (condition.expression) {
         const expression = condition.expression;
         // check the records for a trigger code
-        return resources.some(resource => {
-          //might have to check that this is non-empty here
-          return evaluateExpression(expression, resource);
-        });
+        const variables = {};
+        if (action.input) {
+          for (const input of action.input) {
+            variables[input.id] = 'dummy value';
+          }
+        }
+        return evaluateExpression(expression, resources, variables);
       } else {
         // default true for non-applicability conditions
         return true;
@@ -61,6 +65,9 @@ const baseIgActions = {
       return entry === true;
     });
     context.flags['triggered'] = triggered;
+    if (!triggered) {
+      context.exitStatus = 'failed trigger check';
+    }
   },
   'check-participant-registration': context => {
     // TODO: how do we check the participant registration?
@@ -332,8 +339,7 @@ function validateProfile(report, structureDefinition) {
 }
 
 function getByPath(resource, path) {
-  const fhirpath = new FhirPath(resource);
-  return fhirpath.evaluate(path);
+  return fhirpath.evaluate(resource, path);
 }
 
 function compareCodes(coding1, coding2) {
@@ -387,10 +393,9 @@ function createBundle(records, type) {
   return bundle;
 }
 
-function evaluateExpression(expression, resource) {
+function evaluateExpression(expression, resources, variables={}) {
   if (expression.language === 'text/fhirpath') {
-    const fhirpath = new FhirPath(resource);
-    const path = fhirpath.evaluate(expression.expression);
+    const path = fhirpath.evaluate(resources, expression.expression, variables);
     return path;
   }
 }
