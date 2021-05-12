@@ -41,9 +41,9 @@ function error(location) {
 }
 
 function storeRequest(request) {
-  let modifiedBody = Object.assign({},request.body);
+  const modifiedBody = Object.assign({}, request.body);
   if (modifiedBody.password) {
-      delete modifiedBody.password
+    delete modifiedBody.password;
   }
   const log = {
     id: uuidv4(),
