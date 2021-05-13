@@ -19,7 +19,7 @@ function CollectionRow(props) {
   const reducer = (state, action) => {
     return { ...state, [action.header]: action.value };
   };
-  const { headers, data, selectedCollection, editable, addNew, callback } = props;
+  const { headers, data, selectedCollection, editable, addNew, callback, noDelete } = props;
   const [edit, setEdit] = useState(addNew);
   const [state, dispatch] = useReducer(reducer, data);
 
@@ -89,11 +89,13 @@ function CollectionRow(props) {
                   setEdit(true);
                 }}
               />
-              <AlertDialog
-                title={`Are you sure?`}
-                content={`Delete entry ${data['id']} from ${selectedCollection}?`}
-                callback={deleteData}
-              ></AlertDialog>
+              {!noDelete && (
+                <AlertDialog
+                  title={`Are you sure?`}
+                  content={`Delete entry ${data['id']} from ${selectedCollection}?`}
+                  callback={deleteData}
+                />
+              )}
             </>
           )}
         </TableCell>
@@ -163,7 +165,8 @@ CollectionRow.propTypes = {
   selectedCollection: PropTypes.string.isRequired,
   editable: PropTypes.bool.isRequired,
   addNew: PropTypes.bool.isRequired,
-  callback: PropTypes.func.isRequired
+  callback: PropTypes.func.isRequired,
+  noDelete: PropTypes.bool
 };
 
 export default CollectionRow;

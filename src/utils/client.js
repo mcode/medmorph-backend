@@ -4,8 +4,8 @@ const { v4 } = require('uuid');
 const queryString = require('query-string');
 const keys = require('../keys/privateKey.json');
 const servers = require('../storage/servers');
+const configUtil = require('../storage/configUtil');
 const error = require('../storage/logs').error('medmorph-backend:client');
-
 /**
  * Generate and return access token for the specified server. If tokenEndpoint
  * is provided it will use that, otherwise it will query the smart configuration.
@@ -65,7 +65,7 @@ async function connectToServer(url) {
  * @param {string} url - the base url of the server to connect to
  */
 async function getAccessToken(url) {
-  if (process.env.REQUIRE_AUTH_FOR_OUTGOING && process.env.REQUIRE_AUTH_FOR_OUTGOING === 'false')
+  if (configUtil.getRequireAuthForOutgoing() && configUtil.getRequireAuthForOutgoing() === 'false')
     return '';
 
   const server = servers.getServerByUrl(url);

@@ -31,32 +31,19 @@ docker-compose up
 The app will now be running at `http://localhost:3000`.
 ### Configuration Requirements
 
-Certain configuration properties MUST be set via enviornment variables. The easiest way to do this is to set them in an environment file, `.env`. A sample file is provided in this repo as `.env.dev` (you will need to rename/copy this into the `.env` file for it to work).
-
+Certain configuration properties can be set or changed. Some of these properties can be set as enviornment variables, the easiest way to do this is to set them in an environment file, `.env`. A sample file is provided in this repo as `.env.dev` (you will need to rename/copy this into the `.env` file for it to work).  Other configuration properties can be changed via the UI.  The `config.js` file sets the default for all the config variables changeable by the UI, but will not override values already persisted in the database.  Variables in the `config.js` file can be changed without a restart, but changing an environment variable will only affect the app if it is restarted.
+##### Environment Variables
 | ENV | Required | Description |
 | --- | -------- | ----------- |
-| AUTH_CERTS_URL | Yes | Endpoint hosting the public JWK Set of the Auth server  |
-| AUTH_TOKEN_URL | Yes | Endpoint for requesting an access token through the use of an OAuth 2.0 client credentials flow |
 | PORT | No | The port number for the server. Defaults to 3000 if not provided. |
 | DEBUG | No | Set to `medmorph-backend:*` to enable debug loggers for the app. |
-| DATA_TRUST_SERVICE | Yes | The base url for the data/trust service server. |
 | BASE_URL | Yes | The base url for this server. |
-| ADMIN_TOKEN | No | The value of the admin token to bypass authorization. If unset no admin token can be used. |
-| AUTH | No | If false, an access token will not be required to make requests. Defaults to true if unset. |
-| AUTH_REQUIRED_FOR_OUTGOING | No | If false, the backend app will not acquire an access token before sending requests to other servers. Defaults to true if unset. |
+| AUTH_CERTS_URL | Yes | Endpoint hosting the public JWK Set of the Auth server  |
+| AUTH_TOKEN_URL | Yes | Endpoint for requesting an access token through the use of an OAuth 2.0 client credentials flow |
 
 ```env
 # Port number for the server, defaults to 3000 if not provided
 PORT=3001
-
-# Authorization "Token" URL (required)
-AUTH_TOKEN_URL=http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/token
-
-# Authorization "Certs"/JWKS URL (required)
-AUTH_CERTS_URL=http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/certs
-
-# Data turst service url (required)
-DATA_TRUST_SERVICE=http://localhost:3005
 
 # This server base url (required)
 BASE_URL=http://localhost:3000
@@ -69,6 +56,17 @@ BASE_URL=http://localhost:3000
 DEBUG=medmorph-backend:*
 ```
 
+##### Config Variables
+
+| CONFIG | Required | Description |
+| ------ | -------- | ----------- |
+
+| DATA_TRUST_SERVICE | Yes | The base url for the data/trust service server. |
+| ADMIN_TOKEN | No | The value of the admin token to bypass authorization. If unset no admin token can be used. |
+| REQUIRE_AUTH | No | If false, an access token will not be required to make requests. Defaults to true if unset.
+| REQUIRE_AUTH_FOR_OUTGOING | No | If false, the backend app will not acquire an access token before sending requests to other servers. Defaults to true if unset. |
+
+Check the `config.js` file to find the default value for each property or set new default values.
 ### Server Requirements
 
 The app expects at the minimum a single EHR server. There should also be at least one KA server and one PHA server for anything meaningful to happen. More details and examples can be found on the [Collections Wiki](https://github.com/mcode/medmorph-backend/wiki/Collections)

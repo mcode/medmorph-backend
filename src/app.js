@@ -17,6 +17,10 @@ const publicRouter = require('./routes/public');
 const wellKnownRouter = require('./routes/wellknown');
 const subscriptionsRouter = require('./routes/subscriptions');
 const { storeRequest } = require('./storage/logs');
+const configUtil = require('./storage/configUtil');
+const { configInit } = require('../config');
+const { CONFIG } = require('./storage/collections');
+const db = require('./storage/DataAccess');
 
 const { subscriptionAuthorization, userOrBackendAuthorization } = require('./utils/auth');
 const { subscribeToKnowledgeArtifacts } = require('./utils/subscriptions');
@@ -44,6 +48,19 @@ app.use(function(req, res, next) {
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+async function localConfig(email, password, done) {
+  // TODO: MEDMORPH-67 will update this
+  if (email === 'admin' && password === 'password') return done(null, { uid: 'admin' });
+  else return done(null, false, { message: 'Invalid login' });
+}
+
+function initConfig() {
+  if (configUtil.getConfig().length === 0) {
+    // default to config template
+    db.insert(CONFIG, configInit);
+  }
+}
 
 // setup passport to handle JWTs. see example at:
 // https://github.com/auth0/node-jwks-rsa/tree/master/examples/passport-demo
@@ -74,17 +91,16 @@ passport.deserializeUser((uid, done) => {
   // cb. If we did that, this is where we would reconstitute the user.
   done(null, { uid });
 });
-async function localConfig(email, password, done) {
-  // TODO: MEDMORPH-67 will update this
-  if (email === 'admin' && password === 'password') return done(null, { uid: 'admin' });
-  else return done(null, false, { message: 'Invalid login' });
-}
+
+// Protected Routes
+app.use('/index', userOrBackendAuthorization, indexRouter);
+app.use('/fhir', userOrBackendAuthorization, fhirRouter);
+app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
 
 // Open Routes
 app.use('/.well-known', wellKnownRouter);
 app.use('/public', publicRouter);
 app.use('/auth', authRouter);
-
 // Routes for collections
 Object.values(collections).forEach(collectionName => {
   app.use(
@@ -97,11 +113,7 @@ Object.values(collections).forEach(collectionName => {
 // frontend
 app.get('/', (req, res) => res.sendFile('index.html', { root: __dirname + '/../public' }));
 
-// Protected Routes
-app.use('/index', userOrBackendAuthorization, indexRouter);
-app.use('/fhir', userOrBackendAuthorization, fhirRouter);
-app.use('/notif', subscriptionAuthorization, subscriptionsRouter);
-
+runWhenDBReady(initConfig);
 runWhenDBReady(refreshAllKnowledgeArtifacts);
 runWhenDBReady(subscribeToKnowledgeArtifacts);
 

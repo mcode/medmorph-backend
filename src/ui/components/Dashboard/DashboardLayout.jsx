@@ -32,6 +32,7 @@ function DashboardLayout() {
         label: `Notifications ${newNotifs ? `(${unviewedNotifs.length})` : ''}`,
         component: <Notifications notifs={unviewedNotifs} />
       },
+      { key: 'config', label: 'Config', component: <Collections selectedCollection="config" /> },
       { key: 'collections', label: 'Collections', component: null },
       { key: 'servers', label: 'Servers', component: <Collections selectedCollection="servers" /> },
       {

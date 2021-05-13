@@ -9,5 +9,6 @@ module.exports = {
   ERRORS: 'errors',
   MESSAGES: 'messages',
   REQUESTS: 'requests',
-  NOTIFICATIONS: 'notifications'
+  NOTIFICATIONS: 'notifications',
+  CONFIG: 'config'
 };
