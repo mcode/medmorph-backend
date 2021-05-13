@@ -60,17 +60,20 @@ const baseIgActions = {
 
         const query = type + '?' + params.join('&');
         const bundle = (await readFromEHR(query)).data;
+        let results = [];
 
-        let results = bundle.entry.map(e => e.resource);
+        if (bundle.entry) {
+          results = bundle.entry.map(e => e.resource);
 
-        if (codeFilter) {
-          // Can there be multiple codeFilters?
-          const { path, valueSet } = codeFilter[0];
-          const vsResource = db.select(VALUESETS, v => v.url === valueSet)[0];
-          // Filter resources that are in valueSet
-          results = results.filter(r =>
-            r[path].coding.some(c => checkCodeInVs(c.code, c.system, vsResource))
-          );
+          if (codeFilter) {
+            // Can there be multiple codeFilters?
+            const { path, valueSet } = codeFilter[0];
+            const vsResource = db.select(VALUESETS, v => v.url === valueSet)[0];
+            // Filter resources that are in valueSet
+            results = results.filter(r =>
+              r[path].coding.some(c => checkCodeInVs(c.code, c.system, vsResource))
+            );
+          }
         }
 
         variables[id] = results;
