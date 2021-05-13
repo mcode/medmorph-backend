@@ -34,15 +34,47 @@ const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const configUtil = require('../storage/configUtil');
 const { forwardMessageResponse } = require('./fhir');
-const { COMPLETED_REPORTS } = require('../storage/collections');
+const { COMPLETED_REPORTS, VALUESETS } = require('../storage/collections');
+const { checkCodeInVs } = require('./valueSetUtils');
 const debug = require('../storage/logs').debug('medmorph-backend:actions');
 const error = require('../storage/logs').error('medmorph-backend:actions');
 const fhir = new Fhir();
 
 const baseIgActions = {
-  'check-trigger-codes': context => {
+  'check-trigger-codes': async context => {
     const action = context.action;
     const resources = context.records;
+    const variables = {};
+    if (action.input) {
+      for (const input of action.input) {
+        const { id, codeFilter, type } = input;
+
+        // Can there be multiple codeFilters?
+        const { path, valueSet } = codeFilter[0];
+        const params = [];
+        if (context.encounter) {
+          params.push(`encounter=Encounter/${context.encounter.id}`);
+        }
+
+        if (context.patient) {
+          params.push(`subject=Patient/${context.patient.id}`);
+        }
+
+        const query = type + '?' + params.join('&');
+        const bundle = (await readFromEHR(query)).data;
+
+        // Filter resources that are in valueSet
+        variables[id] = bundle.entry.filter(r =>
+          r.resource[path].coding.some(c =>
+            checkCodeInVs(
+              c.code,
+              c.system,
+              db.select(VALUESETS, v => v.url === valueSet)
+            )
+          )
+        );
+      }
+    }
 
     const boolMap = action.condition.map(condition => {
       if (condition.expression) {
