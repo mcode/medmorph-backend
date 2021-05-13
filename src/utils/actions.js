@@ -74,6 +74,8 @@ const baseIgActions = {
     if (action.input) {
       // input field defines which resource types to include
 
+      const fetchPromises = [];
+
       for (const input of action.input) {
         const resourceType = input.type;
         // ASSUMPTION: only types that are linked to a patient will be included here
@@ -83,18 +85,10 @@ const baseIgActions = {
 
         // worth making this a switch instead of if?
         if (resourceType === 'Patient') {
-          if (context.patient) {
-            // we already added the patient resource directly
-            // (see reporting_workflow:initializeContext)
-            continue;
-          } else {
-            // assume we have context.encounter
-            const patientId = context.encounter.subject.reference;
-            const patient = (await readFromEHR(patientId)).data;
-            context.records.push(patient);
-            // skip the rest of the logic below
-            continue;
-          }
+          // we should always have the patient resource already included
+          // (see reporting_workflow:initializeContext)
+          // so skip the rest of the logic below
+          continue;
         } else if (resourceType === 'Encounter') {
           if (context.encounter) {
             // we already added the encounter resource directly
@@ -103,7 +97,7 @@ const baseIgActions = {
             //   we only care about that one, not all encounters
             continue;
           } else {
-            // assume we have context.patient
+            // we always have context.patient
             params.push(`subject=Patient/${context.patient.id}`);
           }
         } else {
@@ -121,7 +115,7 @@ const baseIgActions = {
         // intentionally disabling the profile check for now
         // as a profile search isn't aware of profiles that logically extend one another
         // unless every profile in the hierarchy is explicitly listed
-        // (for instance, mCODE profile generally extend US Core,
+        // (for instance, mCODE profiles generally extend US Core,
         // but unless an mCODE resource also specifies US core
         // it won't be returned in a search by US core profile)
         // if (input.profile) {
@@ -135,8 +129,12 @@ const baseIgActions = {
         // }
 
         const query = resourceType + '?' + params.join('&');
-        const bundle = (await readFromEHR(query)).data;
+        fetchPromises.push(readFromEHR(query));
+      }
 
+      const fetchResults = await Promise.all(fetchPromises);
+      for (const result of fetchResults) {
+        const bundle = result.data;
         if (bundle.entry) {
           const resources = bundle.entry.map(e => e.resource);
           context.records.push(...resources);
