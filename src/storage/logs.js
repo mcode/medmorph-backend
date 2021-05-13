@@ -41,11 +41,15 @@ function error(location) {
 }
 
 function storeRequest(request) {
+  const modifiedBody = Object.assign({}, request.body);
+  if (modifiedBody.password) {
+    delete modifiedBody.password;
+  }
   const log = {
     id: uuidv4(),
     timestamp: Date.now(),
     url: request.url,
-    body: request.body,
+    body: modifiedBody,
     headers: request.headers
   };
   db.insert(REQUESTS, log);
