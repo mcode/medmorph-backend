@@ -49,8 +49,6 @@ const baseIgActions = {
       for (const input of action.input) {
         const { id, codeFilter, type } = input;
 
-        // Can there be multiple codeFilters?
-        const { path, valueSet } = codeFilter[0];
         const params = [];
         if (context.encounter) {
           params.push(`encounter=Encounter/${context.encounter.id}`);
@@ -63,29 +61,25 @@ const baseIgActions = {
         const query = type + '?' + params.join('&');
         const bundle = (await readFromEHR(query)).data;
 
-        // Filter resources that are in valueSet
-        variables[id] = bundle.entry.filter(r =>
-          r.resource[path].coding.some(c =>
-            checkCodeInVs(
-              c.code,
-              c.system,
-              db.select(VALUESETS, v => v.url === valueSet)
-            )
-          )
-        );
+        let results = bundle.entry.map(e => e.resource);
+
+        if (codeFilter) {
+          // Can there be multiple codeFilters?
+          const { path, valueSet } = codeFilter[0];
+          const vsResource = db.select(VALUESETS, v => v.url === valueSet)[0];
+          // Filter resources that are in valueSet
+          results = results.filter(r =>
+            r[path].coding.some(c => checkCodeInVs(c.code, c.system, vsResource))
+          );
+        }
+
+        variables[id] = results;
       }
     }
 
     const boolMap = action.condition.map(condition => {
       if (condition.expression) {
         const expression = condition.expression;
-        // check the records for a trigger code
-        const variables = {};
-        if (action.input) {
-          for (const input of action.input) {
-            variables[input.id] = 'dummy value';
-          }
-        }
         return evaluateExpression(expression, resources, variables);
       } else {
         // default true for non-applicability conditions
@@ -428,8 +422,27 @@ function createBundle(records, type) {
 function evaluateExpression(expression, resources, variables = {}) {
   if (expression.language === 'text/fhirpath') {
     const path = fhirpath.evaluate(resources, expression.expression, variables);
-    return path;
+    return isTrue(path);
   }
+}
+
+// FHIRPath helper. FHIRPath tends to return things that are JS truthy (like empty arrays)
+// when we would expect a null or other falsy value instead
+// TODO: reference the same function here and in mapper
+// sourced from fhir-mapper:
+// https://github.com/standardhealth/fhir-mapper/blob/master/src/utils/common.js#L46
+function isTrue(arg) {
+  if (Array.isArray(arg)) {
+    return arg.find(i => isTrue(i));
+  } else if (typeof arg === 'object') {
+    // because Object.keys(new Date()).length === 0;
+    // we have to do some additional checks
+    // https://stackoverflow.com/a/32108184
+    return arg && Object.keys(arg).length === 0 && arg.constructor === Object;
+  } else if (typeof arg === 'string' && arg === 'false') {
+    return false;
+  }
+  return arg;
 }
 
 function makeHeader(context) {

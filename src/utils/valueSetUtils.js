@@ -1,11 +1,3 @@
-const fs = require('fs');
-
-function loadJsonVs(absoluteFilepath) {
-  const vsData = fs.readFileSync(absoluteFilepath);
-  const vsJson = JSON.parse(vsData);
-  return vsJson;
-}
-
 /**
  * Check if code is in value set
  * @param {string} code value to look for in a valueset
