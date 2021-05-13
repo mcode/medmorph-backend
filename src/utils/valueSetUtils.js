@@ -6,19 +6,20 @@
  * @return {boolean} true if condition is in valueSet's compose block or expansion block
  */
 const checkCodeInVs = (code, codeSystem, valueSet) => {
+  if (!code || !codeSystem) return false;
+
   let inVSExpansion = false;
   let inVSCompose = false;
   if (valueSet.expansion) {
     // If valueSet has expansion, we only need to check these codes
     inVSExpansion = valueSet.expansion.contains.some(containsItem => {
-      if (!code || !codeSystem || !containsItem || !containsItem.system) return false;
+      if (!containsItem || !containsItem.system) return false;
       return code === containsItem.code && codeSystem === containsItem.system;
     });
   } else {
     // Checks if code is in any of the valueSet.compose.include arrays
     inVSCompose = valueSet.compose.include.some(includeItem => {
-      if (!code || !codeSystem || !includeItem || !includeItem.system || !includeItem.concept)
-        return false;
+      if (!includeItem || !includeItem.system || !includeItem.concept) return false;
       return (
         includeItem.system === codeSystem &&
         includeItem.concept.map(concept => concept.code).includes(code)
