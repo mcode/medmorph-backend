@@ -393,7 +393,7 @@ function createBundle(records, type) {
   return bundle;
 }
 
-function evaluateExpression(expression, resources, variables={}) {
+function evaluateExpression(expression, resources, variables = {}) {
   if (expression.language === 'text/fhirpath') {
     const path = fhirpath.evaluate(resources, expression.expression, variables);
     return path;

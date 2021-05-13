@@ -54,10 +54,11 @@ function generateOperationOutcome(code, msg) {
  *
  * @param {string} server - the sourse server base url
  * @param {string} resourceType - the type of the resource
+ * @param {string} query - any query to append to the search. default "_include-*"
  * @returns axios promise of FHIR bundle of resources
  */
-async function getResources(server, resourceType) {
-  const url = `${server}/${resourceType}?_include=*`;
+async function getResources(server, resourceType, query = '_include=*') {
+  const url = `${server}/${resourceType}?${query}`;
   const token = await getAccessToken(server, db);
   const headers = { Authorization: `Bearer ${token}` };
   const axiosResponse = axios

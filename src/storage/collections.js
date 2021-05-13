@@ -3,6 +3,7 @@ module.exports = {
   PLANDEFINITIONS: 'plandefinitions',
   SUBSCRIPTIONS: 'subscriptions',
   ENDPOINTS: 'endpoints',
+  VALUESETS: 'valuesets',
   COMPLETED_REPORTS: 'completedreports',
   REPORTING: 'reporting',
   LOGS: 'logs',
