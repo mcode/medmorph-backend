@@ -91,7 +91,7 @@ function reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBa
       { fullUrl: resourceFullUrl, ...resource },
       r => r.fullUrl === resourceFullUrl
     );
-    startReportingWorkflow(planDef, resource);
+    startReportingWorkflow(planDef, kaBaseUrl, resource);
   });
   res.sendStatus(StatusCodes.OK);
 }
