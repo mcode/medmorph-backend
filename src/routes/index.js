@@ -6,11 +6,8 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../storage/DataAccess');
 const testService = require('../services/test_service');
 const publicKey = require('../keys/publicKey.json');
-const {
-  refreshAllKnowledgeArtifacts,
-  getPlanDef,
-  getBaseUrlFromFullUrl
-} = require('../utils/fhir');
+const { getPlanDef, getBaseUrlFromFullUrl } = require('../utils/fhir');
+const { refreshAllKnowledgeArtifacts } = require('../utils/knowledgeartifacts');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
 
 router.get('/', testService);
