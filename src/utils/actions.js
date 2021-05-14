@@ -59,8 +59,11 @@ const baseIgActions = {
         }
 
         const query = type + '?' + params.join('&');
+        debug(`Check trigger codes query: ${query}`);
         const bundle = (await readFromEHR(query)).data;
         let results = [];
+
+        debug(bundle);
 
         if (bundle.entry) {
           results = bundle.entry.map(e => e.resource);
