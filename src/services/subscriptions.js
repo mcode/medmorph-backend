@@ -3,12 +3,8 @@ const { StatusCodes } = require('http-status-codes');
 const db = require('../storage/DataAccess');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
 const { getServerById, getEHRServer } = require('../storage/servers');
-const {
-  postSubscriptionsToEHR,
-  getBaseUrlFromFullUrl,
-  getPlanDef,
-  fetchEndpoint
-} = require('../utils/fhir');
+const { postSubscriptionsToEHR, getBaseUrlFromFullUrl, getPlanDef } = require('../utils/fhir');
+const { fetchEndpoint, fetchValueSets } = require('../utils/knowledgeartifacts');
 const { subscriptionsFromPlanDef, topicToResourceType } = require('../utils/subscriptions');
 const { PLANDEFINITIONS } = require('../storage/collections');
 const { default: base64url } = require('base64url');
@@ -139,6 +135,8 @@ function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
     );
 
     fetchEndpoint(serverUrl, planDefinition);
+
+    fetchValueSets(serverUrl, planDefinition, null);
 
     const subscriptions = subscriptionsFromPlanDef(planDefinition, serverUrl);
     postSubscriptionsToEHR(subscriptions);

@@ -26,31 +26,64 @@
 // anyway.
 const axios = require('axios');
 const { v4: uuid } = require('uuid');
-const { Fhir, FhirPath } = require('fhir');
+const { Fhir } = require('fhir');
+const fhirpath = require('fhirpath');
 const { StatusCodes } = require('http-status-codes');
 const { getEHRServer } = require('../storage/servers');
 const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const configUtil = require('../storage/configUtil');
 const { forwardMessageResponse } = require('./fhir');
-const { COMPLETED_REPORTS } = require('../storage/collections');
+const { COMPLETED_REPORTS, VALUESETS } = require('../storage/collections');
+const { checkCodeInVs } = require('./valueSetUtils');
 const debug = require('../storage/logs').debug('medmorph-backend:actions');
 const error = require('../storage/logs').error('medmorph-backend:actions');
 const fhir = new Fhir();
 
 const baseIgActions = {
-  'check-trigger-codes': context => {
+  'check-trigger-codes': async context => {
     const action = context.action;
     const resources = context.records;
+    const variables = {};
+    if (action.input) {
+      for (const input of action.input) {
+        const { id, codeFilter, type } = input;
+
+        const params = [];
+        if (context.encounter) {
+          params.push(`encounter=Encounter/${context.encounter.id}`);
+        }
+
+        if (context.patient) {
+          params.push(`subject=Patient/${context.patient.id}`);
+        }
+
+        const query = type + '?' + params.join('&');
+        const bundle = (await readFromEHR(query)).data;
+        let results = [];
+
+        if (bundle.entry) {
+          results = bundle.entry.map(e => e.resource);
+
+          if (codeFilter) {
+            // Can there be multiple codeFilters?
+            const { path, valueSet } = codeFilter[0];
+            const vsResource = db.select(VALUESETS, v => v.url === valueSet)[0];
+            // Filter resources that are in valueSet
+            results = results.filter(r =>
+              r[path].coding.some(c => checkCodeInVs(c.code, c.system, vsResource))
+            );
+          }
+        }
+
+        variables[id] = results;
+      }
+    }
 
     const boolMap = action.condition.map(condition => {
       if (condition.expression) {
         const expression = condition.expression;
-        // check the records for a trigger code
-        return resources.some(resource => {
-          //might have to check that this is non-empty here
-          return evaluateExpression(expression, resource);
-        });
+        return evaluateExpression(expression, resources, variables);
       } else {
         // default true for non-applicability conditions
         return true;
@@ -61,6 +94,9 @@ const baseIgActions = {
       return entry === true;
     });
     context.flags['triggered'] = triggered;
+    if (!triggered) {
+      context.exitStatus = 'failed trigger check';
+    }
   },
   'check-participant-registration': context => {
     // TODO: how do we check the participant registration?
@@ -332,8 +368,7 @@ function validateProfile(report, structureDefinition) {
 }
 
 function getByPath(resource, path) {
-  const fhirpath = new FhirPath(resource);
-  return fhirpath.evaluate(path);
+  return fhirpath.evaluate(resource, path);
 }
 
 function compareCodes(coding1, coding2) {
@@ -387,12 +422,30 @@ function createBundle(records, type) {
   return bundle;
 }
 
-function evaluateExpression(expression, resource) {
+function evaluateExpression(expression, resources, variables = {}) {
   if (expression.language === 'text/fhirpath') {
-    const fhirpath = new FhirPath(resource);
-    const path = fhirpath.evaluate(expression.expression);
-    return path;
+    const path = fhirpath.evaluate(resources, expression.expression, variables);
+    return isTrue(path);
   }
+}
+
+// FHIRPath helper. FHIRPath tends to return things that are JS truthy (like empty arrays)
+// when we would expect a null or other falsy value instead
+// TODO: reference the same function here and in mapper
+// sourced from fhir-mapper:
+// https://github.com/standardhealth/fhir-mapper/blob/master/src/utils/common.js#L46
+function isTrue(arg) {
+  if (Array.isArray(arg)) {
+    return arg.find(i => isTrue(i));
+  } else if (typeof arg === 'object') {
+    // because Object.keys(new Date()).length === 0;
+    // we have to do some additional checks
+    // https://stackoverflow.com/a/32108184
+    return arg && Object.keys(arg).length === 0 && arg.constructor === Object;
+  } else if (typeof arg === 'string' && arg === 'false') {
+    return false;
+  }
+  return arg;
 }
 
 function makeHeader(context) {

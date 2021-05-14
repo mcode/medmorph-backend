@@ -2,6 +2,7 @@ const { baseIgActions } = require('../actions');
 const { context } = require('../__testResources__/testContext');
 const actions = require('../__testResources__/testActions.json');
 const axios = require('axios');
+const { addServer, deleteServer } = require('../../storage/servers');
 
 jest.mock('axios');
 
@@ -12,17 +13,34 @@ describe('Test the base IG actions', () => {
     entry: []
   };
 
-  // Mock axios.post for data/trust operations
-  axios.post.mockImplementation((url, bundle) => Promise.resolve({ data: bundle, status: 200 }));
+  const TEST_ID = 'actions.test.js:test-ehr';
+  beforeEach(() => {
+    addServer({
+      id: TEST_ID,
+      type: 'EHR',
+      endpoint: 'http://example.org/dummy-url',
+      token: 'dummyToken',
+      tokenExp: 9999999999999999
+    });
+  });
 
-  test('check-trigger-codes', () => {
+  afterEach(() => {
+    deleteServer(TEST_ID);
+  });
+
+  // Mock axios.post for data/trust operations, and .get for EHR operations
+  axios.post.mockImplementation((url, bundle) => Promise.resolve({ data: bundle, status: 200 }));
+  axios.get.mockImplementation(() => Promise.resolve({ data: example_bundle, status: 200 }));
+
+  test('check-trigger-codes', async done => {
     context.action = actions['check-trigger-codes-success'];
-    baseIgActions['check-trigger-codes'](context);
+    await baseIgActions['check-trigger-codes'](context);
     expect(context.flags['triggered']).toEqual(true);
 
     context.action = actions['check-trigger-codes-failure'];
-    baseIgActions['check-trigger-codes'](context);
+    await baseIgActions['check-trigger-codes'](context);
     expect(context.flags['triggered']).toEqual(false);
+    done();
   });
 
   test('create-report', () => {
