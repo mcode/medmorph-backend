@@ -22,7 +22,7 @@
         }
     ],
     "subject": {
-        "reference": "Patient/pat02"
+        "reference": "Patient/pat01"
     },
     "participant": [
         {
