@@ -3,6 +3,7 @@ const { generateOperationOutcome, forwardMessageResponse } = require('../utils/f
 const debug = require('../storage/logs').debug('medmorph-backend:messaging');
 const db = require('../storage/DataAccess');
 const { MESSAGES } = require('../storage/collections');
+const { compareUrl } = require('../utils/url');
 
 function processMessage(req, res) {
   // Validate the message bundle
@@ -40,7 +41,7 @@ function processMessage(req, res) {
   }
 
   const fullUrl = `${messageHeader.source.endpoint}/Bundle/${messageBundle.id}`;
-  db.upsert(MESSAGES, { fullUrl, ...messageBundle }, r => r.fullUrl === fullUrl);
+  db.upsert(MESSAGES, { fullUrl, ...messageBundle }, r => compareUrl(r.fullUrl, fullUrl));
   debug(`Message bundle ${messageBundle.id} added to database`);
 
   forwardMessageResponse(messageBundle).then(() =>

@@ -4,6 +4,7 @@ const debug = require('../storage/logs').debug('medmorph-backend:fhir');
 const error = require('../storage/logs').error('medmorph-backend:fhir');
 const db = require('../storage/DataAccess');
 const { getEHRServer } = require('../storage/servers');
+const { compareUrl } = require('../utils/url');
 const { SERVERS, PLANDEFINITIONS } = require('../storage/collections');
 
 const EXTENSIONS = {
@@ -73,7 +74,7 @@ async function getResources(server, resourceType, query = '_include=*') {
       debug(`Extracted ${resource.resourceType}/${resource.id} from bundle`);
       const collection = `${resource.resourceType.toLowerCase()}s`;
       const fullUrl = `${server}/${resource.resourceType}/${resource.id}`;
-      db.upsert(collection, { fullUrl, ...resource }, r => r.fullUrl === fullUrl);
+      db.upsert(collection, { fullUrl, ...resource }, r => compareUrl(r.fullUrl, fullUrl));
     });
 
     return data;
@@ -104,7 +105,7 @@ async function getReferencedResource(url, reference, parentResource, returnFullU
     // Absolute reference - if we are registered with the server obtain an access token
     // Assumes the url is of the form {baseUrl}/{resourceType}/{id}
     const externalServerUrl = getBaseUrlFromFullUrl(reference);
-    const found = db.select(SERVERS, s => s.endpoint === externalServerUrl);
+    const found = db.select(SERVERS, s => compareUrl(s.endpoint, externalServerUrl));
     if (found.length) {
       const token = await getAccessToken(externalServerUrl);
       headers.Authorization = `Bearer ${token}`;
@@ -159,7 +160,7 @@ function getBaseUrlFromFullUrl(fullUrl) {
  * @returns the PlanDefinition with the given id or null if not found
  */
 function getPlanDef(fullUrl) {
-  const resultList = db.select(PLANDEFINITIONS, s => s.fullUrl === fullUrl);
+  const resultList = db.select(PLANDEFINITIONS, s => compareUrl(s.fullUrl, fullUrl));
   if (resultList[0]) return resultList[0];
   else return null;
 }
@@ -178,7 +179,7 @@ function postSubscriptionsToEHR(subscriptions) {
 
       // Store subscriptions in database
       debug(`Saved Subscription/${subscriptionId}`);
-      db.upsert('subscriptions', { fullUrl, ...subscription }, s => s.fullUrl === fullUrl);
+      db.upsert('subscriptions', { fullUrl, ...subscription }, s => compareUrl(s.fullUrl, fullUrl));
 
       // Create/Update Subscriptions on EHR server
       const ehrToken = await getAccessToken(ehrServer.endpoint);
@@ -209,7 +210,7 @@ async function deleteSubscriptionFromEHR(subscription) {
   if (resourceType === 'Subscription' && fullUrl) {
     const ehrServer = getEHRServer();
 
-    if (ehrServer.endpoint === getBaseUrlFromFullUrl(fullUrl)) {
+    if (compareUrl(ehrServer.endpoint, getBaseUrlFromFullUrl(fullUrl))) {
       const token = await getAccessToken(getBaseUrlFromFullUrl(fullUrl), db);
       const headers = { Authorization: `Bearer ${token}` };
       axios.delete(fullUrl, { headers });

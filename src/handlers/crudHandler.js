@@ -4,6 +4,7 @@ const db = require('../storage/DataAccess');
 const { default: base64url } = require('base64url');
 const { deleteSubscriptionFromEHR, getSubscriptionsFromPlanDef } = require('../utils/fhir');
 const { PLANDEFINITIONS, SUBSCRIPTIONS } = require('../storage/collections');
+const { compareUrl } = require('../utils/url');
 
 function createHandler(collectionName, req, res) {
   const newItem = req.body;
@@ -26,7 +27,7 @@ function getByIdHandler(collectionName, id) {
 
 function getByFullUrlHandler(collectionName, encodedFullUrl) {
   const fullUrl = base64url.decode(encodedFullUrl);
-  const result = db.select(collectionName, r => r.fullUrl === fullUrl);
+  const result = db.select(collectionName, r => compareUrl(r.fullUrl, fullUrl));
   return result[0] ? result[0] : undefined;
 }
 
@@ -35,7 +36,7 @@ function updateHandler(collectionName, req, res) {
   if (req.query.id) db.upsert(collectionName, changedItem, r => r.id === req.query.id);
   else if (req.query.fullUrl) {
     const fullUrl = base64url.decode(req.query.fullUrl);
-    db.upsert(collectionName, changedItem, r => r.fullUrl === fullUrl);
+    db.upsert(collectionName, changedItem, r => compareUrl(r.fullUrl, fullUrl));
   } else {
     res.send('Must include id or fullUrl').status(StatusCodes.BAD_REQUEST);
     return;
@@ -51,8 +52,8 @@ function deleteHandler(collectionName, req, res) {
     db.delete(collectionName, r => r.id === req.query.id);
   } else if (req.query.fullUrl) {
     const fullUrl = base64url.decode(req.query.fullUrl);
-    resource = db.select(collectionName, r => r.fullUrl === fullUrl)[0];
-    db.delete(collectionName, r => r.fullUrl === fullUrl);
+    resource = db.select(collectionName, r => compareUrl(r.fullUrl, fullUrl))[0];
+    db.delete(collectionName, r => compareUrl(r.fullUrl, fullUrl));
   } else {
     res.send('Must include id or fullUrl').status(StatusCodes.BAD_REQUEST);
     return;

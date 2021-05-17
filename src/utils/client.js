@@ -5,6 +5,7 @@ const queryString = require('query-string');
 const keys = require('../keys/privateKey.json');
 const servers = require('../storage/servers');
 const configUtil = require('../storage/configUtil');
+const { compareUrl } = require('../utils/url');
 const error = require('../storage/logs').error('medmorph-backend:client');
 /**
  * Generate and return access token for the specified server. If tokenEndpoint
@@ -106,8 +107,8 @@ async function getTokenEndpoint(url) {
       const rest = response.data.rest;
       const serverRest = rest.find(r => r.mode === 'server');
       const extensions = serverRest.security.extension;
-      const oauth = extensions.find(
-        e => e.url === 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris'
+      const oauth = extensions.find(e =>
+        compareUrl(e.url, 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris')
       );
       return oauth.extension.find(e => e.url === 'token').valueUri;
     } catch (ex2) {

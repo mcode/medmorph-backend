@@ -2,6 +2,7 @@ const db = require('./DataAccess');
 const { LOGS, ERRORS, REQUESTS, NOTIFICATIONS } = require('./collections');
 const debugConsole = require('debug');
 const { v4: uuidv4 } = require('uuid');
+const normalizeUrl = require('normalize-url');
 
 function debug(location) {
   return message => {
@@ -45,10 +46,18 @@ function storeRequest(request) {
   if (modifiedBody.password) {
     delete modifiedBody.password;
   }
+  let url = '';
+  try {
+    // some request urls can't be normalized and
+    // throw an error
+    url = normalizeUrl(request.url);
+  } catch {
+    url = request.url;
+  }
   const log = {
     id: uuidv4(),
     timestamp: Date.now(),
-    url: request.url,
+    url: url,
     body: modifiedBody,
     headers: request.headers
   };

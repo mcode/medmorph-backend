@@ -4,6 +4,7 @@ const db = require('../storage/DataAccess');
 const { subscriptionsFromBundle } = require('./subscriptions');
 const { SERVERS, ENDPOINTS, VALUESETS } = require('../storage/collections');
 const { EXTENSIONS, getResources, getReferencedResource } = require('./fhir');
+const { compareUrl } = require('../utils/url');
 
 /**
  * Get all knowledge artifacts (from servers registered in the
@@ -45,7 +46,7 @@ function fetchEndpoint(url, planDefinition) {
   const endpointReference = getReceiverAddress(planDefinition);
   getReferencedResource(url, endpointReference, planDefinition, true).then(endpoint => {
     if (endpoint) {
-      db.upsert(ENDPOINTS, endpoint, r => r.fullUrl === endpoint.fullUrl);
+      db.upsert(ENDPOINTS, endpoint, r => compareUrl(r.fullUrl, endpoint.fullUrl));
       debug(`Endpoint/${endpoint.id} saved to db`);
     }
   });
@@ -96,7 +97,7 @@ async function fetchValueSets(url, planDefinition, bundle) {
 
     if (bundle) {
       vsResource = bundle.entry.find(
-        e => e.resource.resourceType === 'ValueSet' && e.resource.url === vs
+        e => e.resource.resourceType === 'ValueSet' && compareUrl(e.resource.url, vs)
       );
     }
 
@@ -108,7 +109,7 @@ async function fetchValueSets(url, planDefinition, bundle) {
     }
 
     if (vsResource) {
-      db.upsert(VALUESETS, vsResource, v => v.url === vsResource.url);
+      db.upsert(VALUESETS, vsResource, v => compareUrl(v.url, vsResource.url));
       debug(`ValueSet/${vsResource.url} saved to db`);
     } else {
       error(`Unable to locate ValueSet ${vs}`);
@@ -123,7 +124,9 @@ async function fetchValueSets(url, planDefinition, bundle) {
  * @returns reference string or null
  */
 function getReceiverAddress(planDefinition) {
-  const receiverAddress = planDefinition.extension.find(e => e.url === EXTENSIONS.RECEIVER_ADDRESS);
+  const receiverAddress = planDefinition.extension.find(e =>
+    compareUrl(e.url, EXTENSIONS.RECEIVER_ADDRESS)
+  );
   return receiverAddress ? receiverAddress.valueReference.reference : null;
 }
 
