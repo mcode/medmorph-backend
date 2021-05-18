@@ -1,7 +1,8 @@
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const { getAccessToken } = require('./client');
-const debug = require('../storage/logs').debug('medmorph-backend:fhir');
+const debug = require('../storage/logs').debug('medmorph-backend:subscriptions');
+const error = require('../storage/logs').error('medmorph-backend:subscriptions');
 const db = require('../storage/DataAccess');
 const { generateToken } = require('./auth');
 const { SUBSCRIPTIONS, SERVERS } = require('../storage/collections');
@@ -138,7 +139,15 @@ function subscriptionsFromPlanDef(planDef, serverUrl) {
   if (action.trigger?.length === 0) return [];
 
   return action.trigger.reduce((subscriptions, trigger) => {
+    if (!trigger?.extension) {
+      error(`PlanDefinition/${planDef.id} does not have a trigger`);
+      return subscriptions;
+    }
     const namedEventExt = trigger.extension.find(e => compareUrl(e.url, EXTENSIONS.NAMED_EVENT));
+    if (!namedEventExt) {
+      error(`PlanDefinition/${planDef.id} does not have a named event trigger`);
+      return subscriptions;
+    }
     const namedEventCoding = namedEventExt.valueCodeableConcept.coding.find(
       c => c.system === CODE_SYSTEMS.NAMED_EVENT
     );
