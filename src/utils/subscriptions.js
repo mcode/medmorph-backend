@@ -98,7 +98,12 @@ function subscribeToKnowledgeArtifacts() {
     const headers = { Authorization: `Bearer ${token}` };
     axios
       .put(`${server.endpoint}/Subscription/${id}`, subscription, { headers: headers })
-      .then(() => debug(`Subscription created for KA from ${server.name} at ${server.endpoint}`));
+      .then(() => debug(`Subscription created for KA from ${server.name} at ${server.endpoint}`))
+      .catch(err =>
+        error(
+          `Unable to create Subscription for KA ${server.name} at ${server.endpoint}\n${err.message}`
+        )
+      );
   });
 }
 

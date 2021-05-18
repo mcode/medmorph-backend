@@ -21,7 +21,12 @@ function refreshAllKnowledgeArtifacts() {
  * @param {*} server - the server to refresh artifacts from
  */
 function refreshKnowledgeArtifact(server) {
-  getResources(server.endpoint, 'PlanDefinition').then(bundle => {
+  getResources(
+    server.endpoint,
+    'PlanDefinition',
+    '_include=*',
+    'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-plandefinition'
+  ).then(bundle => {
     if (bundle) {
       // Create/Update subscriptions from PlanDefinitions
       subscriptionsFromBundle(bundle, server.endpoint);
@@ -40,10 +45,11 @@ function refreshKnowledgeArtifact(server) {
  * Fetchs the referenced Endpoint from receiver address extension and saves to the database
  *
  * @param {string} url - the url to fetch from
- * @param {PlanDefinition} planDefinition - PlanDefinition to get Endpoint from
+ * @param {PlanDefinition} planDefinition - PlanDefinition to get Endpoint from or null if receiver address does not exist
  */
 function fetchEndpoint(url, planDefinition) {
   const endpointReference = getReceiverAddress(planDefinition);
+  if (!endpointReference) return null;
   getReferencedResource(url, endpointReference, planDefinition, true).then(endpoint => {
     if (endpoint) {
       db.upsert(ENDPOINTS, endpoint, r => compareUrl(r.fullUrl, endpoint.fullUrl));
@@ -112,7 +118,7 @@ async function fetchValueSets(url, planDefinition, bundle) {
       db.upsert(VALUESETS, vsResource, v => compareUrl(v.url, vsResource.url));
       debug(`ValueSet/${vsResource.url} saved to db`);
     } else {
-      error(`Unable to locate ValueSet ${vs}`);
+      error(`Unable to locate ValueSet ${vs} on ${url}`);
     }
   }
 }
@@ -124,6 +130,12 @@ async function fetchValueSets(url, planDefinition, bundle) {
  * @returns reference string or null
  */
 function getReceiverAddress(planDefinition) {
+  if (!planDefinition.extension) {
+    error(
+      `PlanDefinition/${planDefinition.id} does not have extensions. Cannot get receiver address.`
+    );
+    return null;
+  }
   const receiverAddress = planDefinition.extension.find(e =>
     compareUrl(e.url, EXTENSIONS.RECEIVER_ADDRESS)
   );
