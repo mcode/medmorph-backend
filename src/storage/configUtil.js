@@ -80,31 +80,14 @@ function setRequireAuthForOutgoing(value) {
   db.upsert(CONFIG, entry, c => c.id === entry.id);
 }
 
-function getTrustedThirdParty() {
-  const selection = db.select(CONFIG, c => c.id === configVars.TTPS)[0];
-  if (selection) {
-    return selection.value;
-  }
-}
-
-function setTrustedThirdParty(value) {
-  const entry = {
-    id: configVars.TTPS,
-    value: value
-  };
-  db.upsert(CONFIG, entry, c => c.id === entry.id);
-}
-
 module.exports = {
   getConfig,
   getAdminToken,
   getDataTrustService,
   getRequireAuth,
   getRequireAuthForOutgoing,
-  getTrustedThirdParty,
   setAdminToken,
   setDataTrustService,
   setRequireAuth,
-  setRequireAuthForOutgoing,
-  setTrustedThirdParty
+  setRequireAuthForOutgoing
 };

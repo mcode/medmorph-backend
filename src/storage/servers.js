@@ -69,6 +69,11 @@ function getEHRServer() {
   return db.select(SERVERS, s => s.type === 'EHR')[0];
 }
 
+function getTrustedThirdParties() {
+  const ttps = db.select(SERVERS, s => s.type === 'TTP');
+  return ttps.length ? ttps.map(s => s.endpoint) : null;
+}
+
 module.exports = {
   addServer,
   getServers,
@@ -79,5 +84,6 @@ module.exports = {
   getClientId,
   addAccessToken,
   clearAccessToken,
-  getEHRServer
+  getEHRServer,
+  getTrustedThirdParties
 };

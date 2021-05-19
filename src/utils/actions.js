@@ -29,7 +29,7 @@ const { v4: uuid } = require('uuid');
 const { Fhir } = require('fhir');
 const fhirpath = require('fhirpath');
 const { StatusCodes } = require('http-status-codes');
-const { getEHRServer } = require('../storage/servers');
+const { getEHRServer, getTrustedThirdParties } = require('../storage/servers');
 const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const configUtil = require('../storage/configUtil');
@@ -195,25 +195,31 @@ const baseIgActions = {
     context.flags['valid'] = validation.valid;
   },
   'submit-report': async context => {
-    await submitBundle(context)
-      .then(result => {
-        if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
-          context.flags['submitted'] = true;
-          debug(`/Bundle/${context.reportingBundle.id} submitted to ${context.client.dest}`);
+    const listOfPromises = [];
+    const bundleId = context.reportingBundle.id;
+    const urls = getTrustedThirdParties() ?? [context.client.dest];
+    urls.forEach(url => {
+      listOfPromises.push(
+        submitBundle(context.reportingBundle, url)
+          .then(result => {
+            if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
+              context.flags['submitted'] = true;
+              debug(`/Bundle/${bundleId} submitted to ${url}`);
 
-          if (result.data?.resourceType === 'Bundle') {
-            forwardMessageResponse(result.data).then(() =>
-              debug(`Response to /Bundle/${context.reportingBundle.id} forwarded to EHR`)
-            );
-          }
-        }
-      })
-      .catch(err => {
-        console.log(JSON.stringify(context.reportingBundle));
-        const bundleId = context.reportingBundle.id;
-        error(`Error submitting Bundle/${bundleId} to ${context.client.dest}\n${err.message}`);
-        context.flags['submitted'] = false;
-      });
+              if (result.data?.resourceType === 'Bundle') {
+                forwardMessageResponse(result.data).then(() =>
+                  debug(`Response to /Bundle/${bundleId} forwarded to EHR`)
+                );
+              }
+            }
+          })
+          .catch(err => {
+            context.flags['submitted'] = false;
+            error(`Error submitting Bundle/${bundleId} to ${url}\n${err.message}`);
+          })
+      );
+    });
+    await Promise.all(listOfPromises);
   },
   'deidentify-report': async context => {
     await dataTrustOperation('deidentify', context.reportingBundle)
@@ -497,21 +503,28 @@ async function readFromEHR(uri) {
   return axios.get(`${url}/${uri}`, { headers: headers });
 }
 
+// async function submitBundle(context) {
+//   const listOfPromises = [];
+//   urls.forEach(async url => {
+//     const baseUrl = url.split('/$process-message')[0];
+//     const token = await getAccessToken(baseUrl);
+//     const headers = { Authorization: `Bearer ${token}` };
+//     listOfPromises.push(axios.post(url, context.reportingBundle, { headers: headers }));
+//   });
+//   return listOfPromises;
+// }
 /**
- * Post the reporting bundle to the TTP or endpoint designated in the PlanDefinition
+ * Post the reporting bundle to the endpoint designated in the PlanDefinition
  *
- * @param {Context} context - the reporting context
+ * @param {Bundle} bundle - the reporting Bundle to submit
+ * @param {string} url - the endpoint to post the report. Comes from context.dest.endpoint.
  * @returns axios promise with data
  */
-async function submitBundle(context) {
-  const url = configUtil.getTrustedThirdParty() ?? context.client.dest;
+async function submitBundle(bundle, url) {
   const baseUrl = url.split('/$process-message')[0];
   const token = await getAccessToken(baseUrl);
   const headers = { Authorization: `Bearer ${token}` };
-  console.log(url);
-  console.log(headers);
-  console.log(context.reportingBundle);
-  return axios.post(url, context.reportingBundle, { headers: headers });
+  return axios.post(url, bundle, { headers: headers });
 }
 
 /**
