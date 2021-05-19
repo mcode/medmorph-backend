@@ -195,27 +195,10 @@ const baseIgActions = {
   },
   'submit-report': async context => {
     await submitBundle(context.reportingBundle, context.client.dest)
-      .then(
-        result => {
-          if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
-            context.flags['submitted'] = true;
-            debug(`/Bundle/${context.reportingBundle.id} submitted to ${context.client.dest}`);
-
-            if (result.data?.resourceType === 'Bundle') {
-              forwardMessageResponse(result.data).then(() =>
-                debug(`Response to /Bundle/${context.reportingBundle.id} forwarded to EHR`)
-              );
-            }
-          }
-        },
-        () => {
-          context.flags['submitted'] = false;
-        }
-      )
+      .then(data => console.log(data))
       .catch(err => {
-        const bundleId = context.reportingBundle.id;
-        error(`Error submitting Bundle/${bundleId} to ${context.client.dest}\n${err.message}`);
-        context.flags['submitted'] = false;
+        console.log(JSON.stringify(context.reportingBundle));
+        // console.log(err);
       });
   },
   'deidentify-report': async context => {
@@ -465,7 +448,7 @@ function makeHeader(context) {
     destination: [
       {
         // assume client has some way to produce its endpoint
-        endpoint: context.client.dest.endpoint
+        endpoint: context.client.dest
       }
     ],
     source: {
