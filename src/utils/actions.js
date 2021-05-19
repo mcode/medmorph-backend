@@ -503,16 +503,6 @@ async function readFromEHR(uri) {
   return axios.get(`${url}/${uri}`, { headers: headers });
 }
 
-// async function submitBundle(context) {
-//   const listOfPromises = [];
-//   urls.forEach(async url => {
-//     const baseUrl = url.split('/$process-message')[0];
-//     const token = await getAccessToken(baseUrl);
-//     const headers = { Authorization: `Bearer ${token}` };
-//     listOfPromises.push(axios.post(url, context.reportingBundle, { headers: headers }));
-//   });
-//   return listOfPromises;
-// }
 /**
  * Post the reporting bundle to the endpoint designated in the PlanDefinition
  *

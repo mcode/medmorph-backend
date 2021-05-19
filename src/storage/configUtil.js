@@ -12,7 +12,7 @@ const { configVars } = require('../../config');
  *  @param {string} DATA_TRUST_SERVICE - the data trust service
  *  @param {string} REQUIRE_AUTH - require auth for incoming requests
  *  @param {string} REQUIRE_AUTH_FOR_OUTGOING - require auth for outgoing requests
- *  @param {string} TRUSTED_THIRD_PARTIES - list of TTPs to send bundles to
+ *
  *
  */
 

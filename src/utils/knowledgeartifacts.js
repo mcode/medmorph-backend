@@ -1,5 +1,5 @@
-const debug = require('../storage/logs').debug('medmorph-backend:fhir');
-const error = require('../storage/logs').error('medmorph-backend:fhir');
+const debug = require('../storage/logs').debug('medmorph-backend:knowledgeartifacts');
+const error = require('../storage/logs').error('medmorph-backend:knowledgeartifacts');
 const db = require('../storage/DataAccess');
 const { subscriptionsFromBundle } = require('./subscriptions');
 const { SERVERS, ENDPOINTS, VALUESETS } = require('../storage/collections');
@@ -45,7 +45,8 @@ function refreshKnowledgeArtifact(server) {
  * Fetchs the referenced Endpoint from receiver address extension and saves to the database
  *
  * @param {string} url - the url to fetch from
- * @param {PlanDefinition} planDefinition - PlanDefinition to get Endpoint from or null if receiver address does not exist
+ * @param {PlanDefinition} planDefinition - PlanDefinition to get Endpoint from or null if
+ *    receiver address does not exist
  */
 function fetchEndpoint(url, planDefinition) {
   const endpointReference = getReceiverAddress(planDefinition);
@@ -157,26 +158,22 @@ function getNamedEventTriggerCode(planDefinition) {
     );
   });
 
+  const errorText = `PlanDefinition/${planDefinition.id} initiate-reporting-workflow action`;
+  //
   if (!action) {
-    error(
-      `PlanDefinition/${planDefinition.id} does not have an initiate-reporting-workflow action`
-    );
+    error(`${errorText} does not exist`);
     return null;
   } else if (action.trigger?.length === 0) {
-    error(
-      `PlanDefinition/${planDefinition.id} initiate-reporting-workflow action does not have a trigger`
-    );
+    error(`${errorText} does not have a trigger`);
     return null;
   } else if (!action.trigger[0].extension) {
-    error(
-      `PlanDefinition/${planDefinition.id} initiate-reporting-workflow action does not have a trigger extension`
-    );
+    error(`${errorText} does not have a trigger extension`);
     return null;
   }
 
   const namedEventExt = action.trigger[0].extension.find(e => e.url === EXTENSIONS.NAMED_EVENT);
   if (!namedEventExt) {
-    error(`PlanDefinition/${planDef.id} does not have a named event trigger`);
+    error(`${errorText} does not have a named event trigger`);
     return null;
   }
 

@@ -15,11 +15,11 @@ const configInit = [
   },
   {
     id: configVars.REQUIRE_AUTH,
-    value: 'false'
+    value: 'true'
   },
   {
     id: configVars.REQUIRE_AUTH_FOR_OUTGOING,
-    value: 'false'
+    value: 'true'
   }
 ];
 

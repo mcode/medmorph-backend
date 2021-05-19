@@ -87,22 +87,21 @@ function subscribeToKnowledgeArtifacts() {
   const servers = db.select(SERVERS, s => s.type === 'KA');
   servers.forEach(async server => {
     const id = `sub${server.id}`;
-    const fullUrl = `${server.endpoint}/Subscription/${id}`;
+    const endpoint = server.endpoint;
+    const fullUrl = `${endpoint}/Subscription/${id}`;
     const subscription = generateSubscription(
       'PlanDefinition',
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
       id
     );
     db.upsert(SUBSCRIPTIONS, { fullUrl, ...subscription }, s => compareUrl(s.fullUrl, fullUrl));
-    const token = await getAccessToken(server.endpoint);
+    const token = await getAccessToken(endpoint);
     const headers = { Authorization: `Bearer ${token}` };
     axios
-      .put(`${server.endpoint}/Subscription/${id}`, subscription, { headers: headers })
-      .then(() => debug(`Subscription created for KA from ${server.name} at ${server.endpoint}`))
+      .put(`${endpoint}/Subscription/${id}`, subscription, { headers: headers })
+      .then(() => debug(`Subscription created for KA from ${server.name} at ${endpoint}`))
       .catch(err =>
-        error(
-          `Unable to create Subscription for KA ${server.name} at ${server.endpoint}\n${err.message}`
-        )
+        error(`Unable to create Subscription for KA ${server.name} at ${endpoint}\n${err.message}`)
       );
   });
 }
