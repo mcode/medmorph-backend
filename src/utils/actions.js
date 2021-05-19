@@ -195,7 +195,7 @@ const baseIgActions = {
     context.flags['valid'] = validation.valid;
   },
   'submit-report': async context => {
-    await submitBundle(context.reportingBundle, context.client.dest)
+    await submitBundle(context)
       .then(result => {
         if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
           context.flags['submitted'] = true;
@@ -209,6 +209,7 @@ const baseIgActions = {
         }
       })
       .catch(err => {
+        console.log(JSON.stringify(context.reportingBundle));
         const bundleId = context.reportingBundle.id;
         error(`Error submitting Bundle/${bundleId} to ${context.client.dest}\n${err.message}`);
         context.flags['submitted'] = false;
@@ -497,17 +498,20 @@ async function readFromEHR(uri) {
 }
 
 /**
- * Post the reporting bundle to the endpoint designated in the PlanDefinition
+ * Post the reporting bundle to the TTP or endpoint designated in the PlanDefinition
  *
- * @param {Bundle} bundle - the reporting Bundle to submit
- * @param {string} url - the endpoint to post the report. Comes from context.dest.endpoint.
+ * @param {Context} context - the reporting context
  * @returns axios promise with data
  */
-async function submitBundle(bundle, url) {
+async function submitBundle(context) {
+  const url = configUtil.getTrustedThirdParty() ?? context.client.dest;
   const baseUrl = url.split('/$process-message')[0];
   const token = await getAccessToken(baseUrl);
   const headers = { Authorization: `Bearer ${token}` };
-  return axios.post(url, bundle, { headers: headers });
+  console.log(url);
+  console.log(headers);
+  console.log(context.reportingBundle);
+  return axios.post(url, context.reportingBundle, { headers: headers });
 }
 
 /**

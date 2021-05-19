@@ -2,7 +2,8 @@ const configVars = {
   ADMIN_TOKEN: 'admintoken',
   DATA_TRUST_SERVICE: 'datatrustservice',
   REQUIRE_AUTH: 'requireauth',
-  REQUIRE_AUTH_FOR_OUTGOING: 'requireauthout'
+  REQUIRE_AUTH_FOR_OUTGOING: 'requireauthout',
+  TTPS: 'trustedthirdparties'
 };
 const configInit = [
   {
@@ -20,6 +21,11 @@ const configInit = [
   {
     id: configVars.REQUIRE_AUTH_FOR_OUTGOING,
     value: 'false'
+  },
+  {
+    id: configVars.TTPS,
+    value:
+      'http://concept01.ehealthexchange.org:52774/restpassthrough/eHxHubPOCeCR/fhir/$process-message'
   }
 ];
 

@@ -12,7 +12,7 @@ const { configVars } = require('../../config');
  *  @param {string} DATA_TRUST_SERVICE - the data trust service
  *  @param {string} REQUIRE_AUTH - require auth for incoming requests
  *  @param {string} REQUIRE_AUTH_FOR_OUTGOING - require auth for outgoing requests
- *
+ *  @param {string} TRUSTED_THIRD_PARTIES - list of TTPs to send bundles to
  *
  */
 
@@ -80,14 +80,31 @@ function setRequireAuthForOutgoing(value) {
   db.upsert(CONFIG, entry, c => c.id === entry.id);
 }
 
+function getTrustedThirdParty() {
+  const selection = db.select(CONFIG, c => c.id === configVars.TTPS)[0];
+  if (selection) {
+    return selection.value;
+  }
+}
+
+function setTrustedThirdParty(value) {
+  const entry = {
+    id: configVars.TTPS,
+    value: value
+  };
+  db.upsert(CONFIG, entry, c => c.id === entry.id);
+}
+
 module.exports = {
   getConfig,
   getAdminToken,
   getDataTrustService,
   getRequireAuth,
   getRequireAuthForOutgoing,
+  getTrustedThirdParty,
   setAdminToken,
   setDataTrustService,
   setRequireAuth,
-  setRequireAuthForOutgoing
+  setRequireAuthForOutgoing,
+  setTrustedThirdParty
 };
