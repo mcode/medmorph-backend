@@ -3,7 +3,7 @@ const error = require('../storage/logs').error('medmorph-backend:fhir');
 const db = require('../storage/DataAccess');
 const { subscriptionsFromBundle } = require('./subscriptions');
 const { SERVERS, ENDPOINTS, VALUESETS } = require('../storage/collections');
-const { EXTENSIONS, getResources, getReferencedResource } = require('./fhir');
+const { EXTENSIONS, CODE_SYSTEMS, getResources, getReferencedResource } = require('./fhir');
 const { compareUrl } = require('../utils/url');
 
 /**
@@ -126,7 +126,7 @@ async function fetchValueSets(url, planDefinition, bundle) {
 /**
  * Extracts the Endpoint reference from the receiver address extension of the PlanDefinition
  *
- * @param {PlanDefinition} planDefinition - PlanDefinitions to extract from
+ * @param {PlanDefinition} planDefinition - PlanDefinition to extract from
  * @returns reference string or null
  */
 function getReceiverAddress(planDefinition) {
@@ -142,10 +142,56 @@ function getReceiverAddress(planDefinition) {
   return receiverAddress ? receiverAddress.valueReference.reference : null;
 }
 
+/**
+ * Extracts the NamedEvent trigger code from the first action of the PlanDefinition
+ *
+ * @param {PlanDefinition} planDefinition - PlanDefinition to extract from
+ * @returns NamedEvent Trigger Code or null
+ */
+function getNamedEventTriggerCode(planDefinition) {
+  const action = planDefinition.action.find(a => {
+    return a.code[0].coding.find(
+      coding =>
+        coding.system === CODE_SYSTEMS.PLANDEF_ACTION &&
+        coding.code === 'initiate-reporting-workflow'
+    );
+  });
+
+  if (!action) {
+    error(
+      `PlanDefinition/${planDefinition.id} does not have an initiate-reporting-workflow action`
+    );
+    return null;
+  } else if (action.trigger?.length === 0) {
+    error(
+      `PlanDefinition/${planDefinition.id} initiate-reporting-workflow action does not have a trigger`
+    );
+    return null;
+  } else if (!action.trigger[0].extension) {
+    error(
+      `PlanDefinition/${planDefinition.id} initiate-reporting-workflow action does not have a trigger extension`
+    );
+    return null;
+  }
+
+  const namedEventExt = action.trigger[0].extension.find(e => e.url === EXTENSIONS.NAMED_EVENT);
+  if (!namedEventExt) {
+    error(`PlanDefinition/${planDef.id} does not have a named event trigger`);
+    return null;
+  }
+
+  const namedEventCoding = namedEventExt.valueCodeableConcept.coding.find(
+    c => c.system === CODE_SYSTEMS.NAMED_EVENT
+  );
+
+  return namedEventCoding?.code;
+}
+
 module.exports = {
   fetchEndpoint,
   fetchValueSets,
   getReceiverAddress,
+  getNamedEventTriggerCode,
   refreshAllKnowledgeArtifacts,
   refreshKnowledgeArtifact
 };

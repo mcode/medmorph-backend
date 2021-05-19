@@ -24,7 +24,8 @@ const PROFILES = {
 };
 
 const CODE_SYSTEMS = {
-  NAMED_EVENT: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents'
+  NAMED_EVENT: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents',
+  PLANDEF_ACTION: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions'
 };
 
 /**

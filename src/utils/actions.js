@@ -33,10 +33,11 @@ const { getEHRServer } = require('../storage/servers');
 const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const configUtil = require('../storage/configUtil');
-const { forwardMessageResponse } = require('./fhir');
+const { forwardMessageResponse, CODE_SYSTEMS } = require('./fhir');
 const { COMPLETED_REPORTS, VALUESETS } = require('../storage/collections');
 const { checkCodeInVs } = require('./valueSetUtils');
 const { compareUrl } = require('../utils/url');
+const { getNamedEventTriggerCode } = require('./knowledgeartifacts');
 const debug = require('../storage/logs').debug('medmorph-backend:actions');
 const error = require('../storage/logs').error('medmorph-backend:actions');
 const fhir = new Fhir();
@@ -195,10 +196,22 @@ const baseIgActions = {
   },
   'submit-report': async context => {
     await submitBundle(context.reportingBundle, context.client.dest)
-      .then(data => console.log(data))
+      .then(result => {
+        if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
+          context.flags['submitted'] = true;
+          debug(`/Bundle/${context.reportingBundle.id} submitted to ${context.client.dest}`);
+
+          if (result.data?.resourceType === 'Bundle') {
+            forwardMessageResponse(result.data).then(() =>
+              debug(`Response to /Bundle/${context.reportingBundle.id} forwarded to EHR`)
+            );
+          }
+        }
+      })
       .catch(err => {
-        console.log(JSON.stringify(context.reportingBundle));
-        // console.log(err);
+        const bundleId = context.reportingBundle.id;
+        error(`Error submitting Bundle/${bundleId} to ${context.client.dest}\n${err.message}`);
+        context.flags['submitted'] = false;
       });
   },
   'deidentify-report': async context => {
@@ -433,8 +446,9 @@ function isTrue(arg) {
 }
 
 function makeHeader(context) {
-  const header = {
+  return {
     resourceType: 'MessageHeader',
+    meta: { profile: ['http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-messageheader'] },
     extension: [
       {
         url: 'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-messageProcessingCategory',
@@ -461,14 +475,12 @@ function makeHeader(context) {
     reason: {
       coding: [
         {
-          system: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents',
-          code: 'encounter-change' // any way to get this trigger code?
+          system: CODE_SYSTEMS.NAMED_EVENT,
+          code: getNamedEventTriggerCode(context.planDefinition)
         }
       ]
     }
   };
-
-  return header;
 }
 
 /**
