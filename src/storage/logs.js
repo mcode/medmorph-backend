@@ -33,7 +33,7 @@ function error(location) {
     const notification = {
       id: uuidv4(),
       timestamp: Date.now(),
-      notif: notif || error,
+      notif: notif || errorMessage,
       viewed: false,
       type: 'error'
     };
