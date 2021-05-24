@@ -1,9 +1,9 @@
-const debug = require('../storage/logs').debug('medmorph-backend:fhir');
-const error = require('../storage/logs').error('medmorph-backend:fhir');
+const debug = require('../storage/logs').debug('medmorph-backend:knowledgeartifacts');
+const error = require('../storage/logs').error('medmorph-backend:knowledgeartifacts');
 const db = require('../storage/DataAccess');
 const { subscriptionsFromBundle } = require('./subscriptions');
 const { SERVERS, ENDPOINTS, VALUESETS } = require('../storage/collections');
-const { EXTENSIONS, getResources, getReferencedResource } = require('./fhir');
+const { EXTENSIONS, CODE_SYSTEMS, getResources, getReferencedResource } = require('./fhir');
 const { compareUrl } = require('../utils/url');
 
 /**
@@ -21,7 +21,12 @@ function refreshAllKnowledgeArtifacts() {
  * @param {*} server - the server to refresh artifacts from
  */
 function refreshKnowledgeArtifact(server) {
-  getResources(server.endpoint, 'PlanDefinition').then(bundle => {
+  getResources(
+    server.endpoint,
+    'PlanDefinition',
+    '_include=*',
+    'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-plandefinition'
+  ).then(bundle => {
     if (bundle) {
       // Create/Update subscriptions from PlanDefinitions
       subscriptionsFromBundle(bundle, server.endpoint);
@@ -40,10 +45,12 @@ function refreshKnowledgeArtifact(server) {
  * Fetchs the referenced Endpoint from receiver address extension and saves to the database
  *
  * @param {string} url - the url to fetch from
- * @param {PlanDefinition} planDefinition - PlanDefinition to get Endpoint from
+ * @param {PlanDefinition} planDefinition - PlanDefinition to get Endpoint from or null if
+ *    receiver address does not exist
  */
 function fetchEndpoint(url, planDefinition) {
   const endpointReference = getReceiverAddress(planDefinition);
+  if (!endpointReference) return null;
   getReferencedResource(url, endpointReference, planDefinition, true).then(endpoint => {
     if (endpoint) {
       db.upsert(ENDPOINTS, endpoint, r => compareUrl(r.fullUrl, endpoint.fullUrl));
@@ -112,7 +119,7 @@ async function fetchValueSets(url, planDefinition, bundle) {
       db.upsert(VALUESETS, vsResource, v => compareUrl(v.url, vsResource.url));
       debug(`ValueSet/${vsResource.url} saved to db`);
     } else {
-      error(`Unable to locate ValueSet ${vs}`);
+      error(`Unable to locate ValueSet ${vs} on ${url}`);
     }
   }
 }
@@ -120,20 +127,70 @@ async function fetchValueSets(url, planDefinition, bundle) {
 /**
  * Extracts the Endpoint reference from the receiver address extension of the PlanDefinition
  *
- * @param {PlanDefinition} planDefinition - PlanDefinitions to extract from
+ * @param {PlanDefinition} planDefinition - PlanDefinition to extract from
  * @returns reference string or null
  */
 function getReceiverAddress(planDefinition) {
+  if (!planDefinition.extension) {
+    error(
+      `PlanDefinition/${planDefinition.id} does not have extensions. Cannot get receiver address.`
+    );
+    return null;
+  }
   const receiverAddress = planDefinition.extension.find(e =>
     compareUrl(e.url, EXTENSIONS.RECEIVER_ADDRESS)
   );
   return receiverAddress ? receiverAddress.valueReference.reference : null;
 }
 
+/**
+ * Extracts the NamedEvent trigger code from the first action of the PlanDefinition
+ *
+ * @param {PlanDefinition} planDefinition - PlanDefinition to extract from
+ * @returns NamedEvent Trigger Code or null
+ */
+function getNamedEventTriggerCode(planDefinition) {
+  const action = planDefinition.action.find(a => {
+    return a.code[0].coding.find(
+      coding =>
+        coding.system === CODE_SYSTEMS.PLANDEF_ACTION &&
+        coding.code === 'initiate-reporting-workflow'
+    );
+  });
+
+  const errorText = `PlanDefinition/${planDefinition.id} initiate-reporting-workflow action`;
+  //
+  if (!action) {
+    error(`${errorText} does not exist`);
+    return null;
+  } else if (action.trigger?.length === 0) {
+    error(`${errorText} does not have a trigger`);
+    return null;
+  } else if (!action.trigger[0].extension) {
+    error(`${errorText} does not have a trigger extension`);
+    return null;
+  }
+
+  const namedEventExt = action.trigger[0].extension.find(e =>
+    compareUrl(e.url, EXTENSIONS.NAMED_EVENT)
+  );
+  if (!namedEventExt) {
+    error(`${errorText} does not have a named event trigger`);
+    return null;
+  }
+
+  const namedEventCoding = namedEventExt.valueCodeableConcept.coding.find(
+    c => c.system === CODE_SYSTEMS.NAMED_EVENT
+  );
+
+  return namedEventCoding?.code;
+}
+
 module.exports = {
   fetchEndpoint,
   fetchValueSets,
   getReceiverAddress,
+  getNamedEventTriggerCode,
   refreshAllKnowledgeArtifacts,
   refreshKnowledgeArtifact
 };

@@ -231,8 +231,7 @@ function determineActionSequence(planDefinition) {
   // such that for each edge u -> v, u appears before v in the array.
   // https://github.com/dagrejs/graphlib/wiki/API-Reference#alg-topsort
   // note the graph must not have cycles
-  const path = graphlib.alg.topsort(g);
-  return path;
+  return graphlib.alg.topsort(g);
 }
 
 function convertTimeToMs(value, unit) {

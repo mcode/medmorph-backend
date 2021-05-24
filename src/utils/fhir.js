@@ -24,7 +24,8 @@ const PROFILES = {
 };
 
 const CODE_SYSTEMS = {
-  NAMED_EVENT: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents'
+  NAMED_EVENT: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents',
+  PLANDEF_ACTION: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-plandefinition-actions'
 };
 
 /**
@@ -56,9 +57,10 @@ function generateOperationOutcome(code, msg) {
  * @param {string} server - the sourse server base url
  * @param {string} resourceType - the type of the resource
  * @param {string} query - any query to append to the search. default "_include-*"
+ * @param {string} profile - profile url to only get resources with profile
  * @returns axios promise of FHIR bundle of resources
  */
-async function getResources(server, resourceType, query = '_include=*') {
+async function getResources(server, resourceType, query = '_include=*', profile = undefined) {
   const url = `${server}/${resourceType}?${query}`;
   const token = await getAccessToken(server, db);
   const headers = { Authorization: `Bearer ${token}` };
@@ -67,8 +69,11 @@ async function getResources(server, resourceType, query = '_include=*') {
     .then(response => response.data)
     .catch(err => error(`Error getting ${url}\n${err.message}`));
   return axiosResponse.then(data => {
+    if (!data?.entry) return;
+    data.entry = profile
+      ? data.entry.filter(entry => entry.resource.meta.profile.includes(profile))
+      : data.entry;
     debug(`Fetched ${server}/${data.resourceType}/${data.id}`);
-    if (!data.entry) return;
     const resources = data.entry.map(entry => entry.resource);
     resources.forEach(resource => {
       debug(`Extracted ${resource.resourceType}/${resource.id} from bundle`);

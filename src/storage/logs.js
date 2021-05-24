@@ -19,13 +19,13 @@ function debug(location) {
 }
 
 function error(location) {
-  return (error, notif) => {
+  return (errorMessage, notif) => {
     const logger = debugConsole(location);
-    logger(error);
+    logger(errorMessage);
     const log = {
       id: uuidv4(),
       timestamp: Date.now(),
-      error: error,
+      error: errorMessage,
       location: location
     };
     db.insert(ERRORS, log);
@@ -33,7 +33,7 @@ function error(location) {
     const notification = {
       id: uuidv4(),
       timestamp: Date.now(),
-      notif: notif || error,
+      notif: notif || errorMessage,
       viewed: false,
       type: 'error'
     };

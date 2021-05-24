@@ -29,14 +29,15 @@ const { v4: uuid } = require('uuid');
 const { Fhir } = require('fhir');
 const fhirpath = require('fhirpath');
 const { StatusCodes } = require('http-status-codes');
-const { getEHRServer } = require('../storage/servers');
+const { getEHRServer, getTrustedThirdParties } = require('../storage/servers');
 const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const configUtil = require('../storage/configUtil');
-const { forwardMessageResponse } = require('./fhir');
+const { forwardMessageResponse, CODE_SYSTEMS } = require('./fhir');
 const { COMPLETED_REPORTS, VALUESETS } = require('../storage/collections');
 const { checkCodeInVs } = require('./valueSetUtils');
 const { compareUrl } = require('../utils/url');
+const { getNamedEventTriggerCode } = require('./knowledgeartifacts');
 const debug = require('../storage/logs').debug('medmorph-backend:actions');
 const error = require('../storage/logs').error('medmorph-backend:actions');
 const fhir = new Fhir();
@@ -194,29 +195,33 @@ const baseIgActions = {
     context.flags['valid'] = validation.valid;
   },
   'submit-report': async context => {
-    await submitBundle(context.reportingBundle, context.client.dest)
-      .then(
-        result => {
-          if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
-            context.flags['submitted'] = true;
-            debug(`/Bundle/${context.reportingBundle.id} submitted to ${context.client.dest}`);
+    const listOfPromises = [];
+    const bundleId = context.reportingBundle.id;
+    const urls = getTrustedThirdParties() ?? [context.client.dest];
+    urls.forEach(url => {
+      listOfPromises.push(
+        submitBundle(context.reportingBundle, url)
+          .then(result => {
+            if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
+              debug(`/Bundle/${bundleId} submitted to ${url}`);
 
-            if (result.data?.resourceType === 'Bundle') {
-              forwardMessageResponse(result.data).then(() =>
-                debug(`Response to /Bundle/${context.reportingBundle.id} forwarded to EHR`)
-              );
+              if (result.data?.resourceType === 'Bundle') {
+                forwardMessageResponse(result.data)
+                  .then(() => debug(`Response to /Bundle/${bundleId} forwarded to EHR`))
+                  .catch(err =>
+                    error(`Error forwarding Response Bundle/${bundleId} to EHR\n${err.message}`)
+                  );
+              }
             }
-          }
-        },
-        () => {
-          context.flags['submitted'] = false;
-        }
-      )
-      .catch(err => {
-        const bundleId = context.reportingBundle.id;
-        error(`Error submitting Bundle/${bundleId} to ${context.client.dest}\n${err.message}`);
-        context.flags['submitted'] = false;
-      });
+          })
+          .catch(err => error(`Error submitting Bundle/${bundleId} to ${url}\n${err.message}`))
+      );
+    });
+    await Promise.allSettled(listOfPromises).then(values => {
+      if (values.every(v => v.status === 'fulfilled')) context.flags['submitted'] = true;
+      else if (values.some(v => v.status === 'fulfilled')) context.flags['submitted'] = 'partial';
+      else context.flags['submitted'] = false;
+    });
   },
   'deidentify-report': async context => {
     await dataTrustOperation('deidentify', context.reportingBundle)
@@ -450,8 +455,9 @@ function isTrue(arg) {
 }
 
 function makeHeader(context) {
-  const header = {
+  return {
     resourceType: 'MessageHeader',
+    meta: { profile: ['http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-messageheader'] },
     extension: [
       {
         url: 'http://hl7.org/fhir/us/medmorph/StructureDefinition/ext-messageProcessingCategory',
@@ -465,7 +471,7 @@ function makeHeader(context) {
     destination: [
       {
         // assume client has some way to produce its endpoint
-        endpoint: context.client.dest.endpoint
+        endpoint: context.client.dest
       }
     ],
     source: {
@@ -478,14 +484,12 @@ function makeHeader(context) {
     reason: {
       coding: [
         {
-          system: 'http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents',
-          code: 'encounter-change' // any way to get this trigger code?
+          system: CODE_SYSTEMS.NAMED_EVENT,
+          code: getNamedEventTriggerCode(context.planDefinition)
         }
       ]
     }
   };
-
-  return header;
 }
 
 /**
