@@ -171,7 +171,9 @@ function getNamedEventTriggerCode(planDefinition) {
     return null;
   }
 
-  const namedEventExt = action.trigger[0].extension.find(e => e.url === EXTENSIONS.NAMED_EVENT);
+  const namedEventExt = action.trigger[0].extension.find(e =>
+    compareUrl(e.url, EXTENSIONS.NAMED_EVENT)
+  );
   if (!namedEventExt) {
     error(`${errorText} does not have a named event trigger`);
     return null;
