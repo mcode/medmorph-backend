@@ -207,9 +207,11 @@ const baseIgActions = {
               debug(`/Bundle/${bundleId} submitted to ${url}`);
 
               if (result.data?.resourceType === 'Bundle') {
-                forwardMessageResponse(result.data).then(() =>
-                  debug(`Response to /Bundle/${bundleId} forwarded to EHR`)
-                );
+                forwardMessageResponse(result.data)
+                  .then(() => debug(`Response to /Bundle/${bundleId} forwarded to EHR`))
+                  .catch(err =>
+                    error(`Error forwarding Response Bundle/${bundleId} to EHR\n${err.message}`)
+                  );
               }
             }
           })
