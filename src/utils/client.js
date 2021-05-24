@@ -53,11 +53,10 @@ async function connectToServer(url) {
   // end client_secret_basic logic
 
   // Get access token from auth server
-  const data = await axios
+  return await axios
     .post(tokenEndpoint, queryString.stringify(props), headers)
     .then(response => response.data)
     .catch(err => error(`Error obtaining access token from ${tokenEndpoint}\n${err.message}`));
-  return data;
 }
 
 /**
