@@ -8,6 +8,7 @@ const { fetchEndpoint, fetchValueSets } = require('../utils/knowledgeartifacts')
 const { subscriptionsFromPlanDef, topicToResourceType } = require('../utils/subscriptions');
 const { PLANDEFINITIONS } = require('../storage/collections');
 const { default: base64url } = require('base64url');
+const { compareUrl } = require('../utils/url');
 const debug = require('../storage/logs').debug('medmorph-backend:subscriptions');
 const error = require('../storage/logs').error('medmorph-backend:subscriptions');
 
@@ -82,10 +83,8 @@ function reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBa
     const resourceFullUrl = `${getEHRServer().endpoint}/${resourceType}/${resource.id}`;
     debug(`Received ${resourceType}/${resource.id} from subscription ${resourceFullUrl}`);
     const collection = `${resourceType.toLowerCase()}s`;
-    db.upsert(
-      collection,
-      { fullUrl: resourceFullUrl, ...resource },
-      r => r.fullUrl === resourceFullUrl
+    db.upsert(collection, { fullUrl: resourceFullUrl, ...resource }, r =>
+      compareUrl(r.fullUrl, resourceFullUrl)
     );
     startReportingWorkflow(planDef, kaBaseUrl, resource);
   });
@@ -125,10 +124,8 @@ function reportTriggerEmptyHandler(bundle, res) {
 function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
   planDefinitions.forEach(async planDefinition => {
     const planDefinitionFullUrl = `${serverUrl}/PlanDefinition/${planDefinition.id}`;
-    db.upsert(
-      PLANDEFINITIONS,
-      { fullUrl: planDefinitionFullUrl, ...planDefinition },
-      r => r.fullUrl === planDefinitionFullUrl
+    db.upsert(PLANDEFINITIONS, { fullUrl: planDefinitionFullUrl, ...planDefinition }, r =>
+      compareUrl(r.fullUrl, planDefinitionFullUrl)
     );
     debug(
       `KA full-resource notification contained ${serverUrl}/PlanDefinition/${planDefinition.id}`

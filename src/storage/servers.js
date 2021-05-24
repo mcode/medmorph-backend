@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../storage/DataAccess');
 const { SERVERS } = require('./collections');
-
+const { compareUrl } = require('../utils/url');
 /**
  * Fields for Servers Data Types:
  *
@@ -34,7 +34,7 @@ function getServerById(id) {
 }
 
 function getServerByUrl(url) {
-  return db.select(SERVERS, s => s.endpoint === url)[0];
+  return db.select(SERVERS, s => compareUrl(s.endpoint, url))[0];
 }
 
 function deleteServer(id) {

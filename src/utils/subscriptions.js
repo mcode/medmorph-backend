@@ -6,6 +6,7 @@ const db = require('../storage/DataAccess');
 const { generateToken } = require('./auth');
 const { SUBSCRIPTIONS, SERVERS } = require('../storage/collections');
 const { EXTENSIONS, PROFILES, CODE_SYSTEMS, postSubscriptionsToEHR } = require('./fhir');
+const { compareUrl } = require('../utils/url');
 const base64url = require('base64url');
 
 /**
@@ -91,7 +92,7 @@ function subscribeToKnowledgeArtifacts() {
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
       id
     );
-    db.upsert(SUBSCRIPTIONS, { fullUrl, ...subscription }, s => s.fullUrl === fullUrl);
+    db.upsert(SUBSCRIPTIONS, { fullUrl, ...subscription }, s => compareUrl(s.fullUrl, fullUrl));
     const token = await getAccessToken(server.endpoint);
     const headers = { Authorization: `Bearer ${token}` };
     axios
@@ -137,7 +138,7 @@ function subscriptionsFromPlanDef(planDef, serverUrl) {
   if (action.trigger?.length === 0) return [];
 
   return action.trigger.reduce((subscriptions, trigger) => {
-    const namedEventExt = trigger.extension.find(e => e.url === EXTENSIONS.NAMED_EVENT);
+    const namedEventExt = trigger.extension.find(e => compareUrl(e.url, EXTENSIONS.NAMED_EVENT));
     const namedEventCoding = namedEventExt.valueCodeableConcept.coding.find(
       c => c.system === CODE_SYSTEMS.NAMED_EVENT
     );
@@ -165,7 +166,7 @@ function getSubscriptionsFromPlanDef(fullUrl) {
     const endpoint = s?.channel?.endpoint;
 
     if (!endpoint) return false;
-    return fullUrl === base64url.decode(getLastPartOfPathFromUrl(endpoint));
+    return compareUrl(fullUrl, base64url.decode(getLastPartOfPathFromUrl(endpoint)));
   });
 }
 

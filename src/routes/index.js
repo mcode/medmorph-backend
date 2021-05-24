@@ -9,6 +9,7 @@ const publicKey = require('../keys/publicKey.json');
 const { getPlanDef, getBaseUrlFromFullUrl } = require('../utils/fhir');
 const { refreshAllKnowledgeArtifacts } = require('../utils/knowledgeartifacts');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
+const { compareUrl } = require('../utils/url');
 
 router.get('/', testService);
 
@@ -31,10 +32,8 @@ router.post('/trigger', (req, res) => {
   if (!resource.id) resource.id = uuidv4();
   const resourceFullUrl = `${process.env.BASE_URL}/${resource.resourceType}/${resource.id}`;
   const collection = `${resource.resourceType.toLowerCase()}s`;
-  db.upsert(
-    collection,
-    { fullUrl: resourceFullUrl, ...resource },
-    r => r.fullUrl === resourceFullUrl
+  db.upsert(collection, { fullUrl: resourceFullUrl, ...resource }, r =>
+    compareUrl(r.fullUrl, resourceFullUrl)
   );
 
   startReportingWorkflow(planDef, kaBaseUrl, resource);

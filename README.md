@@ -60,7 +60,6 @@ DEBUG=medmorph-backend:*
 
 | CONFIG | Required | Description |
 | ------ | -------- | ----------- |
-
 | DATA_TRUST_SERVICE | Yes | The base url for the data/trust service server. |
 | ADMIN_TOKEN | No | The value of the admin token to bypass authorization. If unset no admin token can be used. |
 | REQUIRE_AUTH | No | If false, an access token will not be required to make requests. Defaults to true if unset.

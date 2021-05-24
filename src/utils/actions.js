@@ -36,6 +36,7 @@ const configUtil = require('../storage/configUtil');
 const { forwardMessageResponse } = require('./fhir');
 const { COMPLETED_REPORTS, VALUESETS } = require('../storage/collections');
 const { checkCodeInVs } = require('./valueSetUtils');
+const { compareUrl } = require('../utils/url');
 const debug = require('../storage/logs').debug('medmorph-backend:actions');
 const error = require('../storage/logs').error('medmorph-backend:actions');
 const fhir = new Fhir();
@@ -68,7 +69,7 @@ const baseIgActions = {
           if (codeFilter) {
             // Can there be multiple codeFilters?
             const { path, valueSet } = codeFilter[0];
-            const vsResource = db.select(VALUESETS, v => v.url === valueSet)[0];
+            const vsResource = db.select(VALUESETS, v => compareUrl(v.url, valueSet))[0];
             // Filter resources that are in valueSet
             results = results.filter(r =>
               r[path].coding.some(c => checkCodeInVs(c.code, c.system, vsResource))
@@ -295,7 +296,7 @@ const baseIgActions = {
             const resource = e.resource;
             const collection = `${resource.resourceType.toLowerCase()}s`;
             const fullUrl = `${getEHRServer().endpoint}/${resource.resourceType}/${resource.id}`;
-            db.upsert(collection, { fullUrl, ...resource }, r => r.fullUrl === fullUrl);
+            db.upsert(collection, { fullUrl, ...resource }, r => compareUrl(r.fullUrl, fullUrl));
             return resource;
           });
 

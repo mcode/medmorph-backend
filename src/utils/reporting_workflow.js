@@ -6,6 +6,7 @@ const { getReceiverAddress } = require('../utils/knowledgeartifacts');
 const { getEHRServer } = require('../storage/servers');
 const { baseIgActions } = require('./actions');
 const { REPORTING, ENDPOINTS } = require('../storage/collections');
+const { compareUrl } = require('../utils/url');
 const debug = require('../storage/logs').debug('medmorph-backend:reporting_workflow');
 
 /*
@@ -80,7 +81,7 @@ async function startReportingWorkflow(planDef, serverUrl, resource = null) {
   let receiverAddress = getReceiverAddress(planDef);
   if (receiverAddress.split('/')[0] === 'Endpoint')
     receiverAddress = `${serverUrl}/${receiverAddress}`;
-  const endpoint = db.select(ENDPOINTS, e => e.fullUrl === receiverAddress);
+  const endpoint = db.select(ENDPOINTS, e => compareUrl(e.fullUrl, receiverAddress));
   const destEndpoint = endpoint[0].address;
 
   // QUESTION: Should encounter and patient be saved to the database?
