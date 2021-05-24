@@ -203,7 +203,6 @@ const baseIgActions = {
         submitBundle(context.reportingBundle, url)
           .then(result => {
             if (result.status === StatusCodes.ACCEPTED || result.status === StatusCodes.OK) {
-              context.flags['submitted'] = true;
               debug(`/Bundle/${bundleId} submitted to ${url}`);
 
               if (result.data?.resourceType === 'Bundle') {
@@ -215,13 +214,14 @@ const baseIgActions = {
               }
             }
           })
-          .catch(err => {
-            context.flags['submitted'] = false;
-            error(`Error submitting Bundle/${bundleId} to ${url}\n${err.message}`);
-          })
+          .catch(err => error(`Error submitting Bundle/${bundleId} to ${url}\n${err.message}`))
       );
     });
-    await Promise.all(listOfPromises);
+    await Promise.allSettled(listOfPromises).then(values => {
+      if (values.every(v => v.status === 'fulfilled')) context.flags['submitted'] = true;
+      else if (values.some(v => v.status === 'fulfilled')) context.flags['submitted'] = 'partial';
+      else context.flags['submitted'] = false;
+    });
   },
   'deidentify-report': async context => {
     await dataTrustOperation('deidentify', context.reportingBundle)
