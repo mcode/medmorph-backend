@@ -16,12 +16,15 @@ const {
   fetchValueSets,
   refreshKnowledgeArtifact
 } = require('../utils/knowledgeartifacts');
-const { subscriptionsFromPlanDef, topicToResourceType, getSubscriptionsFromPlanDef } = require('../utils/subscriptions');
-const { PLANDEFINITIONS } = require('../storage/collections');
+const {
+  subscriptionsFromPlanDef,
+  topicToResourceType,
+  getSubscriptionsFromPlanDef
+} = require('../utils/subscriptions');
+const { PLANDEFINITIONS, SUBSCRIPTIONS } = require('../storage/collections');
 const { default: base64url } = require('base64url');
 const { compareUrl } = require('../utils/url');
 const debug = require('../storage/logs').debug('medmorph-backend:subscriptions');
-const error = require('../storage/logs').error('medmorph-backend:subscriptions');
 
 /**
  * Handle KA notifications
@@ -57,18 +60,15 @@ function reportTrigger(req, res) {
   const planDefFullUrl = base64url.decode(fullUrl);
   const kaBaseUrl = getBaseUrlFromFullUrl(planDefFullUrl);
   const planDef = getPlanDef(planDefFullUrl);
+  const parameters = bundle.entry[0].resource;
+  const topic = parameters.parameter.find(p => p.name === 'topic').valueCanonical;
+  const resourceType = topicToResourceType(topic);
 
   if (!planDef) res.sendStatus(StatusCodes.NOT_FOUND);
-  else if (bundle.entry.length <= 1) {
-    const parameters = bundle.entry[0].resource;
-    const topic = parameters.parameter.find(p => p.name === 'topic').valueCanonical;
-    const resourceType = topicToResourceType(topic);
-    reportTriggerEmptyHandler(bundle, planDef, planDefFullUrl, topic, resourceType, kaBaseUrl, res);
-  } else {
+  else if (bundle.entry.length <= 1)
+    reportTriggerEmptyHandler(planDef, topic, resourceType, kaBaseUrl, res);
+  else {
     // Filter to only resource(s) which triggered the notification
-    const parameters = bundle.entry[0].resource;
-    const topic = parameters.parameter.find(p => p.name === 'topic').valueCanonical;
-    const resourceType = topicToResourceType(topic);
     const resources = bundle.entry.reduce((filtered, entry) => {
       if (entry.resource?.resourceType === resourceType) filtered.push(entry.resource);
       return filtered;
@@ -126,28 +126,41 @@ function reportTriggerIdOnlyHandler(bundle, planDef, resourceType, kaBaseUrl, re
 /**
  * Handle start reporting workflow when the notification bundle has payload type empty
  *
- * @param {Bundle} bundle - notification bundle
+ * @param {PlanDefinition} planDef - the plan definition associated with the notification
+ * @param {string} topic - the topic url of this subscription notification
+ * @param {string} resourceType - the type of all the resources
+ * @param {string} kaBaseUrl - the base url of the ka server
  * @param {*} res - the express response object
  */
-async function reportTriggerEmptyHandler(bundle, planDef, planDefFullUrl, topic, resourceType, kaBaseUrl, res) {
-    const subscription = getSubscriptionsFromPlanDef(planDefFullUrl).find((s) =>{
-        const subscriptionTopic = s.extension.find(topic => compareUrl(topic.url, EXTENSIONS.BACKPORT_TOPIC));
-        return compareUrl(subscriptionTopic.valueUri, topic);
-    });
-    const date = new Date(subscription.timestamp);
-    const server = getEHRServer().endpoint;
-    const resources = [];
-    const query = `_lastUpdated=gt${date.toISOString()}`
-    if(resourceType==='Observation') {
-        resources = await getResources(server, resourceType, `${query}&category=laboratory`);
-    } else {
-        resources = await getResources(server, resourceType, query);
-    }
-    resources.forEach((resource) => {
-        handleReportTriggerResource(resource, planDef, resourceType, kaBaseUrl);
-    })
+async function reportTriggerEmptyHandler(planDef, topic, resourceType, kaBaseUrl, res) {
+  const subscription = getSubscriptionsFromPlanDef(planDef.fullUrl).find(s => {
+    const subscriptionTopic = s.extension.find(t => compareUrl(t.url, EXTENSIONS.BACKPORT_TOPIC));
+    return compareUrl(subscriptionTopic.valueUri, topic);
+  });
+  const date = new Date(subscription.timestamp);
+  const server = getEHRServer().endpoint;
+  const lastUpdatedQuery = `_lastUpdated=gt${date.toISOString()}`;
+  const query =
+    resourceType === 'Observation' ? `${lastUpdatedQuery}&category=laboratory` : lastUpdatedQuery;
 
-  res.sendStatus(StatusCodes.OK);
+  let status = StatusCodes.OK;
+  const resourceBundle = await getResources(server, resourceType, '');
+  if (resourceBundle) {
+    resourceBundle.entry.forEach(entry => {
+      handleReportTriggerResource(entry.resource, planDef, resourceType, kaBaseUrl);
+    });
+  } else {
+    status = StatusCodes.NOT_FOUND;
+    debug(`No resources found for query ${server}/${resourceType}?${query}`);
+  }
+
+  db.update(
+    SUBSCRIPTIONS,
+    s => compareUrl(s.fullUrl, subscription.fullUrl),
+    s => Object.assign(s, { timestamp: Date.now(), ...subscription })
+  );
+
+  res.sendStatus(status);
 }
 
 /**

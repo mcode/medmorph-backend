@@ -201,7 +201,9 @@ function postSubscriptionsToEHR(subscriptions) {
       const timestamp = Date.now();
       // Store subscriptions in database
       debug(`Saved Subscription/${subscriptionId}`);
-      db.upsert('subscriptions', { timestamp, fullUrl, ...subscription }, s => compareUrl(s.fullUrl, fullUrl));
+      db.upsert('subscriptions', { server: 'EHR', timestamp, fullUrl, ...subscription }, s =>
+        compareUrl(s.fullUrl, fullUrl)
+      );
 
       // Create/Update Subscriptions on EHR server
       const ehrToken = await getAccessToken(ehrServer.endpoint);
