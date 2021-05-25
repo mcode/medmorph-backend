@@ -12,29 +12,29 @@ const { compareUrl } = require('../utils/url');
  */
 function refreshAllKnowledgeArtifacts() {
   const servers = db.select(SERVERS, s => s.type === 'KA');
-  servers.forEach(server => refreshKnowledgeArtifact(server));
+  servers.forEach(server => refreshKnowledgeArtifact(server.endpoint));
 }
 
 /**
  * Get knowledge artifacts from a specific server.
  *
- * @param {*} server - the server to refresh artifacts from
+ * @param {string} server - the server url to refresh artifacts from
  */
 function refreshKnowledgeArtifact(server) {
   getResources(
-    server.endpoint,
+    server,
     'PlanDefinition',
     '_include=*',
     'http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-plandefinition'
   ).then(bundle => {
     if (bundle) {
       // Create/Update subscriptions from PlanDefinitions
-      subscriptionsFromBundle(bundle, server.endpoint);
+      subscriptionsFromBundle(bundle, server);
 
       bundle.entry.forEach(async entry => {
         if (entry.resource.resourceType === 'PlanDefinition') {
-          fetchEndpoint(server.endpoint, entry.resource);
-          fetchValueSets(server.endpoint, entry.resource, bundle);
+          fetchEndpoint(server, entry.resource);
+          fetchValueSets(server, entry.resource, bundle);
         }
       });
     }
