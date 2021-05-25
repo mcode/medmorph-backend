@@ -7,14 +7,16 @@ const {
   postSubscriptionsToEHR,
   getBaseUrlFromFullUrl,
   getPlanDef,
-  getResourceFromServer
+  getResources,
+  getResourceFromServer,
+  EXTENSIONS
 } = require('../utils/fhir');
 const {
   fetchEndpoint,
   fetchValueSets,
   refreshKnowledgeArtifact
 } = require('../utils/knowledgeartifacts');
-const { subscriptionsFromPlanDef, topicToResourceType } = require('../utils/subscriptions');
+const { subscriptionsFromPlanDef, topicToResourceType, getSubscriptionsFromPlanDef } = require('../utils/subscriptions');
 const { PLANDEFINITIONS } = require('../storage/collections');
 const { default: base64url } = require('base64url');
 const { compareUrl } = require('../utils/url');
@@ -58,7 +60,10 @@ function reportTrigger(req, res) {
 
   if (!planDef) res.sendStatus(StatusCodes.NOT_FOUND);
   else if (bundle.entry.length <= 1) {
-    reportTriggerEmptyHandler(bundle, res);
+    const parameters = bundle.entry[0].resource;
+    const topic = parameters.parameter.find(p => p.name === 'topic').valueCanonical;
+    const resourceType = topicToResourceType(topic);
+    reportTriggerEmptyHandler(bundle, planDef, planDefFullUrl, topic, resourceType, kaBaseUrl, res);
   } else {
     // Filter to only resource(s) which triggered the notification
     const parameters = bundle.entry[0].resource;
@@ -124,10 +129,25 @@ function reportTriggerIdOnlyHandler(bundle, planDef, resourceType, kaBaseUrl, re
  * @param {Bundle} bundle - notification bundle
  * @param {*} res - the express response object
  */
-function reportTriggerEmptyHandler(bundle, res) {
-  // TODO: MEDMORPH-50 will implement this for payload type "empty"
-  error(`Unsupported notification payload type 'empty' from Bundle/${bundle.id}`);
-  res.sendStatus(StatusCodes.BAD_REQUEST);
+async function reportTriggerEmptyHandler(bundle, planDef, planDefFullUrl, topic, resourceType, kaBaseUrl, res) {
+    const subscription = getSubscriptionsFromPlanDef(planDefFullUrl).find((s) =>{
+        const subscriptionTopic = s.extension.find(topic => compareUrl(topic.url, EXTENSIONS.BACKPORT_TOPIC));
+        return compareUrl(subscriptionTopic.valueUri, topic);
+    });
+    const date = new Date(subscription.timestamp);
+    const server = getEHRServer().endpoint;
+    const resources = [];
+    const query = `_lastUpdated=gt${date.toISOString()}`
+    if(resourceType==='Observation') {
+        resources = await getResources(server, resourceType, `${query}&category=laboratory`);
+    } else {
+        resources = await getResources(server, resourceType, query);
+    }
+    resources.forEach((resource) => {
+        handleReportTriggerResource(resource, planDef, resourceType, kaBaseUrl);
+    })
+
+  res.sendStatus(StatusCodes.OK);
 }
 
 /**
