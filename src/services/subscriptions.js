@@ -71,7 +71,7 @@ function reportTrigger(req, res) {
     }, []);
 
     if (!resources.length) {
-      reportTriggerIdOnlyHandler(bundle, res);
+      reportTriggerIdOnlyHandler(bundle, planDef, resourceType, kaBaseUrl, res);
     } else {
       reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBaseUrl, res);
     }
@@ -100,12 +100,30 @@ function reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBa
  * Handle start reporting workflow when the notification bundle has payload type id-only
  *
  * @param {Bundle} bundle - notification bundle
+ * @param {PlanDefinition} planDef - the plan definition associated with the notification
+ * @param {string} resourceType - the type of all the resources
+ * @param {string} kaBaseUrl - the base url of the ka server
  * @param {*} res - the express response object
  */
-function reportTriggerIdOnlyHandler(bundle, res) {
-  // TODO: MEDMORPH-50 will implement this for payload type "id-only"
-  error(`Unsupported notification payload type 'id-only' from Bundle/${bundle.id}`);
-  res.sendStatus(StatusCodes.BAD_REQUEST);
+function reportTriggerIdOnlyHandler(bundle, planDef, resourceType, kaBaseUrl, res) {
+  const resourceFullUrls = bundle.entry.reduce((filtered, entry) => {
+    if (!entry.resource) {
+      if (entry.fullUrl) filtered.push(entry.fullUrl);
+      else if (entry.request) filtered.push(entry.request.url);
+      else if (entry.response) filtered.push(entry.response.location);
+    }
+    return filtered;
+  }, []);
+
+  resourceFullUrls.forEach(async resourceFullUrl => {
+    const resource = await getResourceFromServer(resourceFullUrl, getEHRServer().endpoint);
+    if (resource?.resourceType === resourceType) {
+      debug(`Received ${resourceType}/${resource.id} from subscription.`);
+      handleReportTriggerResource(resource, planDef, resourceType, kaBaseUrl);
+    }
+  });
+
+  res.sendStatus(StatusCodes.OK);
 }
 
 /**
