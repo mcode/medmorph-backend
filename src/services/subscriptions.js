@@ -7,8 +7,7 @@ const {
   postSubscriptionsToEHR,
   getBaseUrlFromFullUrl,
   getPlanDef,
-  getResourceFromServer,
-  getResources
+  getResourceFromServer
 } = require('../utils/fhir');
 const {
   fetchEndpoint,
@@ -90,7 +89,7 @@ function reportTrigger(req, res) {
 function reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBaseUrl, res) {
   // For each triggering resource save to the db and begin reporting workflow
   resources.forEach(resource => {
-    debug(`Received ${resourceType}/${resource.id} from subscription ${resourceFullUrl}`);
+    debug(`Received ${resourceType}/${resource.id} from subscription`);
     handleReportTriggerResource(resource, planDef, resourceType, kaBaseUrl);
   });
   res.sendStatus(StatusCodes.OK);
@@ -106,19 +105,12 @@ function reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBa
  * @param {*} res - the express response object
  */
 function reportTriggerIdOnlyHandler(bundle, planDef, resourceType, kaBaseUrl, res) {
-  const resourceFullUrls = bundle.entry.reduce((filtered, entry) => {
-    if (!entry.resource) {
-      if (entry.fullUrl) filtered.push(entry.fullUrl);
-      else if (entry.request) filtered.push(entry.request.url);
-      else if (entry.response) filtered.push(entry.response.location);
-    }
-    return filtered;
-  }, []);
+  const resourceFullUrls = getResourceFullUrls(bundle);
 
   resourceFullUrls.forEach(async resourceFullUrl => {
     const resource = await getResourceFromServer(resourceFullUrl, getEHRServer().endpoint);
     if (resource?.resourceType === resourceType) {
-      debug(`Received ${resourceType}/${resource.id} from subscription.`);
+      debug(`Received ${resourceType}/${resource.id} from subscription`);
       handleReportTriggerResource(resource, planDef, resourceType, kaBaseUrl);
     }
   });
@@ -179,14 +171,7 @@ function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
  * @param {*} res - the express response object
  */
 function knowledgeArtifactIdOnlyHandler(bundle, serverUrl, res) {
-  const resourceFullUrls = bundle.entry.reduce((filtered, entry) => {
-    if (!entry.resource) {
-      if (entry.fullUrl) filtered.push(entry.fullUrl);
-      else if (entry.request) filtered.push(entry.request.url);
-      else if (entry.response) filtered.push(entry.response.location);
-    }
-    return filtered;
-  }, []);
+  const resourceFullUrls = getResourceFullUrls(bundle);
 
   resourceFullUrls.forEach(async resourceFullUrl => {
     const resource = await getResourceFromServer(resourceFullUrl, serverUrl);
@@ -230,6 +215,24 @@ function handleUpdatedKnowledgeArtifact(planDefinition, fullUrl, serverUrl) {
 
   const subscriptions = subscriptionsFromPlanDef(planDefinition, serverUrl);
   postSubscriptionsToEHR(subscriptions);
+}
+
+/**
+ * Helper method for the id-only payload to get a list of all the entry fullUrls
+ * minus the SubscriptionStatus.
+ *
+ * @param {Bundle} bundle - the notification bundle
+ * @returns list of all fullUrls for id-only payloads
+ */
+function getResourceFullUrls(bundle) {
+  return bundle.entry.reduce((filtered, entry) => {
+    if (!entry.resource) {
+      if (entry.fullUrl) filtered.push(entry.fullUrl);
+      else if (entry.request) filtered.push(entry.request.url);
+      else if (entry.response) filtered.push(entry.response.location);
+    }
+    return filtered;
+  }, []);
 }
 
 module.exports = { knowledgeArtifact, reportTrigger };
