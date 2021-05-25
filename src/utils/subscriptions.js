@@ -95,7 +95,9 @@ function subscribeToKnowledgeArtifacts() {
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
       id
     );
-    db.upsert(SUBSCRIPTIONS, { timestamp, fullUrl, ...subscription }, s => compareUrl(s.fullUrl, fullUrl));
+    db.upsert(SUBSCRIPTIONS, { server: 'KA', timestamp, fullUrl, ...subscription }, s =>
+      compareUrl(s.fullUrl, fullUrl)
+    );
     const token = await getAccessToken(endpoint);
     const headers = { Authorization: `Bearer ${token}` };
     axios
@@ -177,6 +179,8 @@ function getSubscriptionsFromPlanDef(fullUrl) {
   if (!fullUrl) return [];
 
   return db.select(SUBSCRIPTIONS, s => {
+    if (s.server !== 'EHR') return false;
+
     const endpoint = s?.channel?.endpoint;
 
     if (!endpoint) return false;
