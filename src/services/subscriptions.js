@@ -90,13 +90,8 @@ function reportTrigger(req, res) {
 function reportTriggerFullResourceHandler(planDef, resources, resourceType, kaBaseUrl, res) {
   // For each triggering resource save to the db and begin reporting workflow
   resources.forEach(resource => {
-    const resourceFullUrl = `${getEHRServer().endpoint}/${resourceType}/${resource.id}`;
     debug(`Received ${resourceType}/${resource.id} from subscription ${resourceFullUrl}`);
-    const collection = `${resourceType.toLowerCase()}s`;
-    db.upsert(collection, { fullUrl: resourceFullUrl, ...resource }, r =>
-      compareUrl(r.fullUrl, resourceFullUrl)
-    );
-    startReportingWorkflow(planDef, kaBaseUrl, resource);
+    handleReportTriggerResource(resource, planDef, resourceType, kaBaseUrl);
   });
   res.sendStatus(StatusCodes.OK);
 }
@@ -123,6 +118,23 @@ function reportTriggerEmptyHandler(bundle, res) {
   // TODO: MEDMORPH-50 will implement this for payload type "empty"
   error(`Unsupported notification payload type 'empty' from Bundle/${bundle.id}`);
   res.sendStatus(StatusCodes.BAD_REQUEST);
+}
+
+/**
+ * Helper method to save the resource to the database and then begin reporting workflow
+ *
+ * @param {*} resource - the triggering resource
+ * @param {PlanDefinition} planDef - the PlanDefinition associated with the notification
+ * @param {string} resourceType - the type of the resource
+ * @param {string} kaBaseUrl - the base url of the ka server
+ */
+function handleReportTriggerResource(resource, planDef, resourceType, kaBaseUrl) {
+  const resourceFullUrl = `${getEHRServer().endpoint}/${resourceType}/${resource.id}`;
+  const collection = `${resourceType.toLowerCase()}s`;
+  db.upsert(collection, { fullUrl: resourceFullUrl, ...resource }, r =>
+    compareUrl(r.fullUrl, resourceFullUrl)
+  );
+  startReportingWorkflow(planDef, kaBaseUrl, resource);
 }
 
 /**
