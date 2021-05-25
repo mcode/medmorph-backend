@@ -3,8 +3,18 @@ const { StatusCodes } = require('http-status-codes');
 const db = require('../storage/DataAccess');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
 const { getServerById, getEHRServer } = require('../storage/servers');
-const { postSubscriptionsToEHR, getBaseUrlFromFullUrl, getPlanDef } = require('../utils/fhir');
-const { fetchEndpoint, fetchValueSets } = require('../utils/knowledgeartifacts');
+const {
+  postSubscriptionsToEHR,
+  getBaseUrlFromFullUrl,
+  getPlanDef,
+  getResourceFromServer,
+  getResources
+} = require('../utils/fhir');
+const {
+  fetchEndpoint,
+  fetchValueSets,
+  refreshKnowledgeArtifact
+} = require('../utils/knowledgeartifacts');
 const { subscriptionsFromPlanDef, topicToResourceType } = require('../utils/subscriptions');
 const { PLANDEFINITIONS } = require('../storage/collections');
 const { default: base64url } = require('base64url');
@@ -22,7 +32,7 @@ async function knowledgeArtifact(req, res) {
 
   if (!server) res.sendStatus(StatusCodes.NOT_FOUND);
   else if (bundle.entry.length <= 1) {
-    knowledgeArtifactEmptyHandler(bundle, res);
+    knowledgeArtifactEmptyHandler(server.endpoint, res);
   } else {
     const planDefinitions = bundle.entry.reduce((filtered, entry) => {
       if (entry.resource?.resourceType === 'PlanDefinition') filtered.push(entry.resource);
@@ -30,7 +40,7 @@ async function knowledgeArtifact(req, res) {
     }, []);
 
     if (!planDefinitions.length) {
-      knowledgeArtifactIdOnlyHandler(bundle, res);
+      knowledgeArtifactIdOnlyHandler(bundle, server.endpoint, res);
     } else {
       knowledgeArtifactFullResourceHandler(planDefinitions, server.endpoint, res);
     }
@@ -124,19 +134,8 @@ function reportTriggerEmptyHandler(bundle, res) {
 function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
   planDefinitions.forEach(async planDefinition => {
     const planDefinitionFullUrl = `${serverUrl}/PlanDefinition/${planDefinition.id}`;
-    db.upsert(PLANDEFINITIONS, { fullUrl: planDefinitionFullUrl, ...planDefinition }, r =>
-      compareUrl(r.fullUrl, planDefinitionFullUrl)
-    );
-    debug(
-      `KA full-resource notification contained ${serverUrl}/PlanDefinition/${planDefinition.id}`
-    );
-
-    fetchEndpoint(serverUrl, planDefinition);
-
-    fetchValueSets(serverUrl, planDefinition, null);
-
-    const subscriptions = subscriptionsFromPlanDef(planDefinition, serverUrl);
-    postSubscriptionsToEHR(subscriptions);
+    handleUpdatedKnowledgeArtifact(planDefinition, planDefinitionFullUrl, serverUrl);
+    debug(`KA full-resource notification contained ${planDefinitionFullUrl}`);
   });
 
   res.sendStatus(StatusCodes.OK);
@@ -146,24 +145,61 @@ function knowledgeArtifactFullResourceHandler(planDefinitions, serverUrl, res) {
  * Handle fetch ka when the notification bundle has payload type id-only
  *
  * @param {Bundle} bundle - notification bundle
+ * @param {string} serverUrl - the base url of the KA server
  * @param {*} res - the express response object
  */
-function knowledgeArtifactIdOnlyHandler(bundle, res) {
-  // TODO: MEDMORPH-50 will implement this for payload type "id-only"
-  error(`Unsupported notification payload type 'id-only' from Bundle/${bundle.id}`);
-  res.sendStatus(StatusCodes.BAD_REQUEST);
+function knowledgeArtifactIdOnlyHandler(bundle, serverUrl, res) {
+  const resourceFullUrls = bundle.entry.reduce((filtered, entry) => {
+    if (!entry.resource) {
+      if (entry.fullUrl) filtered.push(entry.fullUrl);
+      else if (entry.request) filtered.push(entry.request.url);
+      else if (entry.response) filtered.push(entry.response.location);
+    }
+    return filtered;
+  }, []);
+
+  resourceFullUrls.forEach(async resourceFullUrl => {
+    const resource = await getResourceFromServer(resourceFullUrl, serverUrl);
+    if (resource.resourceType === 'PlanDefinition') {
+      handleUpdatedKnowledgeArtifact(resource, resourceFullUrl, serverUrl);
+      debug(`KA id-only notification contained ${resourceFullUrl}`);
+    }
+  });
+
+  res.sendStatus(StatusCodes.OK);
 }
 
 /**
  * Handle fetch ka when the notification bundle has payload type empty
  *
- * @param {Bundle} bundle - notification bundle
+ * @param {string} serverUrl - the base url of the KA server
  * @param {*} res - the express response object
  */
-function knowledgeArtifactEmptyHandler(bundle, res) {
-  // TODO: MEDMORPH-50 will implement this for payload type "empty"
-  error(`Unsupported notification payload type 'empty' from Bundle/${bundle.id}`);
-  res.sendStatus(StatusCodes.BAD_REQUEST);
+function knowledgeArtifactEmptyHandler(serverUrl, res) {
+  debug(`KA empty notification received. Refreshing all Knowledge Artifacts for ${serverUrl}`);
+  refreshKnowledgeArtifact(serverUrl);
+  res.sendStatus(StatusCodes.OK);
+}
+
+/**
+ * Helper method to save a PlanDefinition to the db, fetch endpoints, fetch value sets,
+ * and create subscriptions from the knowledge artifact
+ *
+ * @param {PlanDefinition} planDefinition - the knowledge artifact
+ * @param {string} fullUrl - the fullUrl of the PlanDefinition
+ * @param {string} serverUrl - the knowledge artifact repository base url
+ */
+function handleUpdatedKnowledgeArtifact(planDefinition, fullUrl, serverUrl) {
+  db.upsert(PLANDEFINITIONS, { fullUrl: fullUrl, ...planDefinition }, r =>
+    compareUrl(r.fullUrl, fullUrl)
+  );
+
+  fetchEndpoint(serverUrl, planDefinition);
+
+  fetchValueSets(serverUrl, planDefinition, null);
+
+  const subscriptions = subscriptionsFromPlanDef(planDefinition, serverUrl);
+  postSubscriptionsToEHR(subscriptions);
 }
 
 module.exports = { knowledgeArtifact, reportTrigger };

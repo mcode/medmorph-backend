@@ -62,7 +62,7 @@ function generateOperationOutcome(code, msg) {
  */
 async function getResources(server, resourceType, query = '_include=*', profile = undefined) {
   const url = `${server}/${resourceType}?${query}`;
-  const token = await getAccessToken(server, db);
+  const token = await getAccessToken(server);
   const headers = { Authorization: `Bearer ${token}` };
   const axiosResponse = axios
     .get(url, { headers: headers })
@@ -84,6 +84,23 @@ async function getResources(server, resourceType, query = '_include=*', profile 
 
     return data;
   });
+}
+
+/**
+ * Get a resource from an external server by fullUrl
+ *
+ * @param {string} url - the fullUrl of the resource
+ * @param {string} server - the server base url (optional)
+ * @returns axios promise of the resource
+ */
+async function getResourceFromServer(url, server = undefined) {
+  const baseUrl = server ?? getBaseUrlFromFullUrl(url);
+  const token = await getAccessToken(baseUrl);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios
+    .get(url, { headers: headers })
+    .then(response => response.data)
+    .catch(err => error(`Error getting ${url}\n${err.message}`));
 }
 
 /**
@@ -234,6 +251,7 @@ module.exports = {
   getBaseUrlFromFullUrl,
   getPlanDef,
   getResources,
+  getResourceFromServer,
   getReferencedResource,
   postSubscriptionsToEHR
 };
