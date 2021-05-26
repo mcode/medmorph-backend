@@ -38,10 +38,10 @@ function subscriptionAuthorization(req, res, next) {
   else if (token) {
     const subscriptionId = token.split(':')[0];
     if (subscriptionId) {
-      const subscriptions = db.select(SUBSCRIPTIONS, s => s.id === subscriptionId);
+      const subscriptions = db.select(SUBSCRIPTIONS, s => s.resource.id === subscriptionId);
       for (const subscription of subscriptions) {
         // Get the authorization token from the subscription
-        const authorizationHeader = subscription.channel.header[0];
+        const authorizationHeader = subscription.resource.channel.header[0];
         const authToken = authorizationHeader.split('Authorization: Bearer ')[1];
         if (token === authToken) return next();
       }

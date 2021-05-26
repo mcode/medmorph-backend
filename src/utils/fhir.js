@@ -183,7 +183,7 @@ function getBaseUrlFromFullUrl(fullUrl) {
  */
 function getPlanDef(fullUrl) {
   const resultList = db.select(PLANDEFINITIONS, s => compareUrl(s.fullUrl, fullUrl));
-  if (resultList[0]) return resultList[0];
+  if (resultList[0]) return resultList[0].resource;
   else return null;
 }
 
