@@ -82,7 +82,7 @@ async function startReportingWorkflow(planDef, serverUrl, resource = null) {
   if (receiverAddress.split('/')[0] === 'Endpoint')
     receiverAddress = `${serverUrl}/${receiverAddress}`;
   const endpoint = db.select(ENDPOINTS, e => compareUrl(e.fullUrl, receiverAddress));
-  const destEndpoint = endpoint[0].address;
+  const destEndpoint = endpoint[0].resource.address;
 
   // QUESTION: Should encounter and patient be saved to the database?
 

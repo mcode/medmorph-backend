@@ -116,7 +116,7 @@ async function fetchValueSets(url, planDefinition, bundle) {
     }
 
     if (vsResource) {
-      db.upsert(VALUESETS, vsResource, v => compareUrl(v.url, vsResource.url));
+      db.upsert(VALUESETS, vsResource, v => compareUrl(v.resource.url, vsResource.url));
       debug(`ValueSet/${vsResource.url} saved to db`);
     } else {
       error(`Unable to locate ValueSet ${vs} on ${url}`);

@@ -181,7 +181,7 @@ function getSubscriptionsFromPlanDef(fullUrl) {
   return db.select(SUBSCRIPTIONS, s => {
     if (s.server !== 'EHR') return false;
 
-    const endpoint = s?.channel?.endpoint;
+    const endpoint = s?.resource.channel?.endpoint;
 
     if (!endpoint) return false;
     return compareUrl(fullUrl, base64url.decode(getLastPartOfPathFromUrl(endpoint)));
