@@ -79,7 +79,7 @@ async function getResources(server, resourceType, query = '_include=*', profile 
       debug(`Extracted ${resource.resourceType}/${resource.id} from bundle`);
       const collection = `${resource.resourceType.toLowerCase()}s`;
       const fullUrl = `${server}/${resource.resourceType}/${resource.id}`;
-      db.upsert(collection, { fullUrl, ...resource }, r => compareUrl(r.fullUrl, fullUrl));
+      db.upsert(collection, { fullUrl, resource }, r => compareUrl(r.fullUrl, fullUrl));
     });
 
     return data;
@@ -201,7 +201,7 @@ function postSubscriptionsToEHR(subscriptions) {
       const timestamp = Date.now();
       // Store subscriptions in database
       debug(`Saved Subscription/${subscriptionId}`);
-      db.upsert('subscriptions', { server: 'EHR', timestamp, fullUrl, ...subscription }, s =>
+      db.upsert('subscriptions', { server: 'EHR', timestamp, fullUrl, resource: subscription }, s =>
         compareUrl(s.fullUrl, fullUrl)
       );
 
