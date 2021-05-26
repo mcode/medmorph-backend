@@ -11,6 +11,7 @@ import { useQueryClient } from 'react-query';
 import AlertDialog from './AlertDialog';
 import JSONInput from 'react-json-editor-ajrm';
 import locale from 'react-json-editor-ajrm/locale/en';
+import base64url from 'base64url';
 
 function CollectionRow(props) {
   const classes = useStyles();
@@ -56,7 +57,8 @@ function CollectionRow(props) {
   };
 
   const deleteData = () => {
-    axios.delete(`/collection/${selectedCollection}?id=${state.id}`).then(() => {
+    const query = state.id ? `id=${state.id}` : `fullUrl=${base64url(state.fullUrl)}`;
+    axios.delete(`/collection/${selectedCollection}?${query}`).then(() => {
       queryClient.invalidateQueries(['collections', { selectedCollection }]);
       setEdit(false);
     });
@@ -67,13 +69,17 @@ function CollectionRow(props) {
       <>
         {headers.map((header, j) => {
           const cellKey = `${j}`;
+          let cellData = '';
+          if (data[header.value]) cellData = data[header.value];
+          else if (data.resource && data.resource[header.value])
+            cellData = data.resource[header.value];
           return (
             <TableCell key={cellKey} style={{ whiteSpace: 'nowrap' }}>
               {' '}
-              {header.value === 'resource' ? (
+              {header.value === 'data' ? (
                 <ReactJson src={data} collapsed={true} enableClipboard={false} />
               ) : (
-                data[header.value || header.toLowerCase()]
+                cellData
               )}{' '}
             </TableCell>
           );
@@ -92,7 +98,8 @@ function CollectionRow(props) {
               {!noDelete && (
                 <AlertDialog
                   title={`Are you sure?`}
-                  content={`Delete entry ${data['id']} from ${selectedCollection}?`}
+                  content={`Delete entry ${data['id'] ??
+                    data.resource.id} from ${selectedCollection}?`}
                   callback={deleteData}
                 />
               )}
@@ -108,10 +115,14 @@ function CollectionRow(props) {
       <>
         {headers.map((header, j) => {
           const cellKey = `${j}`;
+          let cellData = '';
+          if (data[header.value]) cellData = data[header.value];
+          else if (data.resource && data.resource[header.value])
+            cellData = data.resource[header.value];
           return (
             <TableCell key={`${data.id}-${cellKey}`} style={{ whiteSpace: 'nowrap' }}>
               {' '}
-              {header.value === 'resource' ? (
+              {header.value === 'data' ? (
                 header.edit ? (
                   <JSONInput
                     id={'json' + j}
@@ -132,7 +143,7 @@ function CollectionRow(props) {
                   }}
                 />
               ) : (
-                data[header.value || header.toLowerCase()]
+                cellData
               )}{' '}
             </TableCell>
           );

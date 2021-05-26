@@ -61,13 +61,13 @@ function deleteHandler(collectionName, req, res) {
 
   // Also delete subscription from EHR
   if (collectionName === SUBSCRIPTIONS) {
-    deleteSubscriptionFromEHR(resource);
+    deleteSubscriptionFromEHR(resource.resource);
   } else if (collectionName === PLANDEFINITIONS) {
     const subscriptions = getSubscriptionsFromPlanDef(resource.fullUrl);
 
     // Delete all subscriptions associated with plan definition
     subscriptions.forEach(subscription => {
-      db.delete(SUBSCRIPTIONS, s => s.id === subscription.id);
+      db.delete(SUBSCRIPTIONS, s => s.resource.id === subscription.id);
       deleteSubscriptionFromEHR(subscription);
     });
   }
