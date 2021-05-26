@@ -131,7 +131,7 @@ const Collections = props => {
           { value: 'id', label: 'id', edit: false },
           { value: 'fullUrl', label: 'fullUrl', edit: true },
           { value: 'name', label: 'name', edit: true },
-          { value: 'resource', label: 'resource', edit: true }
+          { value: 'data', label: 'data', edit: true }
         ];
         return {
           headers,
@@ -144,7 +144,7 @@ const Collections = props => {
           { value: 'id', label: 'id', edit: false },
           { value: 'fullUrl', label: 'fullUrl', edit: true },
           { value: 'criteria', label: 'criteria', edit: true },
-          { value: 'resource', label: 'resource', edit: true }
+          { value: 'data', label: 'data', edit: true }
         ];
         return {
           headers,
@@ -168,7 +168,7 @@ const Collections = props => {
       default:
         headers = [
           { value: 'id', label: 'id', edit: false },
-          { value: 'resource', label: 'resource', edit: true }
+          { value: 'data', label: 'data', edit: true }
         ];
         return {
           headers,
