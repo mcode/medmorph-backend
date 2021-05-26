@@ -301,7 +301,9 @@ const baseIgActions = {
             const resource = e.resource;
             const collection = `${resource.resourceType.toLowerCase()}s`;
             const fullUrl = `${getEHRServer().endpoint}/${resource.resourceType}/${resource.id}`;
-            db.upsert(collection, { fullUrl, ...resource }, r => compareUrl(r.fullUrl, fullUrl));
+            db.upsert(collection, { fullUrl, resource: resource }, r =>
+              compareUrl(r.fullUrl, fullUrl)
+            );
             return resource;
           });
 

@@ -95,7 +95,7 @@ function subscribeToKnowledgeArtifacts() {
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
       id
     );
-    db.upsert(SUBSCRIPTIONS, { server: 'KA', timestamp, fullUrl, ...subscription }, s =>
+    db.upsert(SUBSCRIPTIONS, { server: 'KA', timestamp, fullUrl, resource: subscription }, s =>
       compareUrl(s.fullUrl, fullUrl)
     );
     const token = await getAccessToken(endpoint);

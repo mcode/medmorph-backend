@@ -238,7 +238,7 @@ function knowledgeArtifactEmptyHandler(serverUrl, res) {
  * @param {string} serverUrl - the knowledge artifact repository base url
  */
 function handleUpdatedKnowledgeArtifact(planDefinition, fullUrl, serverUrl) {
-  db.upsert(PLANDEFINITIONS, { fullUrl: fullUrl, ...planDefinition }, r =>
+  db.upsert(PLANDEFINITIONS, { fullUrl: fullUrl, resource: planDefinition }, r =>
     compareUrl(r.fullUrl, fullUrl)
   );
 
