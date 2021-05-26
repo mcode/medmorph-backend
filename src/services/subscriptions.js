@@ -157,7 +157,7 @@ async function reportTriggerEmptyHandler(planDef, topic, resourceType, kaBaseUrl
   db.update(
     SUBSCRIPTIONS,
     s => compareUrl(s.fullUrl, subscription.fullUrl),
-    s => Object.assign(s, { timestamp: Date.now(), ...subscription })
+    s => Object.assign(s, { timestamp: Date.now(), resource: subscription })
   );
 
   res.sendStatus(status);
@@ -174,7 +174,7 @@ async function reportTriggerEmptyHandler(planDef, topic, resourceType, kaBaseUrl
 function handleReportTriggerResource(resource, planDef, resourceType, kaBaseUrl) {
   const resourceFullUrl = `${getEHRServer().endpoint}/${resourceType}/${resource.id}`;
   const collection = `${resourceType.toLowerCase()}s`;
-  db.upsert(collection, { fullUrl: resourceFullUrl, ...resource }, r =>
+  db.upsert(collection, { fullUrl: resourceFullUrl, resource: resource }, r =>
     compareUrl(r.fullUrl, resourceFullUrl)
   );
   startReportingWorkflow(planDef, kaBaseUrl, resource);
