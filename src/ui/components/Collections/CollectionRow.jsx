@@ -12,6 +12,7 @@ import AlertDialog from './AlertDialog';
 import JSONInput from 'react-json-editor-ajrm';
 import locale from 'react-json-editor-ajrm/locale/en';
 import base64url from 'base64url';
+import { setDataTrustService } from '../../../storage/configUtil';
 
 function CollectionRow(props) {
   const classes = useStyles();
@@ -28,11 +29,13 @@ function CollectionRow(props) {
     const bundle = {};
     headers.forEach(header => {
       if (!header.viewOnly) {
-        bundle[header.value] = state[header.value];
+        const value = state[header.value];
+        if (value) bundle[header.value] = value;
       }
     });
 
-    axios.put(`/collection/${selectedCollection}?id=${bundle.id}`, bundle).then(() => {
+    const query = bundle.id ? `id=${bundle.id}` : `fullUrl=${base64url(bundle.fullUrl)}`;
+    axios.put(`/collection/${selectedCollection}?${query}`, bundle).then(() => {
       queryClient.invalidateQueries(['collections', { selectedCollection }]);
       setEdit(false);
       if (callback) {
@@ -45,6 +48,7 @@ function CollectionRow(props) {
     // the event is a custom object returned from
     // JSONInput, not a regular event
     if (event.jsObject) {
+      console.log(event.jsObject);
       dispatch({ header: 'resource', value: event.jsObject });
     }
   };
@@ -69,18 +73,10 @@ function CollectionRow(props) {
       <>
         {headers.map((header, j) => {
           const cellKey = `${j}`;
-          let cellData = '';
-          if (data[header.value]) cellData = data[header.value];
-          else if (data.resource && data.resource[header.value])
-            cellData = data.resource[header.value];
           return (
             <TableCell key={cellKey} style={{ whiteSpace: 'nowrap' }}>
               {' '}
-              {header.value === 'data' ? (
-                <ReactJson src={data} collapsed={true} enableClipboard={false} />
-              ) : (
-                cellData
-              )}{' '}
+              {renderNormalTableCell(header.value)}{' '}
             </TableCell>
           );
         })}
@@ -115,36 +111,10 @@ function CollectionRow(props) {
       <>
         {headers.map((header, j) => {
           const cellKey = `${j}`;
-          let cellData = '';
-          if (data[header.value]) cellData = data[header.value];
-          else if (data.resource && data.resource[header.value])
-            cellData = data.resource[header.value];
           return (
             <TableCell key={`${data.id}-${cellKey}`} style={{ whiteSpace: 'nowrap' }}>
               {' '}
-              {header.value === 'data' ? (
-                header.edit ? (
-                  <JSONInput
-                    id={'json' + j}
-                    placeholder={state}
-                    locale={locale}
-                    height="550px"
-                    onChange={handleJson}
-                  />
-                ) : (
-                  <ReactJson src={data[header.value]} collapsed={true} enableClipboard={false} />
-                )
-              ) : header.edit || (addNew && !header.viewOnly) ? (
-                <input
-                  value={state[header.value]}
-                  className={classes.editInput}
-                  onChange={e => {
-                    dispatch({ header: header.value, value: e.target.value });
-                  }}
-                />
-              ) : (
-                cellData
-              )}{' '}
+              {renderEditTableCell(header, j)}{' '}
             </TableCell>
           );
         })}
@@ -159,6 +129,56 @@ function CollectionRow(props) {
         </TableCell>
       </>
     );
+  };
+
+  const renderNormalTableCell = headerValue => {
+    if (headerValue === 'resource')
+      return <ReactJson src={data.resource} collapsed={true} enableClipboard={false} />;
+    else if (headerValue === 'data')
+      return <ReactJson src={data} collapsed={true} enableClipboard={false} />;
+    else if (data[headerValue]) return data[headerValue];
+    else if (data.resource && data.resource[headerValue]) return data.resource[headerValue];
+    else return '';
+  };
+
+  const renderEditTableCell = (header, j) => {
+    if (header.value === 'resource' && header.edit)
+      return (
+        <JSONInput
+          id={'json' + j}
+          placeholder={state.resource}
+          locale={locale}
+          height="550px"
+          onChange={handleJson}
+        />
+      );
+    else if (header.value === 'resource')
+      return <ReactJson src={data.resource} collapsed={true} enableClipboard={false} />;
+    else if (header.value === 'data' && header.edit)
+      return (
+        <JSONInput
+          id={'json' + j}
+          placeholder={state}
+          locale={locale}
+          height="550px"
+          onChange={handleJson}
+        />
+      );
+    else if (header.value === 'data')
+      return <ReactJson src={data} collapsed={true} enableClipboard={false} />;
+    else if (header.edit || (addNew && !header.viewOnly))
+      return (
+        <input
+          value={state[header.value]}
+          className={classes.editInput}
+          onChange={e => {
+            dispatch({ header: header.value, value: e.target.value });
+          }}
+        />
+      );
+    else if (data[header.value]) return data[header.value];
+    else if (data.resource && data.resource[header.value]) return data.resource[header.value];
+    else return '';
   };
 
   return (
