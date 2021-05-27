@@ -130,8 +130,8 @@ const Collections = props => {
         headers = [
           { value: 'id', label: 'id', edit: false },
           { value: 'fullUrl', label: 'fullUrl', edit: true },
-          { value: 'name', label: 'name', edit: true },
-          { value: 'data', label: 'data', edit: true }
+          { value: 'name', label: 'name', edit: false },
+          { value: 'resource', label: 'resource', edit: true }
         ];
         return {
           headers,
@@ -143,8 +143,10 @@ const Collections = props => {
         headers = [
           { value: 'id', label: 'id', edit: false },
           { value: 'fullUrl', label: 'fullUrl', edit: true },
-          { value: 'criteria', label: 'criteria', edit: true },
-          { value: 'data', label: 'data', edit: true }
+          { value: 'criteria', label: 'criteria', edit: false },
+          { value: 'server', label: 'location', edit: false },
+          { value: 'timestamp', label: 'last updated', edit: false },
+          { value: 'resource', label: 'resource', edit: true }
         ];
         return {
           headers,
