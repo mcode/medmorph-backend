@@ -47,7 +47,6 @@ function CollectionRow(props) {
     // the event is a custom object returned from
     // JSONInput, not a regular event
     if (event.jsObject) {
-      console.log(event.jsObject);
       dispatch({ header: 'resource', value: event.jsObject });
     }
   };
