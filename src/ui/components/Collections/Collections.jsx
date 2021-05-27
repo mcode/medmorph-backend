@@ -130,7 +130,7 @@ const Collections = props => {
         headers = [
           { value: 'id', label: 'id', edit: false },
           { value: 'fullUrl', label: 'fullUrl', edit: true },
-          { value: 'name', label: 'name', edit: false },
+          { value: 'name', label: 'name', edit: false, viewOnly: true },
           { value: 'resource', label: 'resource', edit: true }
         ];
         return {
@@ -143,9 +143,9 @@ const Collections = props => {
         headers = [
           { value: 'id', label: 'id', edit: false },
           { value: 'fullUrl', label: 'fullUrl', edit: true },
-          { value: 'criteria', label: 'criteria', edit: false },
+          { value: 'criteria', label: 'criteria', edit: false, viewOnly: true },
           { value: 'server', label: 'location', edit: false },
-          { value: 'timestamp', label: 'last updated', edit: false },
+          { value: 'timestamp', label: 'last updated', edit: false, viewOnly: true },
           { value: 'resource', label: 'resource', edit: true }
         ];
         return {
