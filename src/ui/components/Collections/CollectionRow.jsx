@@ -12,7 +12,6 @@ import AlertDialog from './AlertDialog';
 import JSONInput from 'react-json-editor-ajrm';
 import locale from 'react-json-editor-ajrm/locale/en';
 import base64url from 'base64url';
-import { setDataTrustService } from '../../../storage/configUtil';
 
 function CollectionRow(props) {
   const classes = useStyles();
