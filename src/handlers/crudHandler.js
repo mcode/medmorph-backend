@@ -46,13 +46,13 @@ function updateHandler(collectionName, req, res) {
 }
 
 function deleteHandler(collectionName, req, res) {
-  let resource;
+  let entryToDelete;
   if (req.query.id) {
-    resource = db.select(collectionName, r => r.id === req.query.id)[0];
+    entryToDelete = db.select(collectionName, r => r.id === req.query.id)[0];
     db.delete(collectionName, r => r.id === req.query.id);
   } else if (req.query.fullUrl) {
     const fullUrl = base64url.decode(req.query.fullUrl);
-    resource = db.select(collectionName, r => compareUrl(r.fullUrl, fullUrl))[0];
+    entryToDelete = db.select(collectionName, r => compareUrl(r.fullUrl, fullUrl))[0];
     db.delete(collectionName, r => compareUrl(r.fullUrl, fullUrl));
   } else {
     res.send('Must include id or fullUrl').status(StatusCodes.BAD_REQUEST);
@@ -61,9 +61,9 @@ function deleteHandler(collectionName, req, res) {
 
   // Also delete subscription from EHR
   if (collectionName === SUBSCRIPTIONS) {
-    deleteSubscriptionFromEHR(resource.resource);
+    deleteSubscriptionFromEHR(entryToDelete.resource);
   } else if (collectionName === PLANDEFINITIONS) {
-    const subscriptions = getSubscriptionsFromPlanDef(resource.fullUrl);
+    const subscriptions = getSubscriptionsFromPlanDef(entryToDelete.fullUrl);
 
     // Delete all subscriptions associated with plan definition
     subscriptions.forEach(subscription => {
