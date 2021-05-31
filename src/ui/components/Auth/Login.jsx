@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useState, useEffect } from 'react';
-import { TextField, Button, Snackbar } from '@material-ui/core';
-import { Alert } from '@material-ui/lab';
+import { TextField, Button } from '@material-ui/core';
+import Alert from '../elements/Alert';
 import axios from 'axios';
 import { useQueryClient } from 'react-query';
 import useStyles from './styles';
@@ -57,16 +57,7 @@ const Login = () => {
 
   return (
     <div className={classes.background}>
-      <Snackbar
-        open={message !== null}
-        autoHideDuration={6000}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleClose} severity="error">
-          {message}
-        </Alert>
-      </Snackbar>
+      <Alert message={message} handleClose={handleClose} />
       <div className={classes.adminBar}>
         <span className={classes.adminBarText}>
           <strong>MedMorph</strong> Admin Console
