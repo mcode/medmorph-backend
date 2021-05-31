@@ -1,5 +1,6 @@
-import React, { useReducer, useState } from 'react';
-import { TableCell, TableRow } from '@material-ui/core';
+import React, { useReducer, useState, useCallback } from 'react';
+import { TableCell, TableRow, Snackbar } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import PropTypes from 'prop-types';
 import CreateIcon from '@material-ui/icons/Create';
 import ReactJson from 'react-json-view';
@@ -22,16 +23,27 @@ function CollectionRow(props) {
   };
   const { headers, data, selectedCollection, editable, addNew, callback, noDelete } = props;
   const [edit, setEdit] = useState(addNew);
+  const [message, setMessage] = useState(null);
   const [state, dispatch] = useReducer(reducer, data);
+
+  const handleClose = useCallback(() => setMessage(null));
 
   const updateData = () => {
     const bundle = {};
+    let isValidUpdate = true;
     headers.forEach(header => {
       if (!header.viewOnly) {
         const value = state[header.value];
         if (value) bundle[header.value] = value;
       }
+
+      if (header.required && !state[header.value]) {
+        isValidUpdate = false;
+        setMessage(`${header.value} must not be empty`);
+      }
     });
+
+    if (!isValidUpdate) return;
 
     const query = bundle.id ? `id=${bundle.id}` : `fullUrl=${base64url(bundle.fullUrl)}`;
     axios.put(`/collection/${selectedCollection}?${query}`, bundle).then(() => {
@@ -184,6 +196,16 @@ function CollectionRow(props) {
       <TableRow classes={edit ? { root: classes.tableRowEdit } : { root: classes.tableRow }}>
         {edit ? renderEdit() : renderNormal()}
       </TableRow>
+      <Snackbar
+        open={message !== null}
+        autoHideDuration={6000}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleClose} severity="error">
+          {message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
