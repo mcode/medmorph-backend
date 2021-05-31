@@ -1,6 +1,5 @@
 import React, { useReducer, useState, useCallback } from 'react';
-import { TableCell, TableRow, Snackbar } from '@material-ui/core';
-import { Alert } from '@material-ui/lab';
+import { TableCell, TableRow } from '@material-ui/core';
 import PropTypes from 'prop-types';
 import CreateIcon from '@material-ui/icons/Create';
 import ReactJson from 'react-json-view';
@@ -9,6 +8,7 @@ import SaveIcon from '@material-ui/icons/Save';
 import CancelIcon from '@material-ui/icons/Cancel';
 import axios from 'axios';
 import { useQueryClient } from 'react-query';
+import Alert from '../elements/Alert';
 import AlertDialog from './AlertDialog';
 import JSONInput from 'react-json-editor-ajrm';
 import locale from 'react-json-editor-ajrm/locale/en';
@@ -196,16 +196,7 @@ function CollectionRow(props) {
       <TableRow classes={edit ? { root: classes.tableRowEdit } : { root: classes.tableRow }}>
         {edit ? renderEdit() : renderNormal()}
       </TableRow>
-      <Snackbar
-        open={message !== null}
-        autoHideDuration={6000}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleClose} severity="error">
-          {message}
-        </Alert>
-      </Snackbar>
+      <Alert message={message} handleClose={handleClose} />
     </>
   );
 }
