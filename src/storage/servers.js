@@ -23,6 +23,7 @@ function addServer(server) {
   }
 
   db.upsert(SERVERS, server, s => s.id === server.id);
+  return server;
 }
 
 function getServers() {
@@ -30,7 +31,8 @@ function getServers() {
 }
 
 function getServerById(id) {
-  return db.select(SERVERS, s => s.id === id)[0];
+  const server = db.select(SERVERS, s => s.id === id);
+  return server.length ? server[0] : null;
 }
 
 function getServerByUrl(url) {

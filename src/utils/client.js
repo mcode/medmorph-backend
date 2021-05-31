@@ -67,7 +67,7 @@ async function connectToServer(url) {
 async function getAccessToken(url) {
   if (configUtil.getRequireAuthForOutgoing() === false) return '';
 
-  const server = servers.getServerByUrl(url);
+  const server = servers.getServerByUrl(url) ?? registerServer(url);
   if (!server?.token || server?.tokenExp < Date.now()) {
     // create a new token if possible
     try {
@@ -83,6 +83,29 @@ async function getAccessToken(url) {
     }
   } else {
     return server.token;
+  }
+}
+
+/**
+ * Register the backend app with the server and add it to the servers collection
+ *
+ * @param {string} url - the server base url
+ * @returns the server object if successful, otherwise null
+ */
+async function registerServer(url) {
+  const metadata = {
+    client_name: 'MITRE Medmorph Backend Service App',
+    token_endpoint_auth_method: 'client_credentials',
+    jwks_uri: ''
+  };
+
+  const registrationEndpoint = await getRegistrationEndpoint();
+  const result = await axios.post(registrationEndpoint, metadata);
+  if (result.data) {
+    const server = { name: url, endpoint: url, type: 'PHA', clientId: result.data.client_id };
+    return servers.addServer(server);
+  } else {
+    return null;
   }
 }
 
@@ -109,6 +132,38 @@ async function getTokenEndpoint(url) {
         compareUrl(e.url, 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris')
       );
       return oauth.extension.find(e => e.url === 'token').valueUri;
+    } catch (ex2) {
+      // not sure what to do if both fail?
+      error(ex);
+      error(ex2);
+      throw ex2;
+    }
+  }
+}
+
+/**
+ * Get the registration_endpoint from the .well-known/smart-configuration
+ *
+ * @param {string} url - the fhir base url
+ * @returns registration_endpoint
+ */
+async function getRegistrationEndpoint(url) {
+  try {
+    const response = await axios.get(`${url}/.well-known/smart-configuration`);
+    return response.data.registration_endpoint;
+  } catch (ex) {
+    try {
+      // sometimes the smart-config is in a non-standard place,
+      // so let's try the server capability statement
+      const response = await axios.get(`${url}/metadata`);
+
+      const rest = response.data.rest;
+      const serverRest = rest.find(r => r.mode === 'server');
+      const extensions = serverRest.security.extension;
+      const oauth = extensions.find(e =>
+        compareUrl(e.url, 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris')
+      );
+      return oauth.extension.find(e => e.url === 'register').valueUri;
     } catch (ex2) {
       // not sure what to do if both fail?
       error(ex);
