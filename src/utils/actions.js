@@ -70,7 +70,7 @@ const baseIgActions = {
           if (codeFilter) {
             // Can there be multiple codeFilters?
             const { path, valueSet } = codeFilter[0];
-            const vsResource = db.select(VALUESETS, v => compareUrl(v.url, valueSet))[0];
+            const vsResource = db.select(VALUESETS, v => compareUrl(v.url, valueSet))[0].resource;
             // Filter resources that are in valueSet
             results = results.filter(r =>
               r[path].coding.some(c => checkCodeInVs(c.code, c.system, vsResource))
@@ -301,7 +301,7 @@ const baseIgActions = {
             const resource = e.resource;
             const collection = `${resource.resourceType.toLowerCase()}s`;
             const fullUrl = `${getEHRServer().endpoint}/${resource.resourceType}/${resource.id}`;
-            db.upsert(collection, { fullUrl, ...resource }, r => compareUrl(r.fullUrl, fullUrl));
+            db.upsert(collection, { fullUrl, resource }, r => compareUrl(r.fullUrl, fullUrl));
             return resource;
           });
 

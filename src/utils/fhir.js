@@ -62,7 +62,7 @@ function generateOperationOutcome(code, msg) {
  */
 async function getResources(server, resourceType, query = '_include=*', profile = undefined) {
   const url = `${server}/${resourceType}?${query}`;
-  const token = await getAccessToken(server, db);
+  const token = await getAccessToken(server);
   const headers = { Authorization: `Bearer ${token}` };
   const axiosResponse = axios
     .get(url, { headers: headers })
@@ -79,11 +79,28 @@ async function getResources(server, resourceType, query = '_include=*', profile 
       debug(`Extracted ${resource.resourceType}/${resource.id} from bundle`);
       const collection = `${resource.resourceType.toLowerCase()}s`;
       const fullUrl = `${server}/${resource.resourceType}/${resource.id}`;
-      db.upsert(collection, { fullUrl, ...resource }, r => compareUrl(r.fullUrl, fullUrl));
+      db.upsert(collection, { fullUrl, resource }, r => compareUrl(r.fullUrl, fullUrl));
     });
 
     return data;
   });
+}
+
+/**
+ * Get a resource from an external server by fullUrl
+ *
+ * @param {string} url - the fullUrl of the resource
+ * @param {string} server - the server base url (optional)
+ * @returns axios promise of the resource
+ */
+async function getResourceFromServer(url, server = undefined) {
+  const baseUrl = server ?? getBaseUrlFromFullUrl(url);
+  const token = await getAccessToken(baseUrl);
+  const headers = { Authorization: `Bearer ${token}` };
+  return axios
+    .get(url, { headers: headers })
+    .then(response => response.data)
+    .catch(err => error(`Error getting ${url}\n${err.message}`));
 }
 
 /**
@@ -123,7 +140,7 @@ async function getReferencedResource(url, reference, parentResource, returnFullU
   const resource = await axios
     .get(requestUrl, { headers: headers })
     .then(response => {
-      if (returnFullUrl) return { fullUrl: requestUrl, ...response.data };
+      if (returnFullUrl) return { fullUrl: requestUrl, resource: response.data };
       else return response.data;
     })
     .catch(err => error(`Error getting referenced resource ${requestUrl}\n${err.message}`));
@@ -166,7 +183,7 @@ function getBaseUrlFromFullUrl(fullUrl) {
  */
 function getPlanDef(fullUrl) {
   const resultList = db.select(PLANDEFINITIONS, s => compareUrl(s.fullUrl, fullUrl));
-  if (resultList[0]) return resultList[0];
+  if (resultList[0]) return resultList[0].resource;
   else return null;
 }
 
@@ -181,10 +198,12 @@ function postSubscriptionsToEHR(subscriptions) {
     if (ehrServer) {
       const subscriptionId = subscription.id;
       const fullUrl = `${ehrServer.endpoint}/Subscription/${subscriptionId}`;
-
+      const timestamp = Date.now();
       // Store subscriptions in database
       debug(`Saved Subscription/${subscriptionId}`);
-      db.upsert('subscriptions', { fullUrl, ...subscription }, s => compareUrl(s.fullUrl, fullUrl));
+      db.upsert('subscriptions', { server: 'EHR', timestamp, fullUrl, resource: subscription }, s =>
+        compareUrl(s.fullUrl, fullUrl)
+      );
 
       // Create/Update Subscriptions on EHR server
       const ehrToken = await getAccessToken(ehrServer.endpoint);
@@ -234,6 +253,7 @@ module.exports = {
   getBaseUrlFromFullUrl,
   getPlanDef,
   getResources,
+  getResourceFromServer,
   getReferencedResource,
   postSubscriptionsToEHR
 };

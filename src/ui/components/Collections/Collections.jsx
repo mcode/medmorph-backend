@@ -129,8 +129,8 @@ const Collections = props => {
       case 'plandefinitions':
         headers = [
           { value: 'id', label: 'id', edit: false },
-          { value: 'fullUrl', label: 'fullUrl', edit: true },
-          { value: 'name', label: 'name', edit: true },
+          { value: 'fullUrl', label: 'fullUrl', edit: true, required: true },
+          { value: 'name', label: 'name', edit: false, viewOnly: true },
           { value: 'resource', label: 'resource', edit: true }
         ];
         return {
@@ -142,8 +142,10 @@ const Collections = props => {
       case 'subscriptions':
         headers = [
           { value: 'id', label: 'id', edit: false },
-          { value: 'fullUrl', label: 'fullUrl', edit: true },
-          { value: 'criteria', label: 'criteria', edit: true },
+          { value: 'fullUrl', label: 'fullUrl', edit: true, required: true },
+          { value: 'criteria', label: 'criteria', edit: false, viewOnly: true },
+          { value: 'server', label: 'location', edit: false },
+          { value: 'timestamp', label: 'last updated', edit: false, viewOnly: true },
           { value: 'resource', label: 'resource', edit: true }
         ];
         return {
@@ -168,7 +170,7 @@ const Collections = props => {
       default:
         headers = [
           { value: 'id', label: 'id', edit: false },
-          { value: 'resource', label: 'resource', edit: true }
+          { value: 'data', label: 'data', edit: true }
         ];
         return {
           headers,

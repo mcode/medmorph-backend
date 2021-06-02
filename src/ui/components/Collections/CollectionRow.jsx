@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from 'react';
+import React, { useReducer, useState, useCallback } from 'react';
 import { TableCell, TableRow } from '@material-ui/core';
 import PropTypes from 'prop-types';
 import CreateIcon from '@material-ui/icons/Create';
@@ -8,9 +8,11 @@ import SaveIcon from '@material-ui/icons/Save';
 import CancelIcon from '@material-ui/icons/Cancel';
 import axios from 'axios';
 import { useQueryClient } from 'react-query';
+import Alert from '../elements/Alert';
 import AlertDialog from './AlertDialog';
 import JSONInput from 'react-json-editor-ajrm';
 import locale from 'react-json-editor-ajrm/locale/en';
+import base64url from 'base64url';
 
 function CollectionRow(props) {
   const classes = useStyles();
@@ -21,17 +23,30 @@ function CollectionRow(props) {
   };
   const { headers, data, selectedCollection, editable, addNew, callback, noDelete } = props;
   const [edit, setEdit] = useState(addNew);
+  const [message, setMessage] = useState(null);
   const [state, dispatch] = useReducer(reducer, data);
+
+  const handleClose = useCallback(() => setMessage(null));
 
   const updateData = () => {
     const bundle = {};
+    let isValidUpdate = true;
     headers.forEach(header => {
       if (!header.viewOnly) {
-        bundle[header.value] = state[header.value];
+        const value = state[header.value];
+        if (value) bundle[header.value] = value;
+      }
+
+      if (header.required && !state[header.value]) {
+        isValidUpdate = false;
+        setMessage(`${header.value} must not be empty`);
       }
     });
 
-    axios.put(`/collection/${selectedCollection}?id=${bundle.id}`, bundle).then(() => {
+    if (!isValidUpdate) return;
+
+    const query = bundle.id ? `id=${bundle.id}` : `fullUrl=${base64url(bundle.fullUrl)}`;
+    axios.put(`/collection/${selectedCollection}?${query}`, bundle).then(() => {
       queryClient.invalidateQueries(['collections', { selectedCollection }]);
       setEdit(false);
       if (callback) {
@@ -56,7 +71,8 @@ function CollectionRow(props) {
   };
 
   const deleteData = () => {
-    axios.delete(`/collection/${selectedCollection}?id=${state.id}`).then(() => {
+    const query = state.id ? `id=${state.id}` : `fullUrl=${base64url(state.fullUrl)}`;
+    axios.delete(`/collection/${selectedCollection}?${query}`).then(() => {
       queryClient.invalidateQueries(['collections', { selectedCollection }]);
       setEdit(false);
     });
@@ -70,11 +86,7 @@ function CollectionRow(props) {
           return (
             <TableCell key={cellKey} style={{ whiteSpace: 'nowrap' }}>
               {' '}
-              {header.value === 'resource' ? (
-                <ReactJson src={data} collapsed={true} enableClipboard={false} />
-              ) : (
-                data[header.value || header.toLowerCase()]
-              )}{' '}
+              {renderNormalTableCell(header.value)}{' '}
             </TableCell>
           );
         })}
@@ -92,7 +104,8 @@ function CollectionRow(props) {
               {!noDelete && (
                 <AlertDialog
                   title={`Are you sure?`}
-                  content={`Delete entry ${data['id']} from ${selectedCollection}?`}
+                  content={`Delete entry ${data['id'] ??
+                    data.resource.id} from ${selectedCollection}?`}
                   callback={deleteData}
                 />
               )}
@@ -111,29 +124,7 @@ function CollectionRow(props) {
           return (
             <TableCell key={`${data.id}-${cellKey}`} style={{ whiteSpace: 'nowrap' }}>
               {' '}
-              {header.value === 'resource' ? (
-                header.edit ? (
-                  <JSONInput
-                    id={'json' + j}
-                    placeholder={state}
-                    locale={locale}
-                    height="550px"
-                    onChange={handleJson}
-                  />
-                ) : (
-                  <ReactJson src={data[header.value]} collapsed={true} enableClipboard={false} />
-                )
-              ) : header.edit || (addNew && !header.viewOnly) ? (
-                <input
-                  value={state[header.value]}
-                  className={classes.editInput}
-                  onChange={e => {
-                    dispatch({ header: header.value, value: e.target.value });
-                  }}
-                />
-              ) : (
-                data[header.value || header.toLowerCase()]
-              )}{' '}
+              {renderEditTableCell(header, j)}{' '}
             </TableCell>
           );
         })}
@@ -150,11 +141,62 @@ function CollectionRow(props) {
     );
   };
 
+  const renderNormalTableCell = headerValue => {
+    if (headerValue === 'resource')
+      return <ReactJson src={data.resource} collapsed={true} enableClipboard={false} />;
+    else if (headerValue === 'data')
+      return <ReactJson src={data} collapsed={true} enableClipboard={false} />;
+    else if (data[headerValue]) return data[headerValue];
+    else if (data.resource && data.resource[headerValue]) return data.resource[headerValue];
+    else return '';
+  };
+
+  const renderEditTableCell = (header, j) => {
+    if (header.value === 'resource' && header.edit)
+      return (
+        <JSONInput
+          id={'json' + j}
+          placeholder={state.resource}
+          locale={locale}
+          height="550px"
+          onChange={handleJson}
+        />
+      );
+    else if (header.value === 'resource')
+      return <ReactJson src={data.resource} collapsed={true} enableClipboard={false} />;
+    else if (header.value === 'data' && header.edit)
+      return (
+        <JSONInput
+          id={'json' + j}
+          placeholder={state}
+          locale={locale}
+          height="550px"
+          onChange={handleJson}
+        />
+      );
+    else if (header.value === 'data')
+      return <ReactJson src={data} collapsed={true} enableClipboard={false} />;
+    else if (header.edit || (addNew && !header.viewOnly))
+      return (
+        <input
+          value={state[header.value]}
+          className={classes.editInput}
+          onChange={e => {
+            dispatch({ header: header.value, value: e.target.value });
+          }}
+        />
+      );
+    else if (data[header.value]) return data[header.value];
+    else if (data.resource && data.resource[header.value]) return data.resource[header.value];
+    else return '';
+  };
+
   return (
     <>
       <TableRow classes={edit ? { root: classes.tableRowEdit } : { root: classes.tableRow }}>
         {edit ? renderEdit() : renderNormal()}
       </TableRow>
+      <Alert message={message} handleClose={handleClose} />
     </>
   );
 }

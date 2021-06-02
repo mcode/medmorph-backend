@@ -32,7 +32,7 @@ router.post('/trigger', (req, res) => {
   if (!resource.id) resource.id = uuidv4();
   const resourceFullUrl = `${process.env.BASE_URL}/${resource.resourceType}/${resource.id}`;
   const collection = `${resource.resourceType.toLowerCase()}s`;
-  db.upsert(collection, { fullUrl: resourceFullUrl, ...resource }, r =>
+  db.upsert(collection, { fullUrl: resourceFullUrl, resource: resource }, r =>
     compareUrl(r.fullUrl, resourceFullUrl)
   );
 

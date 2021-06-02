@@ -85,6 +85,7 @@ function generateSubscription(criteria, url, id = undefined, subscriptionTopic =
  */
 function subscribeToKnowledgeArtifacts() {
   const servers = db.select(SERVERS, s => s.type === 'KA');
+  const timestamp = Date.now();
   servers.forEach(async server => {
     const id = `sub${server.id}`;
     const endpoint = server.endpoint;
@@ -94,7 +95,9 @@ function subscribeToKnowledgeArtifacts() {
       `${process.env.BASE_URL}/notif/ka/${server.id}`,
       id
     );
-    db.upsert(SUBSCRIPTIONS, { fullUrl, ...subscription }, s => compareUrl(s.fullUrl, fullUrl));
+    db.upsert(SUBSCRIPTIONS, { server: 'KA', timestamp, fullUrl, resource: subscription }, s =>
+      compareUrl(s.fullUrl, fullUrl)
+    );
     const token = await getAccessToken(endpoint);
     const headers = { Authorization: `Bearer ${token}` };
     axios
@@ -176,7 +179,9 @@ function getSubscriptionsFromPlanDef(fullUrl) {
   if (!fullUrl) return [];
 
   return db.select(SUBSCRIPTIONS, s => {
-    const endpoint = s?.channel?.endpoint;
+    if (s.server !== 'EHR') return false;
+
+    const endpoint = s?.resource.channel?.endpoint;
 
     if (!endpoint) return false;
     return compareUrl(fullUrl, base64url.decode(getLastPartOfPathFromUrl(endpoint)));
