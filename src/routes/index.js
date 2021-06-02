@@ -40,8 +40,4 @@ router.post('/trigger', (req, res) => {
   res.sendStatus(StatusCodes.OK);
 });
 
-router.get('/jwks', (req, res) => {
-  res.send(publicKey);
-});
-
 module.exports = router;
