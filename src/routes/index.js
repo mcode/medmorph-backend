@@ -5,7 +5,6 @@ const { v4: uuidv4 } = require('uuid');
 
 const db = require('../storage/DataAccess');
 const testService = require('../services/test_service');
-const publicKey = require('../keys/publicKey.json');
 const { getPlanDef, getBaseUrlFromFullUrl } = require('../utils/fhir');
 const { refreshAllKnowledgeArtifacts } = require('../utils/knowledgeartifacts');
 const { startReportingWorkflow } = require('../utils/reporting_workflow');
@@ -38,10 +37,6 @@ router.post('/trigger', (req, res) => {
 
   startReportingWorkflow(planDef, kaBaseUrl, resource);
   res.sendStatus(StatusCodes.OK);
-});
-
-router.get('/jwks', (req, res) => {
-  res.send(publicKey);
 });
 
 module.exports = router;
