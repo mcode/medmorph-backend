@@ -109,6 +109,11 @@ async function registerServer(url) {
   };
 
   const registrationEndpoint = await getRegistrationEndpoint(url);
+  if (!registrationEndpoint) {
+    error(`Unable to register new server ${url}: dynamic registration not supported`);
+    return null;
+  }
+
   return axios
     .post(registrationEndpoint, metadata)
     .then(result => {
@@ -158,7 +163,7 @@ async function getTokenEndpoint(url) {
  * Get the registration_endpoint from the .well-known/smart-configuration
  *
  * @param {string} url - the fhir base url
- * @returns registration_endpoint
+ * @returns registration_endpoint or null if not found (not supported)
  */
 async function getRegistrationEndpoint(url) {
   try {
@@ -181,7 +186,7 @@ async function getRegistrationEndpoint(url) {
       // not sure what to do if both fail?
       error(ex);
       error(ex2);
-      throw ex2;
+      return null;
     }
   }
 }
