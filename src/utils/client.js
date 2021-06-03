@@ -7,6 +7,8 @@ const servers = require('../storage/servers');
 const configUtil = require('../storage/configUtil');
 const { compareUrl } = require('../utils/url');
 const error = require('../storage/logs').error('medmorph-backend:client');
+const debug = require('../storage/logs').debug('medmorph-backend:client');
+
 /**
  * Generate and return access token for the specified server. If tokenEndpoint
  * is provided it will use that, otherwise it will query the smart configuration.
@@ -67,7 +69,7 @@ async function connectToServer(url) {
 async function getAccessToken(url) {
   if (configUtil.getRequireAuthForOutgoing() === false) return '';
 
-  const server = servers.getServerByUrl(url) ?? registerServer(url);
+  const server = servers.getServerByUrl(url) ?? (await registerServer(url));
   if (!server?.token || server?.tokenExp < Date.now()) {
     // create a new token if possible
     try {
@@ -81,8 +83,11 @@ async function getAccessToken(url) {
       error(`Exception obtaining an access token from ${server.endpoint}\n${e.message}`);
       throw e;
     }
-  } else {
+  } else if (server) {
     return server.token;
+  } else {
+    error(`Unable to get access token for ${url}`);
+    return;
   }
 }
 
@@ -93,20 +98,28 @@ async function getAccessToken(url) {
  * @returns the server object if successful, otherwise null
  */
 async function registerServer(url) {
+  debug('Registering new server: ' + url);
   const metadata = {
     client_name: 'MITRE Medmorph Backend Service App',
-    token_endpoint_auth_method: 'client_credentials',
-    jwks_uri: ''
+    grant_types: ['client_credentials'],
+    response_types: ['token'],
+    token_endpoint_auth_method: 'private_key_jwt',
+    application_type: 'service',
+    jwks_uri: `${process.env.BASE_URL}/public/jwks`
   };
 
-  const registrationEndpoint = await getRegistrationEndpoint();
-  const result = await axios.post(registrationEndpoint, metadata);
-  if (result.data) {
-    const server = { name: url, endpoint: url, type: 'PHA', clientId: result.data.client_id };
-    return servers.addServer(server);
-  } else {
-    return null;
-  }
+  const registrationEndpoint = await getRegistrationEndpoint(url);
+  return axios
+    .post(registrationEndpoint, metadata)
+    .then(result => {
+      debug(`Adding server with clientId: ${result.data.client_id}`);
+      const server = { name: url, endpoint: url, type: 'PHA', clientId: result.data.client_id };
+      return servers.addServer(server);
+    })
+    .catch(err => {
+      error(`Unable to register new server ${url}.\n${err.message}`);
+      return null;
+    });
 }
 
 /**
@@ -149,13 +162,16 @@ async function getTokenEndpoint(url) {
  */
 async function getRegistrationEndpoint(url) {
   try {
+    console.log(`getting registration endpoint via smart-config`);
     const response = await axios.get(`${url}/.well-known/smart-configuration`);
     return response.data.registration_endpoint;
   } catch (ex) {
+    console.log(`Unable to get registration endpoint via smart config. Trying via metadata`);
     try {
       // sometimes the smart-config is in a non-standard place,
       // so let's try the server capability statement
       const response = await axios.get(`${url}/metadata`);
+      console.log(`got metadata`);
 
       const rest = response.data.rest;
       const serverRest = rest.find(r => r.mode === 'server');
@@ -166,6 +182,7 @@ async function getRegistrationEndpoint(url) {
       return oauth.extension.find(e => e.url === 'register').valueUri;
     } catch (ex2) {
       // not sure what to do if both fail?
+      console.log(`both failed. woops`);
       error(ex);
       error(ex2);
       throw ex2;
