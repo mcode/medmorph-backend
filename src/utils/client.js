@@ -55,7 +55,7 @@ async function connectToServer(url) {
   // end client_secret_basic logic
 
   // Get access token from auth server
-  return await axios
+  return axios
     .post(tokenEndpoint, queryString.stringify(props), headers)
     .then(response => response.data)
     .catch(err => error(`Error obtaining access token from ${tokenEndpoint}\n${err.message}`));
@@ -162,16 +162,13 @@ async function getTokenEndpoint(url) {
  */
 async function getRegistrationEndpoint(url) {
   try {
-    console.log(`getting registration endpoint via smart-config`);
     const response = await axios.get(`${url}/.well-known/smart-configuration`);
     return response.data.registration_endpoint;
   } catch (ex) {
-    console.log(`Unable to get registration endpoint via smart config. Trying via metadata`);
     try {
       // sometimes the smart-config is in a non-standard place,
       // so let's try the server capability statement
       const response = await axios.get(`${url}/metadata`);
-      console.log(`got metadata`);
 
       const rest = response.data.rest;
       const serverRest = rest.find(r => r.mode === 'server');
@@ -182,7 +179,6 @@ async function getRegistrationEndpoint(url) {
       return oauth.extension.find(e => e.url === 'register').valueUri;
     } catch (ex2) {
       // not sure what to do if both fail?
-      console.log(`both failed. woops`);
       error(ex);
       error(ex2);
       throw ex2;
@@ -209,7 +205,7 @@ async function generateJWT(client_id, aud) {
     jti: v4()
   });
 
-  return await jose.JWS.createSign(options, key)
+  return jose.JWS.createSign(options, key)
     .update(input)
     .final();
 }
