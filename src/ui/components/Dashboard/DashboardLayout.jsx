@@ -7,6 +7,7 @@ import NavBar from './NavBar';
 import Collections from '../Collections';
 import Dashboard from './Dashboard';
 import Notifications from '../Notifications';
+import Config from '../Config';
 
 function DashboardLayout() {
   const classes = useStyles();
@@ -32,7 +33,7 @@ function DashboardLayout() {
         label: `Notifications ${newNotifs ? `(${unviewedNotifs.length})` : ''}`,
         component: <Notifications notifs={unviewedNotifs} />
       },
-      { key: 'config', label: 'Config', component: <Collections selectedCollection="config" /> },
+      { key: 'config', label: 'Config', component: <Config config="config" /> },
       { key: 'collections', label: 'Collections', component: null },
       { key: 'servers', label: 'Servers', component: <Collections selectedCollection="servers" /> },
       {
