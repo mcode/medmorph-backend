@@ -10,7 +10,7 @@ const { configVars } = require('../../config');
  *  @param {string} DATA_TRUST_SERVICE - the data trust service
  *  @param {string} REQUIRE_AUTH - require auth for incoming requests
  *  @param {string} REQUIRE_AUTH_FOR_OUTGOING - require auth for outgoing requests
- *  @param {string} DYANMIC_CLIENT_REGISTRATION - whether or not to attempt dynamic client registration
+ *  @param {string} DYANMIC_CLIENT_REGISTRATION - whether to attempt dynamic client registration
  *
  */
 
@@ -21,6 +21,14 @@ function getConfig() {
 function getAdminToken() {
   const selection = db.select(CONFIG, c => c.id === configVars.ADMIN_TOKEN)[0];
   if (selection) return selection.value;
+}
+
+function setAdminToken(value) {
+  const entry = {
+    id: configVars.ADMIN_TOKEN,
+    value: value
+  };
+  db.upsert(CONFIG, entry, c => c.id === entry.id);
 }
 
 function getDataTrustService() {
@@ -49,5 +57,6 @@ module.exports = {
   getDataTrustService,
   getDynamicClientRegistration,
   getRequireAuth,
-  getRequireAuthForOutgoing
+  getRequireAuthForOutgoing,
+  setAdminToken
 };

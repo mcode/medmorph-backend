@@ -123,7 +123,7 @@ async function registerServer(url) {
   return axios
     .post(registrationEndpoint, metadata)
     .then(result => {
-      debug(`Adding server with clientId: ${result.data.client_id}`);
+      debug(`Registered with new server: ${url}\n Received clientId: ${result.data.client_id}`);
       const server = { name: url, endpoint: url, type: 'PHA', clientId: result.data.client_id };
       return servers.addServer(server);
     })
@@ -221,4 +221,4 @@ async function generateJWT(client_id, aud) {
     .final();
 }
 
-module.exports = { getAccessToken };
+module.exports = { getAccessToken, registerServer };
