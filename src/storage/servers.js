@@ -31,8 +31,7 @@ function getServers() {
 }
 
 function getServerById(id) {
-  const server = db.select(SERVERS, s => s.id === id);
-  return server.length ? server[0] : null;
+  return db.select(SERVERS, s => s.id === id)[0];
 }
 
 function getServerByUrl(url) {
