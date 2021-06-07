@@ -98,6 +98,12 @@ async function getAccessToken(url) {
  * @returns the server object if successful, otherwise null
  */
 async function registerServer(url) {
+  if (
+    configUtil.getDynamicClientRegistration() &&
+    configUtil.getDynamicClientRegistration() === 'false'
+  )
+    return null;
+
   debug('Registering new server: ' + url);
   const metadata = {
     client_name: 'MITRE Medmorph Backend Service App',
