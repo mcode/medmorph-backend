@@ -3,7 +3,7 @@ const configVars = {
   DATA_TRUST_SERVICE: 'datatrustservice',
   REQUIRE_AUTH: 'requireauth',
   REQUIRE_AUTH_FOR_OUTGOING: 'requireauthout',
-  DYANMIC_CLIENT_REGISTRATION: 'dynamicclientregistration'
+  DYNAMIC_CLIENT_REGISTRATION: 'dynamicclientregistration'
 };
 const configInit = [
   {

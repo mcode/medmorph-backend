@@ -10,7 +10,7 @@ const { configVars } = require('../../config');
  *  @param {string} DATA_TRUST_SERVICE - the data trust service
  *  @param {string} REQUIRE_AUTH - require auth for incoming requests
  *  @param {string} REQUIRE_AUTH_FOR_OUTGOING - require auth for outgoing requests
- *  @param {string} DYANMIC_CLIENT_REGISTRATION - whether to attempt dynamic client registration
+ *  @param {string} DYNAMIC_CLIENT_REGISTRATION - whether to attempt dynamic client registration
  *
  */
 
@@ -37,7 +37,7 @@ function getDataTrustService() {
 }
 
 function getDynamicClientRegistration() {
-  const selection = db.select(CONFIG, c => c.id === configVars.DYANMIC_CLIENT_REGISTRATION)[0];
+  const selection = db.select(CONFIG, c => c.id === configVars.DYNAMIC_CLIENT_REGISTRATION)[0];
   if (selection) return selection.value;
 }
 
