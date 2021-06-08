@@ -6,6 +6,7 @@ const { SERVERS, ENDPOINTS, VALUESETS } = require('../storage/collections');
 const { EXTENSIONS, CODE_SYSTEMS, getResources, getReferencedResource } = require('./fhir');
 const { compareUrl } = require('../utils/url');
 const { registerServer } = require('./client');
+const { getServerByUrl } = require('../storage/servers');
 
 /**
  * Get all knowledge artifacts (from servers registered in the
@@ -59,7 +60,7 @@ function fetchEndpoint(url, planDefinition) {
       debug(`Endpoint/${endpoint.id} saved to db`);
 
       const baseUrl = endpoint.address.split('/$process-message')[0];
-      registerServer(baseUrl);
+      if (!getServerByUrl(baseUrl)) registerServer(baseUrl);
     }
   });
 }
