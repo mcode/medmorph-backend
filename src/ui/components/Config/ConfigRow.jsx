@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useQueryClient } from 'react-query';
 import TextField from '@material-ui/core/TextField';
 import Switch from '@material-ui/core/Switch';
+import Tooltip from '@material-ui/core/Tooltip';
 
 import PropTypes from 'prop-types';
 import useStyles from './styles';
@@ -15,33 +16,32 @@ const ConfigRow = props => {
   const [changed, setChanged] = useState(false);
 
   const isBool = useMemo(() => {
-    let val = option.value;
-    val = val === 'true' ? true : val === 'false' ? false : val;
+    const val = option.value;
     return typeof val === 'boolean';
   }, [option]);
 
-  const handleChange = event => {
+  const handleChange = useCallback(event => {
     setValue(event.target.value);
     setChanged(true);
-  };
+  });
 
-  const handleUpdateBool = event => {
+  const handleUpdateBool = useCallback(event => {
     updateOption(event.target.checked);
-  };
+  });
 
-  const handleUpdateText = () => {
+  const handleUpdateText = useCallback(() => {
     if (changed) {
       updateOption(value);
       setChanged(false);
     }
-  };
+  });
 
-  const updateOption = optionValue => {
+  const updateOption = useCallback(optionValue => {
     const result = { ...option, value: optionValue };
     axios.put(`/collection/config?id=${option.id}`, result).then(() => {
       queryClient.invalidateQueries(['config']);
     });
-  };
+  });
 
   useEffect(() => {
     // init the inputs
@@ -51,8 +51,11 @@ const ConfigRow = props => {
   return (
     <div className={classes.option}>
       <div className={classes.optionId}>
-        <span className={classes.optionText}>{option.id}</span>
+        <Tooltip arrow title={option.description}>
+          <span className={classes.optionText}>{option.id}</span>
+        </Tooltip>
       </div>
+
       <div className={classes.spacer} />
       {isBool ? (
         <>
@@ -65,7 +68,6 @@ const ConfigRow = props => {
         <div className={classes.optionInput}>
           <TextField
             fullWidth
-            id="standard-basic"
             label={option.display}
             value={value}
             onChange={handleChange}

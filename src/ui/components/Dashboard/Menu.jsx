@@ -14,15 +14,19 @@ import { useQueryClient } from 'react-query';
 function Menu(props) {
   const classes = useStyles();
   const queryClient = useQueryClient();
-  const { open, callback } = props;
+  const { open, setContentKey, callback } = props;
 
+  const setKey = useCallback(() => {
+    setContentKey('config');
+    callback();
+  });
   const logout = useCallback(() => {
     axios
       .post('/auth/logout', null, { withCredentials: true })
       .then(() => queryClient.invalidateQueries('authorized-user'));
   }, [queryClient]);
   const menu = [
-    { key: 'Settings', icon: <SettingsIcon fontSize="large" />, callback: null },
+    { key: 'Settings', icon: <SettingsIcon fontSize="large" />, callback: setKey },
     { key: 'Logout', icon: <ExitToAppIcon fontSize="large" />, callback: logout }
   ];
 
@@ -46,6 +50,7 @@ function Menu(props) {
 
 Menu.propTypes = {
   open: PropTypes.bool,
+  setContentKey: PropTypes.func,
   callback: PropTypes.func
 };
 

@@ -52,7 +52,11 @@ function NavBar(props) {
             fontSize={'large'}
             onClick={setOpen.bind(this, true)}
           />
-          <Menu open={open} callback={setOpen.bind(this, false)}></Menu>
+          <Menu
+            open={open}
+            setContentKey={setContentKey}
+            callback={setOpen.bind(this, false)}
+          ></Menu>
         </Toolbar>
       </AppBar>
     </div>
