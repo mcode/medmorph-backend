@@ -34,10 +34,11 @@ const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const configUtil = require('../storage/configUtil');
 const { forwardMessageResponse, CODE_SYSTEMS } = require('./fhir');
-const { COMPLETED_REPORTS, VALUESETS } = require('../storage/collections');
+const { COMPLETED_REPORTS, LIBRARIES, VALUESETS } = require('../storage/collections');
 const { checkCodeInVs } = require('./valueSetUtils');
 const { compareUrl } = require('../utils/url');
 const { getNamedEventTriggerCode } = require('./knowledgeartifacts');
+const { evaluateCQL } = require('./cql/evaluateCql');
 const debug = require('../storage/logs').debug('medmorph-backend:actions');
 const error = require('../storage/logs').error('medmorph-backend:actions');
 const fhir = new Fhir();
@@ -47,6 +48,8 @@ const baseIgActions = {
     const action = context.action;
     const resources = context.records;
     const variables = {};
+    let library;
+
     if (action.input) {
       for (const input of action.input) {
         const { id, codeFilter, type } = input;
@@ -82,10 +85,15 @@ const baseIgActions = {
       }
     }
 
+    const planDefLib = context.planDefinition.library;
+    if (planDefLib?.length > 0) {
+      library = db.select(LIBRARIES, l => l.resource.id === planDefLib[0])[0].resource;
+    }
+
     const boolMap = action.condition.map(condition => {
       if (condition.expression) {
         const expression = condition.expression;
-        return evaluateExpression(expression, resources, variables);
+        return evaluateExpression(expression, resources, variables, library, context.patient.id);
       } else {
         // default true for non-applicability conditions
         return true;
@@ -428,10 +436,12 @@ function createBundle(records, type) {
   return bundle;
 }
 
-function evaluateExpression(expression, resources, variables = {}) {
+function evaluateExpression(expression, resources, variables = {}, library, patientId) {
   if (expression.language === 'text/fhirpath') {
     const path = fhirpath.evaluate(resources, expression.expression, variables);
     return isTrue(path);
+  } else if (expression.language === 'text/cql') {
+    return evaluateCQL(resources, expression.expression, library, patientId);
   }
 }
 

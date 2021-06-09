@@ -11,5 +11,6 @@ module.exports = {
   MESSAGES: 'messages',
   REQUESTS: 'requests',
   NOTIFICATIONS: 'notifications',
-  CONFIG: 'config'
+  CONFIG: 'config',
+  LIBRARIES: 'libraries'
 };

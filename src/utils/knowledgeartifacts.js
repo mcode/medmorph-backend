@@ -2,7 +2,7 @@ const debug = require('../storage/logs').debug('medmorph-backend:knowledgeartifa
 const error = require('../storage/logs').error('medmorph-backend:knowledgeartifacts');
 const db = require('../storage/DataAccess');
 const { subscriptionsFromBundle } = require('./subscriptions');
-const { SERVERS, ENDPOINTS, VALUESETS } = require('../storage/collections');
+const { SERVERS, ENDPOINTS, VALUESETS, LIBRARIES } = require('../storage/collections');
 const { EXTENSIONS, CODE_SYSTEMS, getResources, getReferencedResource } = require('./fhir');
 const { compareUrl } = require('../utils/url');
 const { registerServer } = require('./client');
@@ -37,6 +37,11 @@ function refreshKnowledgeArtifact(server) {
         if (entry.resource.resourceType === 'PlanDefinition') {
           fetchEndpoint(server, entry.resource);
           fetchValueSets(server, entry.resource, bundle);
+        } else if (entry.resource.resourceType === 'Library') {
+          db.upsert(LIBRARIES, { fullUrl: entry.fullUrl, resource: entry.resource }, r =>
+            compareUrl(r.fullUrl, entry.fullUrl)
+          );
+          debug(`Library/${entry.resource.id} saved to db`);
         }
       });
     }
