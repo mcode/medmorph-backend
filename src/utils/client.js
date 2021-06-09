@@ -65,8 +65,7 @@ async function connectToServer(url) {
  * @param {string} url - the base url of the server to connect to
  */
 async function getAccessToken(url) {
-  if (configUtil.getRequireAuthForOutgoing() && configUtil.getRequireAuthForOutgoing() === 'false')
-    return '';
+  if (configUtil.getRequireAuthForOutgoing() === false) return '';
 
   const server = servers.getServerByUrl(url);
   if (!server?.token || server?.tokenExp < Date.now()) {

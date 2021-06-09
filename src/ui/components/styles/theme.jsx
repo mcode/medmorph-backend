@@ -16,7 +16,7 @@ const colors = {
   grayHighlight: '#eaeaeb',
   grayLight: '#4e5258',
   grayLighter: '#b5b6ba',
-  grayLightest: '#eaeef2',
+  grayLightest: '#f2f3f9',
   grayDark: '#444',
   grayVeryDark: '#3a3a3a',
   grayLightText: '#87878e',

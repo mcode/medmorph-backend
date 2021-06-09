@@ -30,7 +30,7 @@ function generateToken(id) {
  * Middleware for verifying the access token on a Subscription notification
  */
 function subscriptionAuthorization(req, res, next) {
-  if (configUtil.getRequireAuth() && configUtil.getRequireAuth() === 'false') return next();
+  if (configUtil.getRequireAuth() === false) return next();
 
   const token = getToken(req);
   const adminToken = configUtil.getAdminToken();
@@ -84,7 +84,7 @@ function checkScopes(req, res, next, jwtPayload) {
  * be accessible via both authentication schemes.
  */
 function userOrBackendAuthorization(req, res, next) {
-  if (configUtil.getRequireAuth() && configUtil.getRequireAuth() === 'false') return next();
+  if (configUtil.getRequireAuth() === false) return next();
 
   const token = getToken(req);
   const adminToken = configUtil.getAdminToken();

@@ -14,7 +14,7 @@ import { useQueryClient } from 'react-query';
 function Menu(props) {
   const classes = useStyles();
   const queryClient = useQueryClient();
-  const { open, callback } = props;
+  const { open, setConfig, callback } = props;
 
   const logout = useCallback(() => {
     axios
@@ -22,7 +22,7 @@ function Menu(props) {
       .then(() => queryClient.invalidateQueries('authorized-user'));
   }, [queryClient]);
   const menu = [
-    { key: 'Settings', icon: <SettingsIcon fontSize="large" />, callback: null },
+    { key: 'Settings', icon: <SettingsIcon fontSize="large" />, callback: setConfig },
     { key: 'Logout', icon: <ExitToAppIcon fontSize="large" />, callback: logout }
   ];
 
@@ -46,6 +46,7 @@ function Menu(props) {
 
 Menu.propTypes = {
   open: PropTypes.bool,
+  setConfig: PropTypes.func,
   callback: PropTypes.func
 };
 

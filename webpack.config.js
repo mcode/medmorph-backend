@@ -7,6 +7,8 @@ module.exports = {
     filename: 'bundle.js'
   },
   watch: watch,
+  devtool: "eval-source-map",
+
   resolve: { extensions: ['.js', '.jsx'] },
   module: {
     rules: [
