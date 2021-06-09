@@ -20,6 +20,11 @@ function NavBar(props) {
     setContentKey('notifications');
   });
 
+  const setConfig = useCallback(() => {
+    setContentKey('config');
+    setOpen(false);
+  });
+
   return (
     <div>
       <AppBar position="fixed" className={classes.appBar}>
@@ -52,11 +57,7 @@ function NavBar(props) {
             fontSize={'large'}
             onClick={setOpen.bind(this, true)}
           />
-          <Menu
-            open={open}
-            setContentKey={setContentKey}
-            callback={setOpen.bind(this, false)}
-          ></Menu>
+          <Menu open={open} setConfig={setConfig} callback={setOpen.bind(this, false)}></Menu>
         </Toolbar>
       </AppBar>
     </div>
