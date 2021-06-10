@@ -57,9 +57,9 @@ function fetchEndpoint(url, planDefinition) {
   getReferencedResource(url, endpointReference, planDefinition, true).then(endpoint => {
     if (endpoint) {
       db.upsert(ENDPOINTS, endpoint, r => compareUrl(r.fullUrl, endpoint.fullUrl));
-      debug(`Endpoint/${endpoint.id} saved to db`);
+      debug(`Endpoint/${endpoint.resource.id} saved to db`);
 
-      const baseUrl = endpoint.address.split('/$process-message')[0];
+      const baseUrl = endpoint.resource.address.split('/$process-message')[0];
       if (!getServerByUrl(baseUrl)) registerServer(baseUrl);
     }
   });
