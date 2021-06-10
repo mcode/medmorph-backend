@@ -23,6 +23,7 @@ function addServer(server) {
   }
 
   db.upsert(SERVERS, server, s => s.id === server.id);
+  return server;
 }
 
 function getServers() {

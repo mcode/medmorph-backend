@@ -139,14 +139,11 @@ async function getReferencedResource(url, reference, parentResource, returnFullU
 
   const resource = await axios
     .get(requestUrl, { headers: headers })
-    .then(response => {
-      if (returnFullUrl) return { fullUrl: requestUrl, resource: response.data };
-      else return response.data;
-    })
+    .then(response => response.data)
     .catch(err => error(`Error getting referenced resource ${requestUrl}\n${err.message}`));
   if (resource) {
     debug(`Retrieved reference resource ${resource.resourceType}/${resource.id} from ${url}`);
-    return resource;
+    return returnFullUrl ? { fullUrl: requestUrl, resource: resource } : resource;
   } else return null;
 }
 

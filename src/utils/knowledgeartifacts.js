@@ -5,6 +5,8 @@ const { subscriptionsFromBundle } = require('./subscriptions');
 const { SERVERS, ENDPOINTS, VALUESETS } = require('../storage/collections');
 const { EXTENSIONS, CODE_SYSTEMS, getResources, getReferencedResource } = require('./fhir');
 const { compareUrl } = require('../utils/url');
+const { registerServer } = require('./client');
+const { getServerByUrl } = require('../storage/servers');
 
 /**
  * Get all knowledge artifacts (from servers registered in the
@@ -42,7 +44,8 @@ function refreshKnowledgeArtifact(server) {
 }
 
 /**
- * Fetchs the referenced Endpoint from receiver address extension and saves to the database
+ * Fetchs the referenced Endpoint from receiver address extension and saves to the database.
+ * Will also attempt dynamic client registration if enabled in the config.
  *
  * @param {string} url - the url to fetch from
  * @param {PlanDefinition} planDefinition - PlanDefinition to get Endpoint from or null if
@@ -54,7 +57,10 @@ function fetchEndpoint(url, planDefinition) {
   getReferencedResource(url, endpointReference, planDefinition, true).then(endpoint => {
     if (endpoint) {
       db.upsert(ENDPOINTS, endpoint, r => compareUrl(r.fullUrl, endpoint.fullUrl));
-      debug(`Endpoint/${endpoint.id} saved to db`);
+      debug(`Endpoint/${endpoint.resource.id} saved to db`);
+
+      const baseUrl = endpoint.resource.address.split('/$process-message')[0];
+      if (!getServerByUrl(baseUrl)) registerServer(baseUrl);
     }
   });
 }

@@ -7,6 +7,8 @@ const servers = require('../storage/servers');
 const configUtil = require('../storage/configUtil');
 const { compareUrl } = require('../utils/url');
 const error = require('../storage/logs').error('medmorph-backend:client');
+const debug = require('../storage/logs').debug('medmorph-backend:client');
+
 /**
  * Generate and return access token for the specified server. If tokenEndpoint
  * is provided it will use that, otherwise it will query the smart configuration.
@@ -53,7 +55,7 @@ async function connectToServer(url) {
   // end client_secret_basic logic
 
   // Get access token from auth server
-  return await axios
+  return axios
     .post(tokenEndpoint, queryString.stringify(props), headers)
     .then(response => response.data)
     .catch(err => error(`Error obtaining access token from ${tokenEndpoint}\n${err.message}`));
@@ -67,7 +69,7 @@ async function connectToServer(url) {
 async function getAccessToken(url) {
   if (configUtil.getRequireAuthForOutgoing() === false) return '';
 
-  const server = servers.getServerByUrl(url);
+  const server = servers.getServerByUrl(url) ?? (await registerServer(url));
   if (!server?.token || server?.tokenExp < Date.now()) {
     // create a new token if possible
     try {
@@ -81,9 +83,50 @@ async function getAccessToken(url) {
       error(`Exception obtaining an access token from ${server.endpoint}\n${e.message}`);
       throw e;
     }
-  } else {
+  } else if (server) {
     return server.token;
+  } else {
+    error(`Unable to get access token for ${url}`);
+    return;
   }
+}
+
+/**
+ * Register the backend app with the server and add it to the servers collection
+ *
+ * @param {string} url - the server base url
+ * @returns the server object if successful, otherwise null
+ */
+async function registerServer(url) {
+  if (configUtil.getDynamicClientRegistration() === false) return null;
+
+  debug('Registering new server: ' + url);
+  const metadata = {
+    client_name: 'MITRE Medmorph Backend Service App',
+    grant_types: ['client_credentials'],
+    response_types: ['token'],
+    token_endpoint_auth_method: 'private_key_jwt',
+    application_type: 'service',
+    jwks_uri: `${process.env.BASE_URL}/public/jwks`
+  };
+
+  const registrationEndpoint = await getRegistrationEndpoint(url);
+  if (!registrationEndpoint) {
+    error(`Unable to register new server ${url}: dynamic registration not supported`);
+    return null;
+  }
+
+  return axios
+    .post(registrationEndpoint, metadata)
+    .then(result => {
+      debug(`Registered with new server: ${url}\n Received clientId: ${result.data.client_id}`);
+      const server = { name: url, endpoint: url, type: 'PHA', clientId: result.data.client_id };
+      return servers.addServer(server);
+    })
+    .catch(err => {
+      error(`Unable to register new server ${url}.\n${err.message}`);
+      return null;
+    });
 }
 
 /**
@@ -119,6 +162,38 @@ async function getTokenEndpoint(url) {
 }
 
 /**
+ * Get the registration_endpoint from the .well-known/smart-configuration
+ *
+ * @param {string} url - the fhir base url
+ * @returns registration_endpoint or null if not found (not supported)
+ */
+async function getRegistrationEndpoint(url) {
+  try {
+    const response = await axios.get(`${url}/.well-known/smart-configuration`);
+    return response.data.registration_endpoint;
+  } catch (ex) {
+    try {
+      // sometimes the smart-config is in a non-standard place,
+      // so let's try the server capability statement
+      const response = await axios.get(`${url}/metadata`);
+
+      const rest = response.data.rest;
+      const serverRest = rest.find(r => r.mode === 'server');
+      const extensions = serverRest.security.extension;
+      const oauth = extensions.find(e =>
+        compareUrl(e.url, 'http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris')
+      );
+      return oauth.extension.find(e => e.url === 'register').valueUri;
+    } catch (ex2) {
+      // not sure what to do if both fail?
+      error(ex);
+      error(ex2);
+      return null;
+    }
+  }
+}
+
+/**
  * Generate a signed JWT used for authenticating
  * @param {string} client_id The identifier of the client on the remote server
  * @param {string} aud The token url of the server the JWT is being created for
@@ -137,9 +212,9 @@ async function generateJWT(client_id, aud) {
     jti: v4()
   });
 
-  return await jose.JWS.createSign(options, key)
+  return jose.JWS.createSign(options, key)
     .update(input)
     .final();
 }
 
-module.exports = { getAccessToken };
+module.exports = { getAccessToken, registerServer };
