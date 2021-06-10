@@ -32,7 +32,7 @@ const configInit = [
     description: 'Whether the BSA will fetch and use a token when making external requests'
   },
   {
-    id: configVars.DYANMIC_CLIENT_REGISTRATION,
+    id: configVars.DYNAMIC_CLIENT_REGISTRATION,
     value: false,
     display: 'Dynamic Client Registration',
     description: 'Whether the BSA will attempt to dynamically register with PHAs'
