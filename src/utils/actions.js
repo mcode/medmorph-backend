@@ -441,7 +441,12 @@ function evaluateExpression(expression, resources, variables = {}, library, pati
     const path = fhirpath.evaluate(resources, expression.expression, variables);
     return isTrue(path);
   } else if (expression.language === 'text/cql') {
-    return evaluateCQL(resources, expression.expression, library, patientId);
+    return evaluateCQL(
+      createBundle(resources, 'content'),
+      expression.expression,
+      library,
+      patientId
+    );
   }
 }
 
