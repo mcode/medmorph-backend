@@ -37,11 +37,7 @@ function refreshKnowledgeArtifact(server) {
         if (entry.resource.resourceType === 'PlanDefinition') {
           fetchEndpoint(server, entry.resource);
           fetchValueSets(server, entry.resource, bundle);
-        } else if (entry.resource.resourceType === 'Library') {
-          db.upsert(LIBRARIES, { fullUrl: entry.fullUrl, resource: entry.resource }, r =>
-            compareUrl(r.fullUrl, entry.fullUrl)
-          );
-          debug(`Library/${entry.resource.id} saved to db`);
+          fetchLibraries(server, entry.resource, bundle);
         }
       });
     }
@@ -136,6 +132,43 @@ async function fetchValueSets(url, planDefinition, bundle) {
 }
 
 /**
+ * Fetches any referenced Library resources from the planDefinition and saves to the database
+ *
+ * @param {string} url - fhir server base url to fetch from
+ * @param {PlanDefinition} planDefinition - PlanDefinition to search for referenced Library
+ * @param {Bundle} bundle - the Bundle the PlanDefinition was returned in,
+ *                          in case it already contains the Library we want
+ */
+async function fetchLibraries(url, plandefinition, bundle) {
+  const { library: libraryIds } = plandefinition;
+  if (!libraryIds || libraryIds.length === 0) return;
+
+  for (const id of libraryIds) {
+    let libraryResource;
+
+    if (bundle) {
+      libraryResource = bundle.entry.find(
+        e => e.resource.resourceType === 'Library' && e.resource.id === id
+      );
+    }
+
+    if (!libraryResource) {
+      const kaSearch = await getResources(url, 'Library', `_id=${id}`);
+      if (kaSearch?.entry) {
+        libraryResource = kaSearch.entry[0].resource;
+      }
+    }
+
+    if (libraryResource) {
+      db.upsert(LIBRARIES, libraryResource, l => l.resource.id === id);
+      debug(`Library/${libraryResource.id} saved to db`);
+    } else {
+      error(`Unable to locate Library ${id} on ${url}`);
+    }
+  }
+}
+
+/**
  * Extracts the Endpoint reference from the receiver address extension of the PlanDefinition
  *
  * @param {PlanDefinition} planDefinition - PlanDefinition to extract from
@@ -199,6 +232,7 @@ function getNamedEventTriggerCode(planDefinition) {
 
 module.exports = {
   fetchEndpoint,
+  fetchLibraries,
   fetchValueSets,
   getReceiverAddress,
   getNamedEventTriggerCode,
