@@ -85,6 +85,8 @@ const baseIgActions = {
       }
     }
 
+    // Spec allows for multiple libraries, how can we tell which one is the main?
+    // Intentionally simplified and assuming the first library is the main
     const planDefLib = context.planDefinition.library;
     if (planDefLib?.length > 0) {
       library = db.select(LIBRARIES, l => l.resource.id === planDefLib[0])[0].resource;
