@@ -160,7 +160,8 @@ async function fetchLibraries(url, plandefinition, bundle) {
     }
 
     if (libraryResource) {
-      db.upsert(LIBRARIES, libraryResource, l => l.resource.id === id);
+      const fullUrl = `${url}/Library/${id}`;
+      db.upsert(LIBRARIES, { fullUrl, resource: libraryResource }, l => l.resource.id === id);
       debug(`Library/${libraryResource.id} saved to db`);
     } else {
       error(`Unable to locate Library ${id} on ${url}`);
