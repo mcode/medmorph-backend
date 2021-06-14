@@ -90,15 +90,18 @@ const baseIgActions = {
       library = db.select(LIBRARIES, l => l.resource.id === planDefLib[0])[0].resource;
     }
 
-    const boolMap = action.condition.map(condition => {
-      if (condition.expression) {
-        const expression = condition.expression;
-        return evaluateExpression(expression, resources, variables, library, context.patient.id);
-      } else {
-        // default true for non-applicability conditions
-        return true;
-      }
-    });
+    const boolMap = await Promise.all(
+      action.condition.map(async condition => {
+        if (condition.expression) {
+          const expression = condition.expression;
+          return evaluateExpression(expression, resources, variables, library, context.patient.id);
+        } else {
+          // default true for non-applicability conditions
+          return true;
+        }
+      })
+    );
+
     // boolMap should be all-true (all conditions met)
     const triggered = boolMap.every(entry => {
       return entry === true;
@@ -436,7 +439,7 @@ function createBundle(records, type) {
   return bundle;
 }
 
-function evaluateExpression(expression, resources, variables = {}, library, patientId) {
+async function evaluateExpression(expression, resources, variables = {}, library, patientId) {
   if (expression.language === 'text/fhirpath') {
     const path = fhirpath.evaluate(resources, expression.expression, variables);
     return isTrue(path);

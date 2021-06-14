@@ -15,7 +15,7 @@ async function evaluateCQL(resources, expression, library, patientId) {
   const valueSetLoader = new ValueSetLoader(library);
   const valueSetMap = await valueSetLoader.seedValueSets();
   const result = executeElm(resources, elm, valueSetMap);
-  return result.patientResults[patientId][expression] === 1;
+  return result.patientResults[patientId][expression];
 }
 
 async function fetchELM(library) {
