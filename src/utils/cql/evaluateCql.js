@@ -1,7 +1,7 @@
 const { Client } = require('cql-translation-service-client');
 const { Library, Executor, Repository } = require('cql-execution');
 const { PatientSource } = require('cql-exec-fhir');
-const { Base64 } = require('js-base64');
+const atob = require('atob');
 const axios = require('axios');
 const { ValueSetLoader } = require('./ValueSetLoader');
 
@@ -24,10 +24,10 @@ async function fetchELM(library) {
 
   const contentInfoTranslate = library.content?.find(x => x.contentType === 'text/cql');
   if (contentInfoElm && contentInfoElm.data) {
-    return JSON.parse(Base64.decode(contentInfoElm.data));
+    return JSON.parse(atob(contentInfoElm.data));
   } else if (contentInfoTranslate && contentInfoTranslate.data) {
     // Convert cql to elm if it isn't provided
-    const decoded = Base64.decode(contentInfoTranslate.data);
+    const decoded = atob(contentInfoTranslate.data);
     return await client.convertBasicCQL(decoded);
   } else if (contentInfoElm && contentInfoElm.url) {
     const response = await axios.get(contentInfoElm.url);
