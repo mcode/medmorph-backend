@@ -4,11 +4,7 @@ const { PatientSource } = require('cql-exec-fhir');
 const atob = require('atob');
 const axios = require('axios');
 const { ValueSetLoader } = require('./ValueSetLoader');
-
-// TODO: Add url to config
-const client = new Client(
-  'http://moonshot-dev.mitre.org:8080/cql/translator?annotations=true&result-types=true'
-);
+const configUtil = require('../../storage/configUtil');
 
 async function evaluateCQL(resources, expression, library, patientId) {
   const elm = await fetchELM(library);
@@ -19,9 +15,10 @@ async function evaluateCQL(resources, expression, library, patientId) {
 }
 
 async function fetchELM(library) {
+  const client = new Client(configUtil.getCqlWebServiceUrl());
+
   // getting the elm and decoding the data components
   const contentInfoElm = library.content?.find(x => x.contentType === 'application/elm+json');
-
   const contentInfoTranslate = library.content?.find(x => x.contentType === 'text/cql');
   if (contentInfoElm && contentInfoElm.data) {
     return JSON.parse(atob(contentInfoElm.data));
