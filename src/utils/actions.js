@@ -99,10 +99,11 @@ const baseIgActions = {
             if (planDefLib?.length > 0) {
               const libraryId = planDefLib[0];
               library = db.select(LIBRARYS, l => l.resource.id === libraryId)[0];
-              if (!library) {
-                debug(`Library/${libraryId} not found in database.`);
-                return false;
-              }
+            }
+
+            if (!library) {
+              debug(`Library not defined in PlanDefinition or not found in database.`);
+              return false;
             }
 
             return evaluateCQL(
