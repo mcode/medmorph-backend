@@ -42,7 +42,7 @@ async function fetchELM(library) {
   }
 
   // Add converted ELM to database
-  db.upsert(LIBRARYS, { ...library, elm }, l => l.resource.id === resource.id);
+  db.upsert(LIBRARYS, { ...library, elm }, l => l.fullUrl === library.fullUrl);
   debug(`Library/${resource.id} saved to db`);
   return elm;
 }

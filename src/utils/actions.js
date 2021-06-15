@@ -94,24 +94,22 @@ const baseIgActions = {
           } else if (language === 'text/cql') {
             // Spec allows for multiple libraries, how can we tell which one is the main?
             // Intentionally simplified and assuming the first library is the main
-            let library;
             const planDefLib = context.planDefinition.library;
             if (planDefLib?.length > 0) {
               const libraryId = planDefLib[0];
-              library = db.select(LIBRARYS, l => l.resource.id === libraryId)[0];
+              const library = db.select(LIBRARYS, l => l.resource.id === libraryId)[0];
+
+              if (library && context.patient?.id) {
+                return evaluateCQL(
+                  createBundle(resources, 'content'),
+                  expression,
+                  library,
+                  context.patient.id
+                );
+              }
             }
 
-            if (!library) {
-              debug(`Library not defined in PlanDefinition or not found in database.`);
-              return false;
-            }
-
-            return evaluateCQL(
-              createBundle(resources, 'content'),
-              expression,
-              library,
-              context.patient.id
-            );
+            return false;
           }
         } else {
           // default true for non-applicability conditions
