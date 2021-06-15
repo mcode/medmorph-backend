@@ -4,10 +4,13 @@ const { PatientSource } = require('cql-exec-fhir');
 const atob = require('atob');
 const axios = require('axios');
 const { ValueSetLoader } = require('./ValueSetLoader');
+const { LIBRARYS } = require('../../storage/collections');
+const debug = require('../../storage/logs').debug('medmorph-backend:evaluateCql');
+const db = require('../../storage/DataAccess');
 const configUtil = require('../../storage/configUtil');
 
 async function evaluateCQL(resources, expression, library, patientId) {
-  const elm = library.elm || (await fetchELM(library.resource));
+  const elm = library.elm || (await fetchELM(library));
   const valueSetLoader = new ValueSetLoader(library);
   const valueSetMap = await valueSetLoader.seedValueSets();
   const result = executeElm(resources, elm, valueSetMap);
@@ -16,25 +19,32 @@ async function evaluateCQL(resources, expression, library, patientId) {
 
 async function fetchELM(library) {
   const client = new Client(configUtil.getCqlWebServiceUrl());
+  const { resource } = library;
+  let elm;
 
   // getting the elm and decoding the data components
-  const contentInfoElm = library.content?.find(x => x.contentType === 'application/elm+json');
-  const contentInfoTranslate = library.content?.find(x => x.contentType === 'text/cql');
+  const contentInfoElm = resource.content?.find(x => x.contentType === 'application/elm+json');
+  const contentInfoTranslate = resource.content?.find(x => x.contentType === 'text/cql');
   if (contentInfoElm && contentInfoElm.data) {
-    return JSON.parse(atob(contentInfoElm.data));
+    elm = JSON.parse(atob(contentInfoElm.data));
   } else if (contentInfoTranslate && contentInfoTranslate.data) {
     // Convert cql to elm if it isn't provided
     const decoded = atob(contentInfoTranslate.data);
-    return await client.convertBasicCQL(decoded);
+    elm = await client.convertBasicCQL(decoded);
   } else if (contentInfoElm && contentInfoElm.url) {
     const response = await axios.get(contentInfoElm.url);
-    return response.data;
+    elm = response.data;
   } else if (contentInfoTranslate && contentInfoTranslate.url) {
     const response = await axios.get(contentInfoTranslate.url);
-    return await client.convertBasicCQL(response.data);
+    elm = await client.convertBasicCQL(response.data);
   } else {
     throw new Error('Could not fetch ELM off of Library resource');
   }
+
+  // Add converted ELM to database
+  db.upsert(LIBRARYS, { ...library, elm }, l => l.resource.id === resource.id);
+  debug(`Library/${resource.id} saved to db`);
+  return elm;
 }
 
 /**
