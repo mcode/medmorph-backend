@@ -7,7 +7,7 @@ const { ValueSetLoader } = require('./ValueSetLoader');
 const configUtil = require('../../storage/configUtil');
 
 async function evaluateCQL(resources, expression, library, patientId) {
-  const elm = await fetchELM(library);
+  const elm = library.elm || (await fetchELM(library.resource));
   const valueSetLoader = new ValueSetLoader(library);
   const valueSetMap = await valueSetLoader.seedValueSets();
   const result = executeElm(resources, elm, valueSetMap);
@@ -59,4 +59,7 @@ function executeElm(patientRecord, elm, libraries) {
   return result;
 }
 
-module.exports = { evaluateCQL };
+module.exports = {
+  evaluateCQL,
+  fetchELM
+};

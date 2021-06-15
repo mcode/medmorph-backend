@@ -7,6 +7,7 @@ const { EXTENSIONS, CODE_SYSTEMS, getResources, getReferencedResource } = requir
 const { compareUrl } = require('../utils/url');
 const { registerServer } = require('./client');
 const { getServerByUrl } = require('../storage/servers');
+const { fetchELM } = require('./cql/evaluateCql');
 
 /**
  * Get all knowledge artifacts (from servers registered in the
@@ -161,7 +162,8 @@ async function fetchLibraries(url, plandefinition, bundle) {
 
     if (libraryResource) {
       const fullUrl = `${url}/Library/${id}`;
-      db.upsert(LIBRARYS, { fullUrl, resource: libraryResource }, l => l.resource.id === id);
+      const elm = await fetchELM(libraryResource);
+      db.upsert(LIBRARYS, { elm, fullUrl, resource: libraryResource }, l => l.resource.id === id);
       debug(`Library/${libraryResource.id} saved to db`);
     } else {
       error(`Unable to locate Library ${id} on ${url}`);

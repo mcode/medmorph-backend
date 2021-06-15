@@ -98,7 +98,7 @@ const baseIgActions = {
             const planDefLib = context.planDefinition.library;
             if (planDefLib?.length > 0) {
               const libraryId = planDefLib[0];
-              library = db.select(LIBRARYS, l => l.resource.id === libraryId)[0]?.resource;
+              library = db.select(LIBRARYS, l => l.resource.id === libraryId)[0];
               if (!library) {
                 debug(`Library/${libraryId} not found in database.`);
                 return false;
