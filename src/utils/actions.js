@@ -34,7 +34,7 @@ const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const configUtil = require('../storage/configUtil');
 const { forwardMessageResponse, CODE_SYSTEMS } = require('./fhir');
-const { COMPLETED_REPORTS, LIBRARIES, VALUESETS } = require('../storage/collections');
+const { COMPLETED_REPORTS, LIBRARYS, VALUESETS } = require('../storage/collections');
 const { checkCodeInVs } = require('./valueSetUtils');
 const { compareUrl } = require('../utils/url');
 const { getNamedEventTriggerCode } = require('./knowledgeartifacts');
@@ -97,7 +97,7 @@ const baseIgActions = {
             let library;
             const planDefLib = context.planDefinition.library;
             if (planDefLib?.length > 0) {
-              library = db.select(LIBRARIES, l => l.resource.id === planDefLib[0])[0].resource;
+              library = db.select(LIBRARYS, l => l.resource.id === planDefLib[0])[0].resource;
             }
             return evaluateCQL(
               createBundle(resources, 'content'),

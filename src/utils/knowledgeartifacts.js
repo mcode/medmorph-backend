@@ -2,7 +2,7 @@ const debug = require('../storage/logs').debug('medmorph-backend:knowledgeartifa
 const error = require('../storage/logs').error('medmorph-backend:knowledgeartifacts');
 const db = require('../storage/DataAccess');
 const { subscriptionsFromBundle } = require('./subscriptions');
-const { SERVERS, ENDPOINTS, VALUESETS, LIBRARIES } = require('../storage/collections');
+const { SERVERS, ENDPOINTS, VALUESETS, LIBRARYS } = require('../storage/collections');
 const { EXTENSIONS, CODE_SYSTEMS, getResources, getReferencedResource } = require('./fhir');
 const { compareUrl } = require('../utils/url');
 const { registerServer } = require('./client');
@@ -161,7 +161,7 @@ async function fetchLibraries(url, plandefinition, bundle) {
 
     if (libraryResource) {
       const fullUrl = `${url}/Library/${id}`;
-      db.upsert(LIBRARIES, { fullUrl, resource: libraryResource }, l => l.resource.id === id);
+      db.upsert(LIBRARYS, { fullUrl, resource: libraryResource }, l => l.resource.id === id);
       debug(`Library/${libraryResource.id} saved to db`);
     } else {
       error(`Unable to locate Library ${id} on ${url}`);
