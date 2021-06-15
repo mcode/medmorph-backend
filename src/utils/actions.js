@@ -97,8 +97,14 @@ const baseIgActions = {
             let library;
             const planDefLib = context.planDefinition.library;
             if (planDefLib?.length > 0) {
-              library = db.select(LIBRARYS, l => l.resource.id === planDefLib[0])[0].resource;
+              const libraryId = planDefLib[0];
+              library = db.select(LIBRARYS, l => l.resource.id === libraryId)[0]?.resource;
+              if (!library) {
+                debug(`Library/${libraryId} not found in database.`);
+                return false;
+              }
             }
+
             return evaluateCQL(
               createBundle(resources, 'content'),
               expression,
