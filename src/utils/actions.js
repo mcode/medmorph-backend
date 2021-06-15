@@ -48,7 +48,6 @@ const baseIgActions = {
     const action = context.action;
     const resources = context.records;
     const variables = {};
-    let library;
 
     if (action.input) {
       for (const input of action.input) {
@@ -85,18 +84,28 @@ const baseIgActions = {
       }
     }
 
-    // Spec allows for multiple libraries, how can we tell which one is the main?
-    // Intentionally simplified and assuming the first library is the main
-    const planDefLib = context.planDefinition.library;
-    if (planDefLib?.length > 0) {
-      library = db.select(LIBRARIES, l => l.resource.id === planDefLib[0])[0].resource;
-    }
-
     const boolMap = await Promise.all(
       action.condition.map(async condition => {
         if (condition.expression) {
-          const expression = condition.expression;
-          return evaluateExpression(expression, resources, variables, library, context.patient.id);
+          const { expression, language } = condition.expression;
+
+          if (language === 'text/fhirpath') {
+            return isTrue(fhirpath.evaluate(resources, expression, variables));
+          } else if (language === 'text/cql') {
+            // Spec allows for multiple libraries, how can we tell which one is the main?
+            // Intentionally simplified and assuming the first library is the main
+            let library;
+            const planDefLib = context.planDefinition.library;
+            if (planDefLib?.length > 0) {
+              library = db.select(LIBRARIES, l => l.resource.id === planDefLib[0])[0].resource;
+            }
+            return evaluateCQL(
+              createBundle(resources, 'content'),
+              expression,
+              library,
+              context.patient.id
+            );
+          }
         } else {
           // default true for non-applicability conditions
           return true;
@@ -105,9 +114,7 @@ const baseIgActions = {
     );
 
     // boolMap should be all-true (all conditions met)
-    const triggered = boolMap.every(entry => {
-      return entry === true;
-    });
+    const triggered = boolMap.every(entry => entry === true);
     context.flags['triggered'] = triggered;
     if (!triggered) {
       context.exitStatus = 'failed trigger check';
@@ -439,20 +446,6 @@ function createBundle(records, type) {
   });
 
   return bundle;
-}
-
-async function evaluateExpression(expression, resources, variables = {}, library, patientId) {
-  if (expression.language === 'text/fhirpath') {
-    const path = fhirpath.evaluate(resources, expression.expression, variables);
-    return isTrue(path);
-  } else if (expression.language === 'text/cql') {
-    return evaluateCQL(
-      createBundle(resources, 'content'),
-      expression.expression,
-      library,
-      patientId
-    );
-  }
 }
 
 // FHIRPath helper. FHIRPath tends to return things that are JS truthy (like empty arrays)
