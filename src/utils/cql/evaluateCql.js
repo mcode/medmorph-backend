@@ -1,5 +1,5 @@
 const { Client } = require('cql-translation-service-client');
-const { Library, Executor, Repository } = require('cql-execution');
+const { Library, Executor, Repository, CodeService } = require('cql-execution');
 const { PatientSource } = require('cql-exec-fhir');
 const atob = require('atob');
 const axios = require('axios');
@@ -54,15 +54,16 @@ async function fetchELM(library) {
  * @param elm - ELM structure (previosuly converted from CQL) on which the patient will be run.
  * @return returns a JSON object which is the result of analyzing the patient against the elm file
  */
-function executeElm(patientRecord, elm, libraries) {
+function executeElm(patientRecord, elm, valueSets) {
   let lib;
-  if (libraries) {
-    lib = new Library(elm, new Repository(libraries));
+  if (valueSets) {
+    lib = new Library(elm, new Repository(valueSets));
   } else {
     lib = new Library(elm);
   }
 
-  const executor = new Executor(lib);
+  const codeService = new CodeService(valueSets);
+  const executor = new Executor(lib, codeService);
   const psource = new PatientSource.FHIRv401(patientRecord);
   psource.loadBundles(patientRecord);
   const result = executor.exec(psource);
