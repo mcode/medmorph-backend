@@ -11,6 +11,7 @@ const { configVars } = require('../../config');
  *  @param {string} REQUIRE_AUTH - require auth for incoming requests
  *  @param {string} REQUIRE_AUTH_FOR_OUTGOING - require auth for outgoing requests
  *  @param {string} DYNAMIC_CLIENT_REGISTRATION - whether to attempt dynamic client registration
+ *  @param {string} CQL_WEBSERVICE_URL - URL of CQL to ELM web service
  *
  */
 
@@ -51,9 +52,15 @@ function getRequireAuthForOutgoing() {
   if (selection) return selection.value;
 }
 
+function getCqlWebServiceUrl() {
+  const selection = db.select(CONFIG, c => c.id === configVars.CQL_WEBSERVICE_URL)[0];
+  if (selection) return selection.value;
+}
+
 module.exports = {
   getConfig,
   getAdminToken,
+  getCqlWebServiceUrl,
   getDataTrustService,
   getDynamicClientRegistration,
   getRequireAuth,

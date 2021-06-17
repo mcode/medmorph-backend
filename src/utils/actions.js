@@ -34,10 +34,11 @@ const { getAccessToken } = require('./client');
 const db = require('../storage/DataAccess');
 const configUtil = require('../storage/configUtil');
 const { forwardMessageResponse, CODE_SYSTEMS } = require('./fhir');
-const { COMPLETED_REPORTS, VALUESETS } = require('../storage/collections');
+const { COMPLETED_REPORTS, LIBRARYS, VALUESETS } = require('../storage/collections');
 const { checkCodeInVs } = require('./valueSetUtils');
 const { compareUrl } = require('../utils/url');
 const { getNamedEventTriggerCode } = require('./knowledgeartifacts');
+const { evaluateCQL } = require('./cql/evaluateCql');
 const debug = require('../storage/logs').debug('medmorph-backend:actions');
 const error = require('../storage/logs').error('medmorph-backend:actions');
 const fhir = new Fhir();
@@ -47,6 +48,7 @@ const baseIgActions = {
     const action = context.action;
     const resources = context.records;
     const variables = {};
+
     if (action.input) {
       for (const input of action.input) {
         const { id, codeFilter, type } = input;
@@ -82,19 +84,42 @@ const baseIgActions = {
       }
     }
 
-    const boolMap = action.condition.map(condition => {
-      if (condition.expression) {
-        const expression = condition.expression;
-        return evaluateExpression(expression, resources, variables);
-      } else {
-        // default true for non-applicability conditions
-        return true;
-      }
-    });
+    const boolMap = await Promise.all(
+      action.condition.map(async condition => {
+        if (condition.expression) {
+          const { expression, language } = condition.expression;
+
+          if (language === 'text/fhirpath') {
+            return isTrue(fhirpath.evaluate(resources, expression, variables));
+          } else if (language === 'text/cql') {
+            // Spec allows for multiple libraries, how can we tell which one is the main?
+            // Intentionally simplified and assuming the first library is the main
+            const planDefLib = context.planDefinition.library;
+            if (planDefLib?.length > 0) {
+              const libraryId = planDefLib[0];
+              const library = db.select(LIBRARYS, l => l.resource.id === libraryId)[0];
+
+              if (library && context.patient?.id) {
+                return evaluateCQL(
+                  createBundle(resources, 'content'),
+                  expression,
+                  library,
+                  context.patient.id
+                );
+              }
+            }
+
+            return false;
+          }
+        } else {
+          // default true for non-applicability conditions
+          return true;
+        }
+      })
+    );
+
     // boolMap should be all-true (all conditions met)
-    const triggered = boolMap.every(entry => {
-      return entry === true;
-    });
+    const triggered = boolMap.every(entry => entry === true);
     context.flags['triggered'] = triggered;
     if (!triggered) {
       context.exitStatus = 'failed trigger check';
@@ -426,13 +451,6 @@ function createBundle(records, type) {
   });
 
   return bundle;
-}
-
-function evaluateExpression(expression, resources, variables = {}) {
-  if (expression.language === 'text/fhirpath') {
-    const path = fhirpath.evaluate(resources, expression.expression, variables);
-    return isTrue(path);
-  }
 }
 
 // FHIRPath helper. FHIRPath tends to return things that are JS truthy (like empty arrays)

@@ -3,7 +3,8 @@ const configVars = {
   DATA_TRUST_SERVICE: 'datatrustservice',
   REQUIRE_AUTH: 'requireauth',
   REQUIRE_AUTH_FOR_OUTGOING: 'requireauthout',
-  DYNAMIC_CLIENT_REGISTRATION: 'dynamicclientregistration'
+  DYNAMIC_CLIENT_REGISTRATION: 'dynamicclientregistration',
+  CQL_WEBSERVICE_URL: 'cqlwebserviceurl'
 };
 const configInit = [
   {
@@ -36,6 +37,12 @@ const configInit = [
     value: false,
     display: 'Dynamic Client Registration',
     description: 'Whether the BSA will attempt to dynamically register with PHAs'
+  },
+  {
+    id: configVars.CQL_WEBSERVICE_URL,
+    value: 'http://moonshot-dev.mitre.org:8080/cql/translator?annotations=true&result-types=true',
+    display: 'CQL Web Service URL',
+    description: 'URL of CQL to ELM web service'
   }
 ];
 

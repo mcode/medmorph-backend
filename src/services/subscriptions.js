@@ -13,6 +13,7 @@ const {
 } = require('../utils/fhir');
 const {
   fetchEndpoint,
+  fetchLibraries,
   fetchValueSets,
   refreshKnowledgeArtifact
 } = require('../utils/knowledgeartifacts');
@@ -245,6 +246,7 @@ function handleUpdatedKnowledgeArtifact(planDefinition, fullUrl, serverUrl) {
   fetchEndpoint(serverUrl, planDefinition);
 
   fetchValueSets(serverUrl, planDefinition, null);
+  fetchLibraries(serverUrl, planDefinition, null);
 
   const subscriptions = subscriptionsFromPlanDef(planDefinition, serverUrl);
   postSubscriptionsToEHR(subscriptions);
