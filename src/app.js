@@ -117,4 +117,6 @@ runWhenDBReady(initConfig);
 runWhenDBReady(refreshAllKnowledgeArtifacts);
 runWhenDBReady(subscribeToKnowledgeArtifacts);
 
+console.log('here!');
+
 module.exports = app;
