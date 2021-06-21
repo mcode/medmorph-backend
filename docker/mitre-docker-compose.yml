@@ -1,0 +1,18 @@
+version: "3"
+
+services:
+  medmorph_backend:
+    image: medmorph_backend
+    container_name: medmorph_backend
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    environment:
+      - DEBUG=medmorph-backend:*
+      - ADMIN_TOKEN=admin
+      - AUTH_CERTS_URL=http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/certs
+      - AUTH_TOKEN_URL=http://moonshot-dev.mitre.org:8090/auth/realms/backend_app/protocol/openid-connect/token
+      - BASE_URL=http://pathways.mitre.org:3000
+      - DATA_TRUST_SERVICE=http://pathways.mitre.org:3005
+      - REQUIRE_AUTH=true
+      - REQUIRE_AUTH_FOR_OUTGOING=true
