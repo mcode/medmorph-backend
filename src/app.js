@@ -118,6 +118,6 @@ runWhenDBReady(refreshAllKnowledgeArtifacts);
 runWhenDBReady(subscribeToKnowledgeArtifacts);
 
 console.log('here!');
-console.log('test 6');
+console.log('test 7');
 
 module.exports = app;
