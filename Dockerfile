@@ -2,8 +2,9 @@ FROM node:14
 
 # Create app directory
 WORKDIR /usr/src/app
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
 RUN npm install
-COPY . .
+COPY --chown=node:node . .
 EXPOSE 3000
+USER node
 CMD npm run-script startProd
